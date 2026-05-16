@@ -1,0 +1,15 @@
+export const NETWORK_COLORS = [
+    '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
+    '#ef4444', '#06b6d4', '#f97316', '#84cc16',
+    '#ec4899', '#14b8a6', '#6366f1', '#eab308',
+    '#22c55e', '#f43f5e', '#0ea5e9', '#a855f7',
+    '#fb923c', '#4ade80', '#38bdf8', '#c084fc',
+    '#fbbf24', '#34d399', '#60a5fa', '#f472b6',
+    '#facc15', '#2dd4bf', '#818cf8', '#fb7185',
+    '#a3e635', '#e879f9', '#67e8f9', '#fcd34d',
+    '#86efac', '#93c5fd', '#d8b4fe', '#fca5a5',
+    '#6ee7b7', '#7dd3fc', '#c4b5fd', '#fda4af',
+    '#bef264', '#f0abfc', '#a5f3fc', '#fed7aa',
+    '#bbf7d0', '#bfdbfe', '#ede9fe', '#fecdd3',
+    '#d9f99d', '#fbcfe8',
+]

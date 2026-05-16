@@ -1,0 +1,56 @@
+.root {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.root.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.box {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    border: 1px solid var(--stroke-1);
+    background: var(--layer-1);
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.root:not(.disabled):hover .box {
+    border-color: var(--accent);
+}
+
+.box.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.tick {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.12s, transform 0.12s;
+}
+
+.box.checked .tick {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    line-height: 1;
+}

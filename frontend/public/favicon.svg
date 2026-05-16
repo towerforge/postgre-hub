@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="195 155 110 110">
+  <defs>
+    <clipPath id="rounded">
+      <rect width="500" height="510" rx="60" ry="60"/>
+    </clipPath>
+  </defs>
+  <rect width="500" height="510" rx="60" ry="60" fill="#0f0f14"/>
+  <!-- Iris -->
+  <circle cx="250" cy="210" r="42" fill="#1e1b2e" stroke="#c4b5fd" stroke-width="5"/>
+  <!-- Pupil -->
+  <circle cx="250" cy="210" r="18" fill="#c4b5fd" opacity="0.2"/>
+  <circle cx="250" cy="210" r="10" fill="#c4b5fd"/>
+</svg>

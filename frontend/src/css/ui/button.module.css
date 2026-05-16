@@ -1,0 +1,92 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    height: 28px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    white-space: nowrap;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* 1 — Primary (green pill) */
+.primary {
+    background: var(--om-green);
+    border-color: var(--om-green);
+    color: var(--om-bg);
+    font-weight: 600;
+}
+.primary:hover:not(:disabled)  { background: var(--om-fg-bright); border-color: var(--om-fg-bright); }
+.primary:active:not(:disabled) { background: var(--om-fg); border-color: var(--om-fg); }
+
+/* 2 — Secondary */
+.secondary {
+    background: var(--om-bg-2);
+    border-color: var(--om-border);
+    color: var(--om-fg);
+}
+.secondary:hover:not(:disabled)  { background: var(--om-bg-3); border-color: var(--om-border-focus); color: var(--om-fg-bright); }
+.secondary:active:not(:disabled) { background: var(--om-bg-4); }
+
+/* 3 — Outline */
+.outline {
+    background: transparent;
+    border-color: var(--om-border-focus);
+    color: var(--om-fg);
+}
+.outline:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
+.outline:active:not(:disabled) { background: var(--om-bg-4); }
+
+/* 4 — Subtle (ghost) */
+.subtle {
+    background: transparent;
+    border-color: transparent;
+    color: var(--om-fg-muted);
+}
+.subtle:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
+.subtle:active:not(:disabled) { background: var(--om-bg-4); }
+
+/* 5 — Danger */
+.danger {
+    background: transparent;
+    border-color: transparent;
+    color: var(--om-red);
+}
+.danger:hover:not(:disabled)  { background: rgba(196,123,123,0.10); }
+.danger:active:not(:disabled) { background: rgba(196,123,123,0.18); }
+
+/* Sizes */
+.sm { height: 22px; padding: 0 10px; font-size: 10.5px; }
+.lg { height: 32px; padding: 0 16px; font-size: 12.5px; }
+
+/* Focus */
+.btn:focus-visible {
+    outline: 1px solid var(--om-fg-muted);
+    outline-offset: 1px;
+}
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
