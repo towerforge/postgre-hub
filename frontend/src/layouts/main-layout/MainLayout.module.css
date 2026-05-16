@@ -1,0 +1,124 @@
+.outerShell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--vsc-bg);
+}
+
+.middle {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--om-gap);
+    gap: 8px;
+    padding: 0 8px;
+}
+
+.bottomGap {
+    flex-shrink: 0;
+    padding: 8px 0 0;
+    display: flex;
+}
+
+.leftSlot,
+.rightSlot {
+    display: flex;
+    flex-shrink: 0;
+}
+.leftSlot:empty,
+.rightSlot:empty {
+    display: none;
+}
+
+
+.rightColumn {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Body fills between titlebar and statusbar */
+.body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* User dropdown */
+.userMenuRoot { position: relative; }
+.userAvatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: var(--acc-blue);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.userAvatar:hover { opacity: 0.85; }
+
+.userDropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 200px;
+    background: var(--vsc-bg-side);
+    border: 1px solid var(--vsc-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 100;
+    overflow: hidden;
+    border-radius: 2px;
+    padding: 0;
+}
+
+.userDropdownHeader {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--vsc-border);
+}
+.userDropdownName {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vsc-fg-strong);
+}
+
+.userDropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--vsc-fg);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+}
+.userDropdownItem:hover { background: var(--vsc-bg-hover); color: var(--vsc-fg-strong); }
+
+.userDropdownDivider {
+    height: 1px;
+    background: var(--vsc-border);
+    margin: 4px 0;
+}

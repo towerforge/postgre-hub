@@ -1,0 +1,125 @@
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-size: 14px;
+}
+
+.wrap {
+    border: 1px solid var(--stroke-1);
+    border-radius: var(--radius-2);
+    overflow: hidden;
+}
+
+/* Header */
+.thead .tr {
+    background: var(--fill-2);
+}
+
+.th {
+    padding: 15px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--stroke-1);
+    white-space: nowrap;
+}
+
+.th.right  { text-align: right; }
+.th.shrink { width: 1%; white-space: nowrap; }
+
+/* Rows */
+.tr {
+    border-bottom: 1px solid var(--stroke-1);
+    transition: background 0.1s;
+}
+
+.tbody .tr:last-child { border-bottom: none; }
+
+.tbody .tr:hover { background: var(--fill-1); }
+
+/* Cells */
+.td {
+    padding: 12px 16px;
+    color: var(--text-1);
+    vertical-align: middle;
+}
+
+.td.right { text-align: right; }
+.td.muted { color: var(--text-2); }
+.td.shrink { width: 1%; white-space: nowrap; }
+
+/* Cell with icon */
+.cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    color: var(--text-2);
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.empty {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--text-3);
+    font-size: 14px;
+}
+
+/* Responsive: desktop shows table, mobile shows cards */
+.tableView { display: block; }
+.cardView   { display: none; }
+
+/* Mobile card view */
+.card {
+    border: 1px solid var(--stroke-1);
+    border-radius: var(--radius-2);
+    padding: 12px 16px;
+    background: var(--layer-1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card + .card { margin-top: 8px; }
+
+.cardRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.cardLabel {
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.cardValue {
+    color: var(--text-1);
+    text-align: right;
+}
+
+.cardActions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid var(--stroke-1);
+    margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+    .tableView { display: none; }
+    .cardView   { display: block; }
+}

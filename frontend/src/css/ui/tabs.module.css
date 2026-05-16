@@ -1,0 +1,98 @@
+/* ── Tabs ──────────────────────────────────────────────── */
+.root {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Tab bar ───────────────────────────────────────────── */
+.bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    border-bottom: 1px solid var(--tab-border);
+    padding: 0 8px;
+}
+
+/* ── Extra actions slot ────────────────────────────────── */
+.actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-bottom: 4px;
+}
+
+/* ── Separador | entre tabs inactivos ─────────────────── */
+.tab:not(.active) + .tab:not(.active)::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: var(--tab-border);
+}
+
+/* ── Individual tab button ─────────────────────────────── */
+.tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--text-2);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.12s, background 0.12s;
+    user-select: none;
+    outline: none;
+    bottom: -1px;
+}
+
+.tab:hover:not(.active) {
+    color: var(--text-1);
+    background: var(--tab-hover-bg);
+}
+
+/* ── Active state ──────────────────────────────────────── */
+.tab.active {
+    color: var(--text-1);
+    font-weight: 600;
+    background: var(--tab-active-bg);
+    border-color: var(--tab-border);
+    border-bottom-color: var(--tab-active-bg);
+}
+
+/* ── Badge / count chip ────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 10px;
+    background: var(--fill-2);
+    color: var(--text-2);
+}
+
+.active .badge {
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+/* ── Panel ─────────────────────────────────────────────── */
+.panel {
+    flex: 1;
+    background: var(--tab-active-bg);
+}

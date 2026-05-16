@@ -1,0 +1,61 @@
+/* ── Base ──────────────────────────────────────────── */
+.span-1  { grid-column: span 1; }
+.span-2  { grid-column: span 2; }
+.span-3  { grid-column: span 3; }
+.span-4  { grid-column: span 4; }
+.span-5  { grid-column: span 5; }
+.span-6  { grid-column: span 6; }
+.span-7  { grid-column: span 7; }
+.span-8  { grid-column: span 8; }
+.span-9  { grid-column: span 9; }
+.span-10 { grid-column: span 10; }
+.span-11 { grid-column: span 11; }
+.span-12 { grid-column: span 12; }
+
+/* ── sm: ≥ 480px ───────────────────────────────────── */
+@media (min-width: 480px) {
+    .sm-1  { grid-column: span 1; }
+    .sm-2  { grid-column: span 2; }
+    .sm-3  { grid-column: span 3; }
+    .sm-4  { grid-column: span 4; }
+    .sm-5  { grid-column: span 5; }
+    .sm-6  { grid-column: span 6; }
+    .sm-7  { grid-column: span 7; }
+    .sm-8  { grid-column: span 8; }
+    .sm-9  { grid-column: span 9; }
+    .sm-10 { grid-column: span 10; }
+    .sm-11 { grid-column: span 11; }
+    .sm-12 { grid-column: span 12; }
+}
+
+/* ── md: ≥ 768px ───────────────────────────────────── */
+@media (min-width: 768px) {
+    .md-1  { grid-column: span 1; }
+    .md-2  { grid-column: span 2; }
+    .md-3  { grid-column: span 3; }
+    .md-4  { grid-column: span 4; }
+    .md-5  { grid-column: span 5; }
+    .md-6  { grid-column: span 6; }
+    .md-7  { grid-column: span 7; }
+    .md-8  { grid-column: span 8; }
+    .md-9  { grid-column: span 9; }
+    .md-10 { grid-column: span 10; }
+    .md-11 { grid-column: span 11; }
+    .md-12 { grid-column: span 12; }
+}
+
+/* ── lg: ≥ 1024px ──────────────────────────────────── */
+@media (min-width: 1024px) {
+    .lg-1  { grid-column: span 1; }
+    .lg-2  { grid-column: span 2; }
+    .lg-3  { grid-column: span 3; }
+    .lg-4  { grid-column: span 4; }
+    .lg-5  { grid-column: span 5; }
+    .lg-6  { grid-column: span 6; }
+    .lg-7  { grid-column: span 7; }
+    .lg-8  { grid-column: span 8; }
+    .lg-9  { grid-column: span 9; }
+    .lg-10 { grid-column: span 10; }
+    .lg-11 { grid-column: span 11; }
+    .lg-12 { grid-column: span 12; }
+}

@@ -1,0 +1,20 @@
+.root {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    min-height: calc(100vh - 45px);
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--stroke-1);
+    background: var(--layer-1);
+    min-height: calc(100vh - 45px);
+    padding: 16px;
+}
