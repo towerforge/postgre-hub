@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'motion/react'
 import { PageTitleProvider } from '@/contexts/page-title'
 import { SidebarsProvider } from '@/contexts/sidebars'
 import { StatusBarProvider } from '@/contexts/status-bar'
@@ -44,35 +43,21 @@ function AppContent() {
     const { status, loading } = useAuth()
     const isAuthed      = status?.authenticated ?? false
     const setupRequired = status?.setup_required ?? false
-    const showOverlay   = !loading && !isAuthed
 
-    return (
-        <>
-            <AppRoutes />
+    if (loading) return null
 
-            <AnimatePresence>
-                {showOverlay && (
-                    <motion.div
-                        key="login-overlay"
-                        initial={{ y: 0 }}
-                        exit={{ y: '-100vh' }}
-                        transition={{ duration: 0.85, ease: [0.65, 0, 0.35, 1] }}
-                        style={{
-                            position: 'fixed', inset: 0, zIndex: 1000,
-                            background: 'var(--om-gap)',
-                            overflow: 'hidden',
-                            boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
-                        }}
-                    >
-                        <AuthView
-                            setupRequired={setupRequired}
-                            onAuthenticated={() => { /* status will flip, triggering exit */ }}
-                        />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </>
-    )
+    if (!isAuthed) {
+        return (
+            <Routes>
+                <Route path="/" element={
+                    <AuthView setupRequired={setupRequired} onAuthenticated={() => {}} />
+                } />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        )
+    }
+
+    return <AppRoutes />
 }
 
 function App() {
