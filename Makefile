@@ -27,14 +27,14 @@ HOST_ARCH := $(shell uname -m)
 
 CARGO_TARGET ?=
 
-BACKEND_BIN := $(if $(CARGO_TARGET),\
+BACKEND_BIN := $(strip $(if $(CARGO_TARGET),\
 	$(BACKEND_DIR)/target/$(CARGO_TARGET)/release/backend$(if $(findstring windows,$(CARGO_TARGET)),.exe,),\
-	$(BACKEND_DIR)/target/release/backend)
+	$(BACKEND_DIR)/target/release/backend))
 
-PLATFORM ?= $(if $(CARGO_TARGET),\
+PLATFORM ?= $(strip $(if $(CARGO_TARGET),\
 	$(if $(findstring apple-darwin,$(CARGO_TARGET)),macos,\
 	$(if $(findstring windows,$(CARGO_TARGET)),windows,linux)),\
-	$(if $(filter darwin,$(HOST_OS)),macos,linux))
+	$(if $(filter darwin,$(HOST_OS)),macos,linux)))
 
 TARGET_ARCH := $(if $(CARGO_TARGET),$(word 1,$(subst -, ,$(CARGO_TARGET))),$(HOST_ARCH))
 
@@ -77,7 +77,6 @@ MACOS_TARGETS ?= \
 
 WINDOWS_TARGETS ?= \
 	x86_64-pc-windows-gnu \
-	aarch64-pc-windows-gnullvm \
 	i686-pc-windows-gnu
 
 # ---------------------------------------------------------------------------

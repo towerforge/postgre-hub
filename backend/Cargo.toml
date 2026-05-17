@@ -1,6 +1,6 @@
 [package]
 name = "backend"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 
 [toolchain]
@@ -23,7 +23,7 @@ uuid = { version = "1", features = ["v4"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tokio-postgres = "0.7"
 ssh2 = { version = "0.9", features = ["vendored-openssl"] }
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 rustls-pemfile = "2"
 webpki-roots = "0.26"
 tokio-postgres-rustls = "0.12"

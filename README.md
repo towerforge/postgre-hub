@@ -24,7 +24,7 @@ Postgre Hub runs as a single binary and serves a browser dashboard. No external 
 ## Requirements
 
 - A network-reachable PostgreSQL instance (any 12+ version)
-- Linux x86_64 / ARM64 / ARMv7 / i686, macOS Intel / Apple Silicon, or Windows x86_64 / ARM64 / i686
+- Linux x86_64 / ARM64 / ARMv7 / i686, macOS Intel / Apple Silicon, or Windows x86_64 / i686
 
 ## Installation
 
@@ -69,7 +69,6 @@ Pre-built binaries are available on the [releases page](https://github.com/tower
 | Platform | Asset |
 |---|---|
 | x86_64 | `postgre-hub-windows-x86_64.zip` |
-| ARM64 | `postgre-hub-windows-aarch64.zip` |
 | i686 | `postgre-hub-windows-i686.zip` |
 
 ## Usage
