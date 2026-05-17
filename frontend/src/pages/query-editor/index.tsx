@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { usePageTitle } from '@/contexts/page-title'
 import { useSidebars } from '@/contexts/sidebars'
+import { avatarColor } from '@/components/projects-shell'
 import {
     apiGetProject, apiListTables, apiListTypes, apiListSequences, apiListRoutines,
     type Project, type TableInfo, type TypeInfo, type SequenceInfo, type RoutineInfo,
@@ -31,7 +32,7 @@ export default function QueryEditor() {
                 setProject(proj)
                 setTables(tbls.tables)
                 setTypes(typs.types)
-                setPageTitle(proj.name, `${proj.host}:${proj.port}/${proj.database}`)
+                setPageTitle(proj.name, `${proj.host}:${proj.port}/${proj.database}`, avatarColor(proj.id))
             })
             .finally(() => setSidebarLoading(false))
         apiListSequences(id).then(r => setSequences(r.sequences)).catch(() => {})

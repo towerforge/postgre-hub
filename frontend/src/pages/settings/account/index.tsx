@@ -134,15 +134,6 @@ export default function AccountPage() {
     return (
         <ProjectsShell headerLeft="Account" headerRight={null}>
             <div style={{ padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div>
-                    <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>Account</h2>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
-                        Change your username or password.
-                    </p>
-                </div>
-            </div>
-
             <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {/* Current password — always required */}
                 <Field label="Current password">
@@ -198,6 +189,7 @@ export default function AccountPage() {
                 <div>
                     <Button
                         variant={1}
+                        size="sm"
                         loading={saving}
                         disabled={!canSave || !newPasswordValid}
                         onClick={handleSave}

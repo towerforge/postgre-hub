@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, X, CheckCircle, XCircle, Loader } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { Button } from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -235,9 +236,9 @@ export default function SshTunnelsPage() {
         <ProjectsShell
             headerLeft={`${tunnels.length} tunnel${tunnels.length !== 1 ? 's' : ''}`}
             headerRight={
-                <button className="conn-new-btn" onClick={() => setModal('create')}>
-                    <Plus size={13} /> new tunnel
-                </button>
+                <Button variant={1} size="sm" onClick={() => setModal('create')}>
+                    <Plus size={12} /> new tunnel
+                </Button>
             }
         >
             {loading ? (

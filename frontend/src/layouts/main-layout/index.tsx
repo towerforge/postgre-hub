@@ -11,7 +11,7 @@ import styles from './MainLayout.module.css'
 export default function MainLayout() {
     const projectMatch  = useMatch('/connections/:id/*')
     const { leftVisible, rightVisible, bottomVisible, toggleLeft, toggleRight, toggleBottom } = useSidebars()
-    const { title, subtitle } = usePageTitle()
+    const { title, subtitle, accent } = usePageTitle()
     const { content: statusContent } = useStatusBar()
     const { content: historyContent } = useHistoryBar()
 
@@ -35,7 +35,7 @@ export default function MainLayout() {
                     {subtitle && (
                         <>
                             <span className="sep">·</span>
-                            <span style={{ color: 'var(--om-green)' }}>{subtitle}</span>
+                            <span style={{ color: accent || 'var(--om-green)' }}>{subtitle}</span>
                         </>
                     )}
                 </NavLink>

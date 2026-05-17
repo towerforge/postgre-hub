@@ -1027,14 +1027,16 @@ a:hover { text-decoration: underline; }
 .conn-list {
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  gap: 6px;
+  padding: 8px 12px;
 }
 .conn-item {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 8px 22px;
+  padding: 10px 14px;
   cursor: pointer;
+  background: var(--om-bg-2);
 }
 .conn-item:hover { background: var(--om-bg-3); }
 .conn-item-name {

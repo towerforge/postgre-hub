@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, CheckCircle, XCircle, Loader, Trash2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { Button, Select } from '@/components/ui'
+import { Button, Select, Spinner, SearchBar } from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -271,6 +271,7 @@ export default function ProjectsHome() {
     const [loading,     setLoading]     = useState(true)
     const [modal,       setModal]       = useState<'create' | Project | null>(null)
     const [hovered,     setHovered]     = useState<string | null>(null)
+    const [query,       setQuery]       = useState('')
 
     const navigate = useNavigate()
 
@@ -289,6 +290,15 @@ export default function ProjectsHome() {
         load()
     }
 
+    const q = query.trim().toLowerCase()
+    const filtered = q
+        ? projects.filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            p.host.toLowerCase().includes(q) ||
+            p.database.toLowerCase().includes(q) ||
+            p.username.toLowerCase().includes(q))
+        : projects
+
     return (
         <>
         <ProjectsShell
@@ -300,45 +310,64 @@ export default function ProjectsHome() {
             }
         >
             {loading ? (
-                <div style={{ padding: 16, textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12 }}>Loading…</div>
+                <div style={{ padding: 16, display: 'flex', justifyContent: 'center' }}>
+                    <Spinner label="Loading…" />
+                </div>
             ) : projects.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
                     No connections yet.<br />
                     Click <Plus size={11} style={{ verticalAlign: 'middle' }} /> new connection to start.
                 </div>
             ) : (
-                <div className="conn-list">
-                    {projects.map(p => {
-                        const isHovered = hovered === p.id
-                        return (
-                            <div
-                                key={p.id}
-                                className="conn-item"
-                                onClick={() => navigate(`/connections/${p.id}`)}
-                                onMouseEnter={() => setHovered(p.id)}
-                                onMouseLeave={() => setHovered(null)}
-                            >
-                                <span className="conn-avatar" style={{ color: avatarColor(p.id) }}>
-                                    {initialsOf(p.name)}
-                                </span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="conn-item-name">{p.name}</div>
-                                    <div className="conn-item-uri">
-                                        postgres://{p.username}@{p.host}:{p.port}/{p.database}
-                                    </div>
-                                </div>
-                                {isHovered && (
-                                    <button
-                                        className="pos-btn"
-                                        onClick={e => { e.stopPropagation(); setModal(p) }}
-                                    >
-                                        [edit]
-                                    </button>
-                                )}
-                            </div>
-                        )
-                    })}
+                <>
+                <div style={{ padding: '12px 16px 0' }}>
+                    <SearchBar
+                        value={query}
+                        onChange={setQuery}
+                        placeholder="filter by name, host, database, user…"
+                        style={{ width: '100%' }}
+                        autoFocus
+                    />
                 </div>
+                {filtered.length === 0 ? (
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+                        no matches for <span style={{ color: 'var(--om-fg-bright)' }}>"{query}"</span>
+                    </div>
+                ) : (
+                    <div className="conn-list">
+                        {filtered.map(p => {
+                            const isHovered = hovered === p.id
+                            return (
+                                <div
+                                    key={p.id}
+                                    className="conn-item"
+                                    onClick={() => navigate(`/connections/${p.id}`)}
+                                    onMouseEnter={() => setHovered(p.id)}
+                                    onMouseLeave={() => setHovered(null)}
+                                >
+                                    <span className="conn-avatar" style={{ color: avatarColor(p.id) }}>
+                                        {initialsOf(p.name)}
+                                    </span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div className="conn-item-name">{p.name}</div>
+                                        <div className="conn-item-uri">
+                                            postgres://{p.username}@{p.host}:{p.port}/{p.database}
+                                        </div>
+                                    </div>
+                                    {isHovered && (
+                                        <button
+                                            className="pos-btn"
+                                            onClick={e => { e.stopPropagation(); setModal(p) }}
+                                        >
+                                            [edit]
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+                </>
             )}
         </ProjectsShell>
 

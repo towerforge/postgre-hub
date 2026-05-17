@@ -219,8 +219,14 @@ export default function UsersPage() {
     ]
 
     return (
-        <ProjectsShell headerLeft="Users" headerRight={null}>
-            <div style={{ padding: 24 }}>
+        <ProjectsShell
+            headerLeft={`${users.length} user${users.length !== 1 ? 's' : ''}`}
+            headerRight={
+                <Button variant={1} size="sm" onClick={() => setAddOpen(true)}>
+                    <Plus size={12} /> new user
+                </Button>
+            }
+        >
             <AddUserModal
                 open={addOpen}
                 onClose={() => setAddOpen(false)}
@@ -233,25 +239,13 @@ export default function UsersPage() {
                 onDone={() => load()}
             />
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div>
-                    <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-1)' }}>Users</h2>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>
-                        Manage who can access Postgre Hub.
-                    </p>
-                </div>
-                <Button variant={1} onClick={() => setAddOpen(true)}>
-                    <Plus size={14} style={{ marginRight: 4 }} />
-                    Add user
-                </Button>
-            </div>
-
-            <Table
-                columns={columns}
-                data={users}
-                keyExtractor={u => u.id}
-                emptyMessage="No users found."
-            />
+            <div style={{ padding: 24 }}>
+                <Table
+                    columns={columns}
+                    data={users}
+                    keyExtractor={u => u.id}
+                    emptyMessage="No users found."
+                />
             </div>
         </ProjectsShell>
     )
