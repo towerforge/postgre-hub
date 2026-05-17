@@ -3,7 +3,7 @@ use std::path::Path;
 
 pub fn open(data_dir: &Path) -> Result<Connection> {
     let _ = std::fs::create_dir_all(data_dir);
-    let conn = Connection::open(data_dir.join("pg-admin.db"))?;
+    let conn = Connection::open(data_dir.join("postgre-hub.db"))?;
     conn.execute_batch(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous  = NORMAL;

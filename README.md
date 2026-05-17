@@ -87,7 +87,7 @@ Open [http://localhost:8080](http://localhost:8080). On first launch you will be
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATA_DIR` | `.` | Directory where `pg-admin.db` is stored |
+| `DATA_DIR` | `.` | Directory where `postgre-hub.db` is stored |
 | `SESSION_DURATION_HOURS` | `24` | Session lifetime in hours |
 | `SECURE_COOKIES` | `false` | Set to `true` to add the `Secure` flag to session cookies. Enable when running behind an HTTPS reverse proxy |
 
