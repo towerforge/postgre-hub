@@ -6,12 +6,9 @@ dist
 .logs
 
 # SQLite (local data, never commit)
-dock-sight.db
-dock-sight.db-shm
-dock-sight.db-wal
-pg-admin.db
-pg-admin.db-shm
-pg-admin.db-wal
+postgre-hub.db
+postgre-hub.db-shm
+postgre-hub.db-wal
 
 # Editor / OS
 .idea

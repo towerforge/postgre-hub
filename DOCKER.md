@@ -57,7 +57,7 @@ environment:
   - SESSION_DURATION_HOURS=12
 ```
 
-All app data — users, saved connections and SSH tunnels — is stored in a single SQLite database (`$DATA_DIR/pg-admin.db`). Mount a named volume at `DATA_DIR` so it survives container updates.
+All app data — users, saved connections and SSH tunnels — is stored in a single SQLite database (`$DATA_DIR/postgre-hub.db`). Mount a named volume at `DATA_DIR` so it survives container updates.
 
 ### Persistence behaviour
 
@@ -87,13 +87,13 @@ Then open [http://localhost:9090](http://localhost:9090).
 
 | Variable | Default | Description |
 |---|---|---|
-| `DATA_DIR` | `.` | Directory where `pg-admin.db` is stored |
+| `DATA_DIR` | `.` | Directory where `postgre-hub.db` is stored |
 | `SESSION_DURATION_HOURS` | `24` | Session lifetime in hours |
 | `SECURE_COOKIES` | `false` | Set to `true` to add the `Secure` flag to session cookies. Enable when running behind an HTTPS reverse proxy |
 
 ## Notes
 
-- Stored database passwords and SSH credentials are kept in the local SQLite file — protect `$DATA_DIR/pg-admin.db` accordingly
+- Stored database passwords and SSH credentials are kept in the local SQLite file — protect `$DATA_DIR/postgre-hub.db` accordingly
 - The container does **not** need access to the Docker socket — Postgre Hub only talks to PostgreSQL endpoints you configure
 - Run it on a private network or behind an authenticating reverse proxy; the app does not enforce TLS itself
 
