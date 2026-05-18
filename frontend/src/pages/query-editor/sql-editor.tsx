@@ -309,7 +309,7 @@ export function SqlEditor({
 
             {/* ── Results tile ───────────────────────────── */}
             <div className="tile" style={{ flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, background: 'var(--vsc-bg-panel)' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--vsc-bg-panel)' }}>
                     {loading ? (
                         <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><Spinner /></div>
                     ) : activeError ? (
