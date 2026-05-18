@@ -1,25 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp } from 'lucide-react'
+import { ArrowUp, Plus } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { EditorView } from '@codemirror/view'
 import { editorTheme } from './editor-theme'
 import { Modal, Button, Spinner } from '@/components/ui'
-import { apiRunQuery, apiBuildUpdate, type QueryResult, type UpdateRow } from '@/services/database'
+import { apiRunQuery, apiBuildChanges, type QueryResult, type UpdateRow, type DeleteRow, type InsertRow } from '@/services/database'
+import { excelCol } from './utils'
 
 type Sel = { ar: number; ac: number; r0: number; c0: number; r1: number; c1: number }
-
-function excelCol(n: number): string {
-    let s = ''
-    let k = n + 1
-    while (k > 0) {
-        k--
-        s = String.fromCharCode(65 + (k % 26)) + s
-        k = Math.floor(k / 26)
-    }
-    return s
-}
 
 export function ResultTabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
     return (
@@ -59,6 +49,8 @@ export function QueryResultView({
     const resizingRef = useRef<{ ci: number; startX: number; startW: number } | null>(null)
     const [expand, setExpand] = useState<{ text: string; top: number; left: number; minWidth: number } | null>(null)
     const [edits, setEdits] = useState<Map<string, string>>(new Map())
+    const [deletes, setDeletes] = useState<Set<number>>(new Set())
+    const [inserts, setInserts] = useState<Array<Map<number, string>>>([])
     const [modalOpen, setModalOpen] = useState(false)
     const [applying, setApplying] = useState(false)
     const [applyError, setApplyError] = useState<string | null>(null)
@@ -66,10 +58,38 @@ export function QueryResultView({
     const typingSelRef = useRef<string | null>(null)
     const wrapRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => { setEdits(new Map()); typingSelRef.current = null }, [result])
+    useEffect(() => { setEdits(new Map()); setDeletes(new Set()); setInserts([]); typingSelRef.current = null }, [result])
 
     useEffect(() => {
         if (!editable || !sel) return
+        const nReal = result.rows.length
+        const writeCells = (
+            cells: Array<{ ri: number; ci: number; k: string }>,
+            fn: (prev: string | undefined) => string,
+        ) => {
+            const realCells    = cells.filter(c => c.ri < nReal)
+            const phantomCells = cells.filter(c => c.ri >= nReal)
+            if (realCells.length) {
+                setEdits(m => {
+                    const n = new Map(m)
+                    realCells.forEach(c => n.set(c.k, fn(n.get(c.k))))
+                    return n
+                })
+            }
+            if (phantomCells.length) {
+                setInserts(arr => {
+                    const next = arr.slice()
+                    phantomCells.forEach(c => {
+                        const idx = c.ri - nReal
+                        if (idx < 0 || idx >= next.length) return
+                        const map = new Map(next[idx])
+                        map.set(c.ci, fn(map.get(c.ci)))
+                        next[idx] = map
+                    })
+                    return next
+                })
+            }
+        }
         const onKey = (e: KeyboardEvent) => {
             const t = e.target as HTMLElement | null
             if (t && t.tagName !== 'BODY' && !wrapRef.current?.contains(t)) return
@@ -79,23 +99,78 @@ export function QueryResultView({
                 for (let c = sel.c0; c <= sel.c1; c++)
                     cells.push({ k: `${r}:${c}`, ri: r, ci: c })
             const selKey = `${sel.r0}:${sel.c0}:${sel.r1}:${sel.c1}`
+            const isFullRowSel = sel.c0 === 0 && sel.c1 === result.columns.length - 1
+            const allPhantom = sel.r0 >= nReal
+            const allReal    = sel.r1 < nReal
 
             if (e.key === 'Escape') {
                 setEdits(m => {
                     const n = new Map(m)
-                    cells.forEach(c => n.delete(c.k))
+                    cells.filter(c => c.ri < nReal).forEach(c => n.delete(c.k))
                     return n
                 })
+                setInserts(arr => {
+                    const next = arr.slice()
+                    cells.filter(c => c.ri >= nReal).forEach(c => {
+                        const idx = c.ri - nReal
+                        if (idx < 0 || idx >= next.length) return
+                        const map = new Map(next[idx])
+                        map.delete(c.ci)
+                        next[idx] = map
+                    })
+                    return next
+                })
+                if (isFullRowSel && allReal) {
+                    setDeletes(s => {
+                        const n = new Set(s)
+                        for (let r = sel.r0; r <= sel.r1; r++) n.delete(r)
+                        return n
+                    })
+                }
                 typingSelRef.current = null
                 e.preventDefault()
                 return
             }
+            // Suprimir/`-` on a full-row selection: mark real rows for delete, drop phantom rows.
+            if ((e.key === 'Delete' || e.key === '-') && isFullRowSel) {
+                if (allPhantom) {
+                    const phantomIdxs: number[] = []
+                    for (let r = sel.r0; r <= sel.r1; r++) phantomIdxs.push(r - nReal)
+                    setInserts(arr => arr.filter((_, i) => !phantomIdxs.includes(i)))
+                    setSel(null)
+                    typingSelRef.current = null
+                    e.preventDefault()
+                    return
+                }
+                if (allReal) {
+                    const rowRange: number[] = []
+                    for (let r = sel.r0; r <= sel.r1; r++) rowRange.push(r)
+                    const allMarked = rowRange.every(r => deletes.has(r))
+                    setDeletes(s => {
+                        const n = new Set(s)
+                        if (allMarked) rowRange.forEach(r => n.delete(r))
+                        else           rowRange.forEach(r => n.add(r))
+                        return n
+                    })
+                    if (!allMarked) {
+                        setEdits(m => {
+                            const n = new Map(m)
+                            for (const k of Array.from(n.keys())) {
+                                const r = Number(k.split(':')[0])
+                                if (r >= sel.r0 && r <= sel.r1) n.delete(k)
+                            }
+                            return n
+                        })
+                        typingSelRef.current = null
+                    }
+                    e.preventDefault()
+                    return
+                }
+                // Mixed selection: ignore.
+                return
+            }
             if (e.key === 'Backspace' || e.key === 'Delete') {
-                setEdits(m => {
-                    const n = new Map(m)
-                    cells.forEach(c => n.set(c.k, e.key === 'Delete' ? '' : (n.get(c.k) ?? '').slice(0, -1)))
-                    return n
-                })
+                writeCells(cells, prev => e.key === 'Delete' ? '' : (prev ?? '').slice(0, -1))
                 typingSelRef.current = selKey
                 e.preventDefault()
                 return
@@ -103,21 +178,18 @@ export function QueryResultView({
             if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const fresh = typingSelRef.current !== selKey
                 typingSelRef.current = selKey
-                setEdits(m => {
-                    const n = new Map(m)
-                    cells.forEach(c => n.set(c.k, fresh ? e.key : (n.get(c.k) ?? '') + e.key))
-                    return n
-                })
+                writeCells(cells, prev => fresh ? e.key : (prev ?? '') + e.key)
                 e.preventDefault()
             }
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-    }, [editable, sel])
+    }, [editable, sel, deletes, inserts, result])
 
     // Copy current selection to clipboard as TSV (works for any result, editable or not).
     useEffect(() => {
         if (!sel) return
+        const nReal = result.rows.length
         const onCopy = (e: ClipboardEvent) => {
             const t = e.target as HTMLElement | null
             if (t && t.tagName !== 'BODY' && !wrapRef.current?.contains(t)) return
@@ -125,10 +197,18 @@ export function QueryResultView({
             for (let r = sel.r0; r <= sel.r1; r++) {
                 const cells: string[] = []
                 for (let c = sel.c0; c <= sel.c1; c++) {
-                    const editVal = edits.get(`${r}:${c}`)
-                    const raw = editVal !== undefined
-                        ? (editVal.toLowerCase() === 'null' ? null : editVal)
-                        : (result.rows[r] as unknown[])[c]
+                    let raw: unknown
+                    if (r < nReal) {
+                        const editVal = edits.get(`${r}:${c}`)
+                        raw = editVal !== undefined
+                            ? (editVal.toLowerCase() === 'null' ? null : editVal)
+                            : (result.rows[r] as unknown[])[c]
+                    } else {
+                        const v = inserts[r - nReal]?.get(c)
+                        raw = v === undefined
+                            ? ''
+                            : (v.toLowerCase() === 'null' ? null : v)
+                    }
                     cells.push(raw === null || raw === undefined ? '' : String(raw))
                 }
                 lines.push(cells.join('\t'))
@@ -138,12 +218,14 @@ export function QueryResultView({
         }
         document.addEventListener('copy', onCopy)
         return () => document.removeEventListener('copy', onCopy)
-    }, [sel, edits, result])
+    }, [sel, edits, inserts, result])
 
     // Paste TSV into the selection — single value fills the selection, a block
     // is spread starting at the top-left cell of the selection.
     useEffect(() => {
         if (!editable || !sel) return
+        const nReal = result.rows.length
+        const totalRows = nReal + inserts.length
         const onPaste = (e: ClipboardEvent) => {
             const t = e.target as HTMLElement | null
             if (t && t.tagName !== 'BODY' && !wrapRef.current?.contains(t)) return
@@ -156,35 +238,53 @@ export function QueryResultView({
             const pc = grid[0]?.length ?? 0
             if (pr === 0 || pc === 0) return
             const fill = pr === 1 && pc === 1
-
-            const maxRows = result.rows.length
             const maxCols = result.columns.length
 
-            setEdits(m => {
-                const n = new Map(m)
-                if (fill) {
-                    const v = grid[0][0]
-                    for (let r = sel.r0; r <= sel.r1; r++)
-                        for (let c = sel.c0; c <= sel.c1; c++)
-                            n.set(`${r}:${c}`, v)
-                } else {
-                    for (let r = 0; r < pr; r++) {
-                        const tr = sel.r0 + r
-                        if (tr >= maxRows) break
-                        for (let c = 0; c < pc; c++) {
-                            const tc = sel.c0 + c
-                            if (tc >= maxCols) break
-                            n.set(`${tr}:${tc}`, grid[r][c])
-                        }
+            const writes: Array<{ ri: number; ci: number; v: string }> = []
+            if (fill) {
+                const v = grid[0][0]
+                for (let r = sel.r0; r <= sel.r1; r++)
+                    for (let c = sel.c0; c <= sel.c1; c++)
+                        writes.push({ ri: r, ci: c, v })
+            } else {
+                for (let r = 0; r < pr; r++) {
+                    const tr = sel.r0 + r
+                    if (tr >= totalRows) break
+                    for (let c = 0; c < pc; c++) {
+                        const tc = sel.c0 + c
+                        if (tc >= maxCols) break
+                        writes.push({ ri: tr, ci: tc, v: grid[r][c] })
                     }
                 }
-                return n
-            })
+            }
+
+            const realWrites    = writes.filter(w => w.ri < nReal)
+            const phantomWrites = writes.filter(w => w.ri >= nReal)
+            if (realWrites.length) {
+                setEdits(m => {
+                    const n = new Map(m)
+                    realWrites.forEach(w => n.set(`${w.ri}:${w.ci}`, w.v))
+                    return n
+                })
+            }
+            if (phantomWrites.length) {
+                setInserts(arr => {
+                    const next = arr.slice()
+                    phantomWrites.forEach(w => {
+                        const idx = w.ri - nReal
+                        if (idx < 0 || idx >= next.length) return
+                        const map = new Map(next[idx])
+                        map.set(w.ci, w.v)
+                        next[idx] = map
+                    })
+                    return next
+                })
+            }
             typingSelRef.current = null
         }
         document.addEventListener('paste', onPaste)
         return () => document.removeEventListener('paste', onPaste)
-    }, [editable, sel, result])
+    }, [editable, sel, inserts, result])
 
     useEffect(() => {
         if (!expand) return
@@ -267,30 +367,50 @@ export function QueryResultView({
         : ''
     const isRange = !!sel && (sel.r0 !== sel.r1 || sel.c0 !== sel.c1)
 
-    const buildPendingRows = (): UpdateRow[] => {
+    const rowWhereCells = (ri: number) =>
+        (result.rows[ri] as unknown[]).map((val, ci) => ({
+            name: cols[ci].name,
+            type: cols[ci].type,
+            value: val === null || val === undefined ? null : String(val),
+        }))
+
+    const buildPendingPayload = (): { inserts: InsertRow[]; updates: UpdateRow[]; deletes: DeleteRow[] } => {
         const byRow = new Map<number, Array<{ ci: number; raw: string }>>()
         for (const [k, raw] of edits) {
             const [r, c] = k.split(':').map(Number)
+            if (deletes.has(r)) continue
             const list = byRow.get(r) ?? []
             list.push({ ci: c, raw })
             byRow.set(r, list)
         }
-        const sortedRows = [...byRow.keys()].sort((a, b) => a - b)
-        return sortedRows.map(ri => {
-            const row = result.rows[ri] as unknown[]
-            return {
-                set: byRow.get(ri)!.map(({ ci, raw }) => ({
-                    name: cols[ci].name,
-                    type: cols[ci].type,
-                    raw,
-                })),
-                where: row.map((val, ci) => ({
-                    name: cols[ci].name,
-                    type: cols[ci].type,
-                    value: val === null || val === undefined ? null : String(val),
-                })),
-            }
-        })
+        const updates: UpdateRow[] = [...byRow.keys()].sort((a, b) => a - b).map(ri => ({
+            set: byRow.get(ri)!.map(({ ci, raw }) => ({
+                name: cols[ci].name,
+                type: cols[ci].type,
+                raw,
+            })),
+            where: rowWhereCells(ri),
+        }))
+        const deleteRows: DeleteRow[] = [...deletes].sort((a, b) => a - b).map(ri => ({
+            where: rowWhereCells(ri),
+        }))
+        const insertRows: InsertRow[] = inserts.map(map => ({
+            values: [...map.entries()].sort(([a], [b]) => a - b).map(([ci, raw]) => ({
+                name: cols[ci].name,
+                type: cols[ci].type,
+                raw,
+            })),
+        }))
+        return { inserts: insertRows, updates, deletes: deleteRows }
+    }
+
+    const pendingCount = edits.size + deletes.size + inserts.length
+
+    const addInsertRow = () => {
+        const newIdx = result.rows.length + inserts.length
+        setInserts(arr => [...arr, new Map()])
+        setSel({ ar: newIdx, ac: 0, r0: newIdx, c0: 0, r1: newIdx, c1: 0 })
+        wrapRef.current?.focus()
     }
 
     const openApplyModal = async () => {
@@ -299,8 +419,8 @@ export function QueryResultView({
         setBuiltSQL(null)
         setModalOpen(true)
         try {
-            const { sql } = await apiBuildUpdate(projectId, {
-                schema, table: tableName, rows: buildPendingRows(),
+            const { sql } = await apiBuildChanges(projectId, {
+                schema, table: tableName, ...buildPendingPayload(),
             })
             setBuiltSQL(sql)
         } catch (e: unknown) {
@@ -315,6 +435,8 @@ export function QueryResultView({
         try {
             await apiRunQuery(projectId, builtSQL)
             setEdits(new Map())
+            setDeletes(new Set())
+            setInserts([])
             setModalOpen(false)
             onApplied?.()
         } catch (e: unknown) {
@@ -365,21 +487,24 @@ export function QueryResultView({
                     </tr>
                 </thead>
                 <tbody>
-                    {result.rows.length === 0 ? (
+                    {result.rows.length === 0 && inserts.length === 0 && (
                         <tr>
                             <td className="row-num" />
                             <td colSpan={cols.length} style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 12, padding: '24px 0' }}>
                                 No rows returned.
                             </td>
                         </tr>
-                    ) : result.rows.map((row, ri) => {
+                    )}
+                    {result.rows.map((row, ri) => {
                         const inRow = !!sel && ri >= sel.r0 && ri <= sel.r1
+                        const isDeleted = deletes.has(ri)
                         return (
-                            <tr key={ri}>
+                            <tr key={`r${ri}`}>
                                 <td
                                     className={`row-num${inRow ? ' sel' : ''}`}
                                     onMouseDown={e => { e.preventDefault(); startRow(ri) }}
                                     onMouseEnter={() => extendRow(ri)}
+                                    style={isDeleted ? { color: 'var(--acc-red)', background: 'rgba(244,135,113,0.18)' } : undefined}
                                 >{ri + 1}</td>
                                 {(row as unknown[]).map((cell, ci) => {
                                     const inSel  = !!sel && ri >= sel.r0 && ri <= sel.r1 && ci >= sel.c0 && ci <= sel.c1
@@ -390,8 +515,15 @@ export function QueryResultView({
                                         ? (editVal!.toLowerCase() === 'null' ? null : editVal)
                                         : cell
                                     const style: React.CSSProperties = {}
-                                    if (isEdited && inSel)      style.background = 'rgba(158,184,127,0.36)'
-                                    else if (isEdited || inSel) style.background = 'rgba(158,184,127,0.18)'
+                                    if (isDeleted) {
+                                        style.background = inSel
+                                            ? 'rgba(244,135,113,0.36)'
+                                            : 'rgba(244,135,113,0.18)'
+                                    } else if (isEdited && inSel) {
+                                        style.background = 'rgba(158,184,127,0.36)'
+                                    } else if (isEdited || inSel) {
+                                        style.background = 'rgba(158,184,127,0.18)'
+                                    }
                                     return (
                                         <td
                                             key={ci}
@@ -423,17 +555,71 @@ export function QueryResultView({
                             </tr>
                         )
                     })}
+                    {inserts.map((entry, ii) => {
+                        const ri = result.rows.length + ii
+                        const inRow = !!sel && ri >= sel.r0 && ri <= sel.r1
+                        return (
+                            <tr key={`+${ii}`}>
+                                <td
+                                    className={`row-num${inRow ? ' sel' : ''}`}
+                                    onMouseDown={e => { e.preventDefault(); startRow(ri) }}
+                                    onMouseEnter={() => extendRow(ri)}
+                                    style={{ color: 'var(--om-green)', background: 'rgba(158,184,127,0.10)' }}
+                                    title="New row (pending insert)"
+                                >+{ii + 1}</td>
+                                {cols.map((_, ci) => {
+                                    const inSel = !!sel && ri >= sel.r0 && ri <= sel.r1 && ci >= sel.c0 && ci <= sel.c1
+                                    const v = entry.get(ci)
+                                    const isSet = v !== undefined
+                                    const display: unknown = isSet
+                                        ? (v!.toLowerCase() === 'null' ? null : v)
+                                        : null
+                                    const style: React.CSSProperties = {
+                                        background: inSel ? 'rgba(158,184,127,0.36)' : 'rgba(158,184,127,0.10)',
+                                    }
+                                    return (
+                                        <td
+                                            key={ci}
+                                            className={!isSet ? 'null-cell' : (display === null ? 'null-cell' : '')}
+                                            style={style}
+                                            onMouseDown={e => { e.preventDefault(); startCell(ri, ci) }}
+                                            onMouseEnter={() => extendCell(ri, ci)}
+                                        >
+                                            {!isSet
+                                                ? <span style={{ opacity: 0.5 }}>default</span>
+                                                : display === null
+                                                ? 'null'
+                                                : typeof display === 'number'
+                                                ? <span style={{ color: 'var(--color-info)' }}>{String(display)}</span>
+                                                : String(display)
+                                            }
+                                        </td>
+                                    )
+                                })}
+                            </tr>
+                        )
+                    })}
                 </tbody>
             </table>
         </div>
         <div style={{
             height: 32, flexShrink: 0,
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '0 12px',
+            display: 'flex', alignItems: 'center', gap: 20,
+            padding: '0 16px',
             borderTop: '1px solid var(--om-border)',
             background: 'var(--om-bg-2)',
             fontFamily: 'var(--font-mono)', fontSize: 11,
         }}>
+            <span style={{ color: 'var(--om-fg-muted)' }}>
+                <span style={{ opacity: 0.7 }}>rows </span>
+                <span style={{ color: 'var(--om-fg)' }}>{result.total ?? result.rows.length}</span>
+            </span>
+            {result.duration_ms !== undefined && (
+                <span style={{ color: 'var(--om-fg-muted)' }}>
+                    <span style={{ opacity: 0.7 }}>time </span>
+                    <span style={{ color: 'var(--om-green)' }}>{(result.duration_ms / 1000).toFixed(2)}s</span>
+                </span>
+            )}
             <span style={{ color: sel ? 'var(--om-green)' : 'var(--om-fg-muted)' }}>
                 {selLabel || '—'}
             </span>
@@ -442,24 +628,44 @@ export function QueryResultView({
                     {sel.r1 - sel.r0 + 1}R × {sel.c1 - sel.c0 + 1}C
                 </span>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-                {edits.size > 0 && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+                {pendingCount > 0 && (
                     <span style={{ color: 'var(--om-fg-muted)' }}>
-                        {edits.size} pending edit{edits.size === 1 ? '' : 's'}
+                        {[
+                            inserts.length > 0 && `${inserts.length} insert${inserts.length === 1 ? '' : 's'}`,
+                            edits.size    > 0 && `${edits.size} edit${edits.size === 1 ? '' : 's'}`,
+                            deletes.size  > 0 && `${deletes.size} delete${deletes.size === 1 ? '' : 's'}`,
+                        ].filter(Boolean).join(' · ')}
                     </span>
+                )}
+                {editable && (
+                    <button
+                        className="pos-btn"
+                        onClick={addInsertRow}
+                        style={{
+                            height: 22, padding: '0 10px',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            color: 'var(--om-green)',
+                            cursor: 'pointer',
+                        }}
+                        title="Add a new empty row"
+                    >
+                        <Plus size={11} />
+                        [add row]
+                    </button>
                 )}
                 <button
                     className="pos-btn"
-                    disabled={edits.size === 0}
+                    disabled={pendingCount === 0}
                     onClick={openApplyModal}
                     style={{
                         height: 22, padding: '0 10px',
                         display: 'inline-flex', alignItems: 'center', gap: 6,
-                        color: edits.size > 0 ? 'var(--om-green)' : 'var(--om-fg-muted)',
-                        opacity: edits.size > 0 ? 1 : 0.5,
-                        cursor: edits.size > 0 ? 'pointer' : 'default',
+                        color: pendingCount > 0 ? 'var(--om-green)' : 'var(--om-fg-muted)',
+                        opacity: pendingCount > 0 ? 1 : 0.5,
+                        cursor: pendingCount > 0 ? 'pointer' : 'default',
                     }}
-                    title={!editable ? 'Editing requires opening a table from the sidebar' : 'Preview and apply pending edits'}
+                    title={!editable ? 'Editing requires opening a table from the sidebar' : 'Preview and apply pending changes'}
                 >
                     <ArrowUp size={11} />
                     [apply]

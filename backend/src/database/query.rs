@@ -874,7 +874,7 @@ pub async fn get_sessions(
     }
 }
 
-// ── Build UPDATE statements from cell edits ──────────────────────────────────
+// ── Build UPDATE / DELETE statements from cell edits ─────────────────────────
 
 #[derive(Deserialize)]
 pub struct SetCell {
@@ -900,10 +900,34 @@ pub struct UpdateRow {
 }
 
 #[derive(Deserialize)]
-pub struct BuildUpdateRequest {
-    pub schema: String,
-    pub table:  String,
-    pub rows:   Vec<UpdateRow>,
+pub struct DeleteRow {
+    #[serde(rename = "where")]
+    pub r#where: Vec<WhereCell>,
+}
+
+#[derive(Deserialize)]
+pub struct InsertCell {
+    pub name:    String,
+    #[serde(rename = "type")]
+    pub r#type:  String,
+    pub raw:     String,
+}
+
+#[derive(Deserialize)]
+pub struct InsertRow {
+    pub values: Vec<InsertCell>,
+}
+
+#[derive(Deserialize)]
+pub struct BuildChangesRequest {
+    pub schema:  String,
+    pub table:   String,
+    #[serde(default)]
+    pub inserts: Vec<InsertRow>,
+    #[serde(default)]
+    pub updates: Vec<UpdateRow>,
+    #[serde(default)]
+    pub deletes: Vec<DeleteRow>,
 }
 
 fn q_ident(s: &str) -> String {
@@ -940,16 +964,27 @@ fn q_lit(value: &str, ty: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
-pub async fn build_update(
+fn pk_where_clause(pk_cols: &[String], where_cells: &[WhereCell]) -> Result<Vec<String>, String> {
+    pk_cols.iter().map(|pk| {
+        let c = where_cells.iter().find(|w| &w.name == pk)
+            .ok_or_else(|| format!("Missing value for primary-key column \"{}\" in row", pk))?;
+        Ok(match &c.value {
+            None    => format!("{} IS NULL", q_ident(&c.name)),
+            Some(v) => format!("{} = {}", q_ident(&c.name), q_lit(v, &c.r#type)),
+        })
+    }).collect()
+}
+
+pub async fn build_changes(
     State(auth): State<AuthState>,
     Path(id): Path<String>,
-    Json(body): Json<BuildUpdateRequest>,
+    Json(body): Json<BuildChangesRequest>,
 ) -> impl IntoResponse {
     if body.schema.is_empty() || body.table.is_empty() {
         return (StatusCode::BAD_REQUEST, Json(json!({ "error": "schema and table are required" })));
     }
-    if body.rows.is_empty() {
-        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "no rows to update" })));
+    if body.inserts.is_empty() && body.updates.is_empty() && body.deletes.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "no changes to apply" })));
     }
 
     let client = match connect(&auth, &id).await {
@@ -976,19 +1011,41 @@ pub async fn build_update(
 
     if pk_cols.is_empty() {
         return (StatusCode::BAD_REQUEST, Json(json!({
-            "error": format!("Table {}.{} has no primary key — cannot safely build UPDATE", body.schema, body.table),
+            "error": format!("Table {}.{} has no primary key — cannot safely build changes", body.schema, body.table),
         })));
     }
 
     let qualified = format!("{}.{}", q_ident(&body.schema), q_ident(&body.table));
-    let mut stmts = Vec::with_capacity(body.rows.len());
+    let mut stmts: Vec<String> = Vec::with_capacity(
+        body.inserts.len() + body.updates.len() + body.deletes.len(),
+    );
 
-    for row in &body.rows {
+    for row in &body.inserts {
+        if row.values.is_empty() {
+            stmts.push(format!("INSERT INTO {} DEFAULT VALUES;", qualified));
+            continue;
+        }
+        let col_idents: Vec<String> = row.values.iter().map(|c| q_ident(&c.name)).collect();
+        let val_lits:   Vec<String> = row.values.iter().map(|c| {
+            if c.raw.eq_ignore_ascii_case("null") {
+                "NULL".to_string()
+            } else {
+                q_lit(&c.raw, &c.r#type)
+            }
+        }).collect();
+        stmts.push(format!(
+            "INSERT INTO {} ({})\nVALUES ({});",
+            qualified,
+            col_idents.join(", "),
+            val_lits.join(", "),
+        ));
+    }
+
+    for row in &body.updates {
         if row.set.is_empty() {
-            return (StatusCode::BAD_REQUEST, Json(json!({ "error": "row.set cannot be empty" })));
+            return (StatusCode::BAD_REQUEST, Json(json!({ "error": "update.set cannot be empty" })));
         }
 
-        // Skip rewriting columns that are part of the PK in SET — preserve user intent
         let set_clause: Vec<String> = row.set.iter().map(|c| {
             let val = if c.raw.eq_ignore_ascii_case("null") {
                 "NULL".to_string()
@@ -998,24 +1055,28 @@ pub async fn build_update(
             format!("{} = {}", q_ident(&c.name), val)
         }).collect();
 
-        // Build WHERE from only the primary-key columns, in PK order
-        let mut where_clause: Vec<String> = Vec::with_capacity(pk_cols.len());
-        for pk in &pk_cols {
-            let Some(c) = row.r#where.iter().find(|w| &w.name == pk) else {
-                return (StatusCode::BAD_REQUEST, Json(json!({
-                    "error": format!("Missing value for primary-key column \"{}\" in row", pk),
-                })));
-            };
-            where_clause.push(match &c.value {
-                None    => format!("{} IS NULL", q_ident(&c.name)),
-                Some(v) => format!("{} = {}", q_ident(&c.name), q_lit(v, &c.r#type)),
-            });
-        }
+        let where_clause = match pk_where_clause(&pk_cols, &row.r#where) {
+            Ok(w)  => w,
+            Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+        };
 
         stmts.push(format!(
             "UPDATE {}\nSET {}\nWHERE {};",
             qualified,
             set_clause.join(", "),
+            where_clause.join(" AND "),
+        ));
+    }
+
+    for row in &body.deletes {
+        let where_clause = match pk_where_clause(&pk_cols, &row.r#where) {
+            Ok(w)  => w,
+            Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+        };
+
+        stmts.push(format!(
+            "DELETE FROM {}\nWHERE {};",
+            qualified,
             where_clause.join(" AND "),
         ));
     }

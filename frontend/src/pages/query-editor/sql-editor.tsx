@@ -13,6 +13,7 @@ import { Spinner, useSpinner } from '@/components/ui'
 import { apiRunQuery, type Project, type TableInfo, type QueryResult } from '@/services/database'
 import { QueryInspector } from './query-inspector'
 import { QueryResultView } from './query-result-view'
+import { ShortcutsButton } from './keyboard-shortcuts'
 import { newTabId, parseTablesFromSQL, type InspectorData, type NewTabReq, type QueryTab } from './utils'
 
 const EDITOR_HEIGHT_DEFAULT  = 120
@@ -175,6 +176,7 @@ export function SqlEditor({
 
     useSetStatusBar(
         <>
+            <ShortcutsButton />
             {tabs.length > 0 && (
                 <span className="statusbar-section">
                     <span className="k">tabs</span>
@@ -184,23 +186,11 @@ export function SqlEditor({
             {activeError && (
                 <span className="statusbar-section"><span className="v red">● error</span></span>
             )}
-            {!activeError && activeResult && (
-                <span className="statusbar-section">
-                    <span className="k">rows</span>
-                    <span className="v">{activeResult.affected ?? activeResult.rows.length}</span>
-                </span>
-            )}
             {loading && (
                 <span className="statusbar-section"><span className="v yellow">⟳ running…</span></span>
             )}
-            {!activeError && activeResult && activeResult.duration_ms !== undefined && (
-                <span className="statusbar-section">
-                    <span className="k">time</span>
-                    <span className="v green">{(activeResult.duration_ms / 1000).toFixed(2)}s</span>
-                </span>
-            )}
         </>,
-        [tabs, activeTabId, activeResult, activeError, loading],
+        [tabs, activeTabId, activeError, loading],
     )
 
     const tabsBar = (
