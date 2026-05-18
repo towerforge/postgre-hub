@@ -289,8 +289,7 @@ a:hover { text-decoration: underline; }
 .dt tbody td.null-cell { color: var(--om-fg-muted); font-style: italic; }
 .dt tbody tr { cursor: default; }
 .dt tbody tr:hover td { background: var(--om-bg-3); }
-.dt tbody tr.sel td { background: rgba(255,255,255,0.04); color: var(--om-fg-bright); }
-.dt tbody tr.sel td.row-num { background: rgba(255,255,255,0.04); color: var(--om-fg-bright); }
+.dt tbody td.row-num.sel { background: rgba(158,184,127,0.18); color: var(--om-fg-bright); }
 
 /* ── Inspector / Side sections ──────────────────────── */
 .rp-side-section,

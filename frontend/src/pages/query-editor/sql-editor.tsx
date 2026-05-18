@@ -39,10 +39,10 @@ export function SqlEditor({
     const [renamingTabId, setRenamingTabId] = useState<string | null>(null)
     const [tabResults, setTabResults]       = useState<Record<string, QueryResult | null>>({})
     const [tabErrors,  setTabErrors]        = useState<Record<string, string>>({})
+    const [tabInspectors, setTabInspectors] = useState<Record<string, InspectorData | null>>({})
     const [loading,    setLoading]          = useState(false)
     const [expanded,   setExpanded]         = useState(false)
     const runSpinner = useSpinner(loading)
-    const [inspectorData, setInspectorData] = useState<InspectorData | null>(null)
     const [history, setHistory] = useState<string[]>([])
 
 
@@ -103,19 +103,20 @@ export function SqlEditor({
             const r = await apiRunQuery(projectId, q)
             setTabResults(rs => ({ ...rs, [tid]: r }))
             const duration = r.duration_ms ?? (Date.now() - start)
-            setInspectorData({
+            setTabInspectors(ins => ({ ...ins, [tid]: {
                 database: project?.database ?? '',
                 duration,
                 rows: r.affected !== undefined ? r.affected : r.rows.length,
                 total: r.total,
                 tables: parseTablesFromSQL(q),
                 columns: r.columns,
-            })
+            } }))
             setHistory(h => [...h.slice(-19), q])
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Query failed'
             setTabErrors(er => ({ ...er, [tid]: msg }))
             setTabResults(rs => ({ ...rs, [tid]: null }))
+            setTabInspectors(ins => ({ ...ins, [tid]: null }))
         } finally {
             loadingRef.current = false
             setLoading(false)
@@ -133,8 +134,9 @@ export function SqlEditor({
     ]
 
     const editorH     = expanded ? EDITOR_HEIGHT_EXPANDED : EDITOR_HEIGHT_DEFAULT
-    const activeResult = tabResults[activeTabId] ?? null
-    const activeError  = tabErrors[activeTabId]  ?? ''
+    const activeResult    = tabResults[activeTabId]    ?? null
+    const activeError     = tabErrors[activeTabId]     ?? ''
+    const activeInspector = tabInspectors[activeTabId] ?? null
 
     useSetHistoryBar(
         <div className="body">
@@ -327,7 +329,7 @@ export function SqlEditor({
         </div>
 
         {showInspector && (
-            <QueryInspector data={inspectorData} project={project} tables={tables} />
+            <QueryInspector data={activeInspector} project={project} tables={tables} />
         )}
 
         </div>
