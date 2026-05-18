@@ -13,6 +13,7 @@ import { Spinner, useSpinner } from '@/components/ui'
 import { apiRunQuery, type Project, type TableInfo, type QueryResult } from '@/services/database'
 import { QueryInspector } from './query-inspector'
 import { QueryResultView } from './query-result-view'
+import { ShortcutsButton } from './keyboard-shortcuts'
 import { newTabId, parseTablesFromSQL, type InspectorData, type NewTabReq, type QueryTab } from './utils'
 
 const EDITOR_HEIGHT_DEFAULT  = 120
@@ -39,10 +40,10 @@ export function SqlEditor({
     const [renamingTabId, setRenamingTabId] = useState<string | null>(null)
     const [tabResults, setTabResults]       = useState<Record<string, QueryResult | null>>({})
     const [tabErrors,  setTabErrors]        = useState<Record<string, string>>({})
+    const [tabInspectors, setTabInspectors] = useState<Record<string, InspectorData | null>>({})
     const [loading,    setLoading]          = useState(false)
     const [expanded,   setExpanded]         = useState(false)
     const runSpinner = useSpinner(loading)
-    const [inspectorData, setInspectorData] = useState<InspectorData | null>(null)
     const [history, setHistory] = useState<string[]>([])
 
 
@@ -103,19 +104,20 @@ export function SqlEditor({
             const r = await apiRunQuery(projectId, q)
             setTabResults(rs => ({ ...rs, [tid]: r }))
             const duration = r.duration_ms ?? (Date.now() - start)
-            setInspectorData({
+            setTabInspectors(ins => ({ ...ins, [tid]: {
                 database: project?.database ?? '',
                 duration,
                 rows: r.affected !== undefined ? r.affected : r.rows.length,
                 total: r.total,
                 tables: parseTablesFromSQL(q),
                 columns: r.columns,
-            })
+            } }))
             setHistory(h => [...h.slice(-19), q])
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Query failed'
             setTabErrors(er => ({ ...er, [tid]: msg }))
             setTabResults(rs => ({ ...rs, [tid]: null }))
+            setTabInspectors(ins => ({ ...ins, [tid]: null }))
         } finally {
             loadingRef.current = false
             setLoading(false)
@@ -133,8 +135,9 @@ export function SqlEditor({
     ]
 
     const editorH     = expanded ? EDITOR_HEIGHT_EXPANDED : EDITOR_HEIGHT_DEFAULT
-    const activeResult = tabResults[activeTabId] ?? null
-    const activeError  = tabErrors[activeTabId]  ?? ''
+    const activeResult    = tabResults[activeTabId]    ?? null
+    const activeError     = tabErrors[activeTabId]     ?? ''
+    const activeInspector = tabInspectors[activeTabId] ?? null
 
     useSetHistoryBar(
         <div className="body">
@@ -173,6 +176,7 @@ export function SqlEditor({
 
     useSetStatusBar(
         <>
+            <ShortcutsButton />
             {tabs.length > 0 && (
                 <span className="statusbar-section">
                     <span className="k">tabs</span>
@@ -182,23 +186,11 @@ export function SqlEditor({
             {activeError && (
                 <span className="statusbar-section"><span className="v red">● error</span></span>
             )}
-            {!activeError && activeResult && (
-                <span className="statusbar-section">
-                    <span className="k">rows</span>
-                    <span className="v">{activeResult.affected ?? activeResult.rows.length}</span>
-                </span>
-            )}
             {loading && (
                 <span className="statusbar-section"><span className="v yellow">⟳ running…</span></span>
             )}
-            {!activeError && activeResult && activeResult.duration_ms !== undefined && (
-                <span className="statusbar-section">
-                    <span className="k">time</span>
-                    <span className="v green">{(activeResult.duration_ms / 1000).toFixed(2)}s</span>
-                </span>
-            )}
         </>,
-        [tabs, activeTabId, activeResult, activeError, loading],
+        [tabs, activeTabId, activeError, loading],
     )
 
     const tabsBar = (
@@ -307,7 +299,7 @@ export function SqlEditor({
 
             {/* ── Results tile ───────────────────────────── */}
             <div className="tile" style={{ flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, background: 'var(--vsc-bg-panel)' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--vsc-bg-panel)' }}>
                     {loading ? (
                         <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><Spinner /></div>
                     ) : activeError ? (
@@ -315,7 +307,13 @@ export function SqlEditor({
                             {activeError}
                         </div>
                     ) : activeResult ? (
-                        <QueryResultView result={activeResult} />
+                        <QueryResultView
+                            result={activeResult}
+                            projectId={projectId}
+                            schema={activeTab?.schema}
+                            tableName={activeTab?.tableName}
+                            onApplied={() => runQueryRef.current?.(undefined, activeTabId)}
+                        />
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--vsc-fg-muted)', fontSize: 13, padding: 32 }}>
                             <Terminal size={32} style={{ opacity: 0.3 }} />
@@ -327,7 +325,7 @@ export function SqlEditor({
         </div>
 
         {showInspector && (
-            <QueryInspector data={inspectorData} project={project} tables={tables} />
+            <QueryInspector data={activeInspector} project={project} tables={tables} />
         )}
 
         </div>

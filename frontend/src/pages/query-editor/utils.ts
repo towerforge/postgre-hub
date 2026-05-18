@@ -50,3 +50,15 @@ export interface NewTabReq { sql: string; label: string; key: number; autoRun?: 
 
 let _tabCtr = 0
 export const newTabId = () => `tab_${++_tabCtr}`
+
+/** Excel-style column label: 0 → A, 25 → Z, 26 → AA, … */
+export function excelCol(n: number): string {
+    let s = ''
+    let k = n + 1
+    while (k > 0) {
+        k--
+        s = String.fromCharCode(65 + (k % 26)) + s
+        k = Math.floor(k / 26)
+    }
+    return s
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Table2 } from 'lucide-react'
 import type { Project, TableInfo } from '@/services/database'
-import { fmtRows, fmtSize, type InspectorData } from './utils'
+import { excelCol, fmtRows, fmtSize, type InspectorData } from './utils'
 
 type InspectorTab = 'info' | 'attrs'
 const INSPECTOR_TABS: InspectorTab[] = ['info', 'attrs']
@@ -124,6 +124,7 @@ export function QueryInspector({
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                 {data.columns.map((c, i) => (
                                     <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '3px 0', borderBottom: i < data.columns!.length - 1 ? '0.5px solid var(--stroke-1)' : 'none' }}>
+                                        <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', minWidth: 14, textAlign: 'left' }}>{excelCol(i)}</span>
                                         <span style={{ fontSize: 11.5, color: 'var(--text-1)', fontFamily: 'var(--font-mono)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
                                         <span style={{ fontSize: 10, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>{c.type.toUpperCase()}</span>
                                     </div>

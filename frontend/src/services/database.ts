@@ -104,6 +104,19 @@ export interface QueryResult {
 export const apiRunQuery = (id: string, sql: string) =>
     post<QueryResult>(`/api/projects/${id}/query`, { sql })
 
+export interface SetCell    { name: string; type: string; raw: string }
+export interface WhereCell  { name: string; type: string; value: string | null }
+export interface InsertCell { name: string; type: string; raw: string }
+export interface UpdateRow  { set: SetCell[]; where: WhereCell[] }
+export interface DeleteRow  { where: WhereCell[] }
+export interface InsertRow  { values: InsertCell[] }
+
+export const apiBuildChanges = (
+    id: string,
+    body: { schema: string; table: string; inserts: InsertRow[]; updates: UpdateRow[]; deletes: DeleteRow[] },
+) =>
+    post<{ sql: string }>(`/api/projects/${id}/build-changes`, body)
+
 export interface TypeInfo {
     schema: string
     name:   string

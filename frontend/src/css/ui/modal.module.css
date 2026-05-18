@@ -16,7 +16,9 @@
     width: 520px;
     max-width: 92vw;
     max-height: 90vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     font-family: var(--font-family);
 }
 
@@ -53,4 +55,9 @@
 
 .close:hover { background: var(--om-bg-3); color: var(--om-fg-bright); }
 
-.body { padding: 20px; }
+.body {
+    padding: 20px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
