@@ -8,9 +8,13 @@ interface Props {
     onClose: () => void
     title: string
     children: React.ReactNode
+    /** Override the default 520px panel width (e.g. `"90vw"`, `560`). */
+    width?: string | number
+    /** Override the default `max-height: 90vh` panel height (e.g. `"85vh"`, `640`). */
+    height?: string | number
 }
 
-export function Modal({ open, onClose, title, children }: Props) {
+export function Modal({ open, onClose, title, children, width, height }: Props) {
     useEffect(() => {
         if (!open) return
         document.body.style.overflow = 'hidden'
@@ -31,7 +35,13 @@ export function Modal({ open, onClose, title, children }: Props) {
             className={styles.overlay}
             onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
         >
-            <div className={styles.panel}>
+            <div
+                className={styles.panel}
+                style={{
+                    ...(width  !== undefined && { width,  maxWidth: 'none' }),
+                    ...(height !== undefined && { height, maxHeight: 'none' }),
+                }}
+            >
                 <div className={styles.header}>
                     <span className={styles.title}>{title}</span>
                     <button type="button" className={styles.close} onClick={onClose} aria-label="Cerrar"><X size={16} /></button>

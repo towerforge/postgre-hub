@@ -17,7 +17,7 @@ use crate::users::{list_users, create_user, delete_user, update_user};
 use crate::database::{
     list_projects, create_project, get_project, update_project, delete_project,
     test_connection, list_tables, list_types, list_sequences, list_routines,
-    get_table_data, get_table_schema, run_query,
+    get_table_data, get_table_schema, run_query, build_update,
     get_sessions, explain_query,
     export_dump, import_dump,
     list_tunnels, create_tunnel, update_tunnel, delete_tunnel, test_tunnel,
@@ -76,6 +76,7 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/projects/{id}/tables/{table}/schema", get(get_table_schema))
         .route("/api/projects/{id}/query",                 post(run_query))
         .route("/api/projects/{id}/query/explain",         post(explain_query))
+        .route("/api/projects/{id}/build-update",          post(build_update))
         .route("/api/projects/{id}/sessions",              get(get_sessions))
         .route("/api/projects/{id}/export",                get(export_dump))
         .route("/api/projects/{id}/import",                post(import_dump))

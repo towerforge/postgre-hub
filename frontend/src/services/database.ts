@@ -104,6 +104,16 @@ export interface QueryResult {
 export const apiRunQuery = (id: string, sql: string) =>
     post<QueryResult>(`/api/projects/${id}/query`, { sql })
 
+export interface SetCell   { name: string; type: string; raw: string }
+export interface WhereCell { name: string; type: string; value: string | null }
+export interface UpdateRow { set: SetCell[]; where: WhereCell[] }
+
+export const apiBuildUpdate = (
+    id: string,
+    body: { schema: string; table: string; rows: UpdateRow[] },
+) =>
+    post<{ sql: string }>(`/api/projects/${id}/build-update`, body)
+
 export interface TypeInfo {
     schema: string
     name:   string

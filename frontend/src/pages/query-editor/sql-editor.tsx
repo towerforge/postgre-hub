@@ -317,7 +317,13 @@ export function SqlEditor({
                             {activeError}
                         </div>
                     ) : activeResult ? (
-                        <QueryResultView result={activeResult} />
+                        <QueryResultView
+                            result={activeResult}
+                            projectId={projectId}
+                            schema={activeTab?.schema}
+                            tableName={activeTab?.tableName}
+                            onApplied={() => runQueryRef.current?.(undefined, activeTabId)}
+                        />
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--vsc-fg-muted)', fontSize: 13, padding: 32 }}>
                             <Terminal size={32} style={{ opacity: 0.3 }} />

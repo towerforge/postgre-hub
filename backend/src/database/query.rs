@@ -739,10 +739,17 @@ pub async fn run_query(
             Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
         }
     } else {
-        match client.execute(&sql, &[]).await {
-            Ok(n)  => {
+        // simple_query supports multiple statements separated by ';'; sum the
+        // affected counts reported by each CommandComplete.
+        use tokio_postgres::SimpleQueryMessage;
+        match client.simple_query(&sql).await {
+            Ok(messages) => {
+                let affected: u64 = messages.iter().filter_map(|m| match m {
+                    SimpleQueryMessage::CommandComplete(n) => Some(*n),
+                    _ => None,
+                }).sum();
                 let duration_ms = started.elapsed().as_millis() as u64;
-                (StatusCode::OK, Json(json!({ "affected": n, "duration_ms": duration_ms })))
+                (StatusCode::OK, Json(json!({ "affected": affected, "duration_ms": duration_ms })))
             }
             Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
         }
@@ -865,6 +872,161 @@ pub async fn get_sessions(
         }
         Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
     }
+}
+
+// ── Build UPDATE statements from cell edits ──────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct SetCell {
+    pub name:    String,
+    #[serde(rename = "type")]
+    pub r#type:  String,
+    pub raw:     String,
+}
+
+#[derive(Deserialize)]
+pub struct WhereCell {
+    pub name:    String,
+    #[serde(rename = "type")]
+    pub r#type:  String,
+    pub value:   Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpdateRow {
+    pub set:    Vec<SetCell>,
+    #[serde(rename = "where")]
+    pub r#where: Vec<WhereCell>,
+}
+
+#[derive(Deserialize)]
+pub struct BuildUpdateRequest {
+    pub schema: String,
+    pub table:  String,
+    pub rows:   Vec<UpdateRow>,
+}
+
+fn q_ident(s: &str) -> String {
+    format!("\"{}\"", s.replace('"', "\"\""))
+}
+
+fn is_numeric_type(t: &str) -> bool {
+    matches!(t,
+        "int2" | "int4" | "int8" | "float4" | "float8" |
+        "numeric" | "decimal" |
+        "smallint" | "integer" | "bigint" | "real" | "double precision"
+    )
+}
+
+fn is_bool_type(t: &str) -> bool {
+    matches!(t, "bool" | "boolean")
+}
+
+fn q_lit(value: &str, ty: &str) -> String {
+    let t = ty.to_lowercase();
+    if is_numeric_type(&t) {
+        if let Ok(n) = value.trim().parse::<f64>() {
+            if n.fract() == 0.0 && n.is_finite() && n.abs() < 1e18 {
+                return (n as i64).to_string();
+            }
+            return n.to_string();
+        }
+    }
+    if is_bool_type(&t) {
+        let lo = value.trim().to_lowercase();
+        if lo == "true"  { return "TRUE".into() }
+        if lo == "false" { return "FALSE".into() }
+    }
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+pub async fn build_update(
+    State(auth): State<AuthState>,
+    Path(id): Path<String>,
+    Json(body): Json<BuildUpdateRequest>,
+) -> impl IntoResponse {
+    if body.schema.is_empty() || body.table.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "schema and table are required" })));
+    }
+    if body.rows.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({ "error": "no rows to update" })));
+    }
+
+    let client = match connect(&auth, &id).await {
+        Ok(c)  => c,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+    };
+
+    let pk_cols: Vec<String> = match client
+        .query(
+            "SELECT a.attname \
+             FROM pg_index i \
+             JOIN pg_class       c ON c.oid = i.indrelid \
+             JOIN pg_namespace   n ON n.oid = c.relnamespace \
+             JOIN pg_attribute   a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) \
+             WHERE n.nspname = $1 AND c.relname = $2 AND i.indisprimary \
+             ORDER BY array_position(i.indkey, a.attnum)",
+            &[&body.schema, &body.table],
+        )
+        .await
+    {
+        Ok(rows) => rows.iter().map(|r| r.get::<_, String>(0)).collect(),
+        Err(e)   => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
+    };
+
+    if pk_cols.is_empty() {
+        return (StatusCode::BAD_REQUEST, Json(json!({
+            "error": format!("Table {}.{} has no primary key — cannot safely build UPDATE", body.schema, body.table),
+        })));
+    }
+
+    let qualified = format!("{}.{}", q_ident(&body.schema), q_ident(&body.table));
+    let mut stmts = Vec::with_capacity(body.rows.len());
+
+    for row in &body.rows {
+        if row.set.is_empty() {
+            return (StatusCode::BAD_REQUEST, Json(json!({ "error": "row.set cannot be empty" })));
+        }
+
+        // Skip rewriting columns that are part of the PK in SET — preserve user intent
+        let set_clause: Vec<String> = row.set.iter().map(|c| {
+            let val = if c.raw.eq_ignore_ascii_case("null") {
+                "NULL".to_string()
+            } else {
+                q_lit(&c.raw, &c.r#type)
+            };
+            format!("{} = {}", q_ident(&c.name), val)
+        }).collect();
+
+        // Build WHERE from only the primary-key columns, in PK order
+        let mut where_clause: Vec<String> = Vec::with_capacity(pk_cols.len());
+        for pk in &pk_cols {
+            let Some(c) = row.r#where.iter().find(|w| &w.name == pk) else {
+                return (StatusCode::BAD_REQUEST, Json(json!({
+                    "error": format!("Missing value for primary-key column \"{}\" in row", pk),
+                })));
+            };
+            where_clause.push(match &c.value {
+                None    => format!("{} IS NULL", q_ident(&c.name)),
+                Some(v) => format!("{} = {}", q_ident(&c.name), q_lit(v, &c.r#type)),
+            });
+        }
+
+        stmts.push(format!(
+            "UPDATE {}\nSET {}\nWHERE {};",
+            qualified,
+            set_clause.join(", "),
+            where_clause.join(" AND "),
+        ));
+    }
+
+    let sql = if stmts.len() > 1 {
+        format!("BEGIN;\n\n{}\n\nCOMMIT;", stmts.join("\n\n"))
+    } else {
+        stmts.join("\n\n")
+    };
+
+    (StatusCode::OK, Json(json!({ "sql": sql, "pk": pk_cols })))
 }
 
 pub async fn explain_query(
