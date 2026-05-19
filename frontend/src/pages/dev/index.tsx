@@ -64,7 +64,7 @@ export default function Dev() {
     const [cb1,      setCb1]      = useState(true)
     const [cb2,      setCb2]      = useState(false)
     const [color1,   setColor1]   = useState('')
-    const [color2,   setColor2]   = useState(CONNECTION_COLORS[2])
+    const [color2,   setColor2]   = useState<string>(CONNECTION_COLORS[2])
 
     const [infoTab,    setInfoTab]    = useState<'info' | 'columns' | 'types'>('info')
     const [infoOpen,   setInfoOpen]   = useState(false)
