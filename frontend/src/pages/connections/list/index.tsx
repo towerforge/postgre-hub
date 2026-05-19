@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, CheckCircle, XCircle, Loader, Trash2, X } from 'lucide-react'
+import { Plus, CheckCircle, XCircle, Trash2, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { Button, Select, Spinner, SearchBar } from '@/components/ui'
+import { Button, Select, Spinner, SearchBar, ColorPicker, useSpinner } from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -71,6 +71,7 @@ function ConnectionModal({
         ssh_password:    '',
         ssh_private_key: '',
         ssh_tunnel_id:   project?.ssh_tunnel_id  ?? null,
+        color:           project?.color          ?? '',
     })
 
     useEffect(() => {
@@ -78,9 +79,8 @@ function ConnectionModal({
     }, [])
 
     const [loading, setLoading] = useState(false)
-    const [testing, setTesting] = useState(false)
-    const [testRes, setTestRes] = useState<{ ok: boolean; message: string } | null>(null)
     const [error,   setError]   = useState('')
+    const [confirmDelete, setConfirmDelete] = useState(false)
 
     const str = (k: keyof ProjectInput) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm(f => ({ ...f, [k]: e.target.value }))
@@ -99,18 +99,6 @@ function ConnectionModal({
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to save.')
         } finally { setLoading(false) }
-    }
-
-    const handleTest = async () => {
-        if (!isEdit) { setTestRes({ ok: false, message: 'Save the connection first, then test.' }); return }
-        setTesting(true); setTestRes(null)
-        try {
-            const r = await apiTestConnection(project!.id)
-            setTestRes({ ok: r.ok, message: r.ok ? (r.version ?? 'Connected') : (r.error ?? 'Failed') })
-        } catch (e: unknown) {
-            setTestRes({ ok: false, message: e instanceof Error ? e.message : 'Connection failed' })
-        }
-        setTesting(false)
     }
 
     useEffect(() => {
@@ -192,6 +180,12 @@ function ConnectionModal({
                         <Field label="SSL">
                             <Select value={form.ssl_mode} options={SSL_OPTIONS} onChange={e => setForm(f => ({ ...f, ssl_mode: e.target.value }))} />
                         </Field>
+                        <Field label="Color">
+                            <ColorPicker
+                                value={form.color ?? ''}
+                                onChange={c => setForm(f => ({ ...f, color: c }))}
+                            />
+                        </Field>
                         <div style={{ marginLeft: 142, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', padding: '7px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 8, wordBreak: 'break-all' }}>
                             {connUrl}
                         </div>
@@ -223,12 +217,6 @@ function ConnectionModal({
                         </div>
                     </>}
 
-                    {testRes && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: testRes.ok ? 'rgba(48,209,88,0.12)' : 'rgba(255,69,58,0.12)', fontSize: 12, color: testRes.ok ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                            {testRes.ok ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                            {testRes.message}
-                        </div>
-                    )}
                     {error && (
                         <div style={{ fontSize: 12, color: 'var(--color-danger)' }}>{error}</div>
                     )}
@@ -238,7 +226,7 @@ function ConnectionModal({
                 <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--om-border)' }}>
                     {isEdit && onDelete && (
                         <button
-                            onClick={() => { if (confirm(`Delete "${project!.name}"? This only removes the saved connection.`)) onDelete() }}
+                            onClick={() => setConfirmDelete(true)}
                             style={{ height: 28, padding: '0 12px', border: 0, background: 'transparent', color: 'var(--om-red)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         >
                             <Trash2 size={12} /> Delete
@@ -248,17 +236,45 @@ function ConnectionModal({
                     <button onClick={onClose} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}>
                         Cancel
                     </button>
-                    {isEdit && (
-                        <button onClick={handleTest} disabled={testing} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            {testing ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-                            Test connection
-                        </button>
-                    )}
                     <button onClick={handleSave} disabled={loading} style={{ height: 28, padding: '0 16px', border: 0, background: 'var(--om-green)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer' }}>
                         {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Connect'}
                     </button>
                 </div>
             </div>
+
+            {confirmDelete && isEdit && onDelete && (
+                <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+                    onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false) }}
+                >
+                    <div style={{ width: 380, maxWidth: '92vw', background: 'var(--om-bg-2)', border: '1px solid var(--om-border-focus)', fontFamily: 'var(--font-family)' }}>
+                        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--om-border)', fontSize: 14, fontWeight: 600, color: 'var(--om-fg-bright)' }}>
+                            Delete connection
+                        </div>
+                        <div style={{ padding: '18px 20px', fontSize: 13, lineHeight: 1.55, color: 'var(--om-fg)' }}>
+                            Are you sure you want to delete{' '}
+                            <span style={{ color: 'var(--om-fg-bright)', fontWeight: 600 }}>"{project!.name}"</span>?
+                            <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--om-fg-muted)' }}>
+                                This only removes the saved connection. The database itself is not affected.
+                            </div>
+                        </div>
+                        <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--om-border)' }}>
+                            <button
+                                onClick={() => setConfirmDelete(false)}
+                                style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => { setConfirmDelete(false); onDelete() }}
+                                style={{ height: 28, padding: '0 14px', border: 0, background: 'var(--om-red)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            >
+                                <Trash2 size={12} /> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>,
         document.body
     )
@@ -266,12 +282,18 @@ function ConnectionModal({
 
 // ── main page ─────────────────────────────────────────────────────────────────
 
+type TestState = 'testing' | { ok: boolean; message: string }
+
 export default function ProjectsHome() {
     const [projects,    setProjects]    = useState<Project[]>([])
     const [loading,     setLoading]     = useState(true)
     const [modal,       setModal]       = useState<'create' | Project | null>(null)
     const [hovered,     setHovered]     = useState<string | null>(null)
     const [query,       setQuery]       = useState('')
+    const [tests,       setTests]       = useState<Record<string, TestState>>({})
+
+    const anyTesting = Object.values(tests).some(t => t === 'testing')
+    const spinnerFrame = useSpinner(anyTesting)
 
     const navigate = useNavigate()
 
@@ -288,6 +310,28 @@ export default function ProjectsHome() {
         await apiDeleteProject(p.id)
         setModal(null)
         load()
+    }
+
+    const handleTest = async (p: Project) => {
+        const start = Date.now()
+        setTests(s => ({ ...s, [p.id]: 'testing' }))
+        let result: { ok: boolean; message: string }
+        try {
+            const r = await apiTestConnection(p.id)
+            result = { ok: r.ok, message: r.ok ? (r.version ?? 'Connected') : (r.error ?? 'Failed') }
+        } catch (e: unknown) {
+            result = { ok: false, message: e instanceof Error ? e.message : 'Connection failed' }
+        }
+        const elapsed = Date.now() - start
+        if (elapsed < 1000) await new Promise(r => setTimeout(r, 1000 - elapsed))
+        setTests(s => ({ ...s, [p.id]: result }))
+        setTimeout(() => {
+            setTests(s => {
+                const next = { ...s }
+                delete next[p.id]
+                return next
+            })
+        }, 3000)
     }
 
     const q = query.trim().toLowerCase()
@@ -337,6 +381,10 @@ export default function ProjectsHome() {
                     <div className="conn-list">
                         {filtered.map(p => {
                             const isHovered = hovered === p.id
+                            const test = tests[p.id]
+                            const testing = test === 'testing'
+                            const testResult = test && test !== 'testing' ? test : null
+                            const showActions = isHovered || !!test
                             return (
                                 <div
                                     key={p.id}
@@ -345,22 +393,62 @@ export default function ProjectsHome() {
                                     onMouseEnter={() => setHovered(p.id)}
                                     onMouseLeave={() => setHovered(null)}
                                 >
-                                    <span className="conn-avatar" style={{ color: avatarColor(p.id) }}>
-                                        {initialsOf(p.name)}
-                                    </span>
+                                    {testing ? (
+                                        <span
+                                            style={{
+                                                width: 96,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontFamily: '"Press Start 2P", "JetBrains Mono", monospace',
+                                                fontSize: 16,
+                                                lineHeight: 1,
+                                                color: 'var(--om-green)',
+                                                flexShrink: 0,
+                                                transform: 'translateY(-3px)',
+                                            }}
+                                        >
+                                            {spinnerFrame}
+                                        </span>
+                                    ) : (
+                                        <span className="conn-avatar" style={{ color: avatarColor(p.id, p.color) }}>
+                                            {initialsOf(p.name)}
+                                        </span>
+                                    )}
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div className="conn-item-name">{p.name}</div>
                                         <div className="conn-item-uri">
                                             postgres://{p.username}@{p.host}:{p.port}/{p.database}
                                         </div>
                                     </div>
-                                    {isHovered && (
-                                        <button
-                                            className="pos-btn"
-                                            onClick={e => { e.stopPropagation(); setModal(p) }}
-                                        >
-                                            [edit]
-                                        </button>
+                                    {showActions && (
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                            {!testing && (
+                                                <button
+                                                    className="pos-btn"
+                                                    onClick={e => { e.stopPropagation(); handleTest(p) }}
+                                                    title={testResult?.message}
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 4,
+                                                        color: testResult
+                                                            ? (testResult.ok ? 'var(--color-success)' : 'var(--color-danger)')
+                                                            : undefined,
+                                                    }}
+                                                >
+                                                    {testResult?.ok && <CheckCircle size={10} />}
+                                                    {testResult && !testResult.ok && <XCircle size={10} />}
+                                                    {testResult ? (testResult.ok ? '[ok]' : '[fail]') : '[test]'}
+                                                </button>
+                                            )}
+                                            <button
+                                                className="pos-btn"
+                                                onClick={e => { e.stopPropagation(); setModal(p) }}
+                                            >
+                                                [edit]
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             )

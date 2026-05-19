@@ -710,7 +710,7 @@ export function QueryResultView({
                         Review the SQL below. Each statement updates only the edited columns and
                         matches the row by its primary key.
                     </div>
-                    {builtSQL === null && !applyError ? (
+                    {(builtSQL === null && !applyError) || applying ? (
                         <div style={{
                             flex: 1,
                             minHeight: 0,
@@ -720,7 +720,7 @@ export function QueryResultView({
                             background: 'var(--om-bg)',
                             border: '1px solid var(--om-border)',
                         }}>
-                            <Spinner label="Building SQL…" />
+                            <Spinner label={applying ? 'Applying…' : 'Building SQL…'} />
                         </div>
                     ) : (
                         <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--om-border)', overflow: 'hidden' }}>

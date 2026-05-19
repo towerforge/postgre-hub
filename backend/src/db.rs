@@ -46,6 +46,7 @@ pub fn open(data_dir: &Path) -> Result<Connection> {
              ssh_user         TEXT    NOT NULL DEFAULT '',
              ssh_password     TEXT    NOT NULL DEFAULT '',
              ssh_private_key  TEXT    NOT NULL DEFAULT '',
+             color            TEXT    NOT NULL DEFAULT '',
              created_at       INTEGER NOT NULL DEFAULT (unixepoch())
          );",
     )?;
@@ -71,6 +72,7 @@ pub fn open(data_dir: &Path) -> Result<Connection> {
         "ALTER TABLE projects ADD COLUMN ssh_password    TEXT    NOT NULL DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN ssh_private_key TEXT    NOT NULL DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN ssh_tunnel_id   TEXT    REFERENCES ssh_tunnels(id)",
+        "ALTER TABLE projects ADD COLUMN color           TEXT    NOT NULL DEFAULT ''",
     ] {
         let _ = conn.execute(sql, []);
     }

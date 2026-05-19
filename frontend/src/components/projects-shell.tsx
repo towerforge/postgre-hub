@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import { CONNECTION_COLORS } from '@/components/ui'
 import { SidebarShell, SidebarMenuLink } from './sidebar-shell'
 
 function MenuDivider() {
@@ -15,12 +16,11 @@ function MenuDivider() {
     )
 }
 
-const AVATAR_PALETTE = ['#8aa6c1', '#c4a7e7', '#91b4b8', '#9eb87f', '#d8b88a', '#c98c6c', '#c47b7b']
-
-export function avatarColor(id: string): string {
+export function avatarColor(id: string, override?: string | null): string {
+    if (override) return override
     let h = 0
     for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-    return AVATAR_PALETTE[h % AVATAR_PALETTE.length]
+    return CONNECTION_COLORS[h % CONNECTION_COLORS.length]
 }
 
 export function initialsOf(name: string): string {
