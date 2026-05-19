@@ -23,7 +23,7 @@ export default function MainLayout() {
                         type="button"
                         onClick={toggleLeft}
                         title={leftVisible ? 'Ocultar barra lateral izquierda' : 'Mostrar barra lateral izquierda'}
-                        className={`waybar-toggle${leftVisible ? ' active' : ''}`}
+                        className={`pos-btn toggle${leftVisible ? ' active' : ''}`}
                     >
                         <PanelLeft size={13} />
                         <span>[schema]</span>
@@ -46,7 +46,7 @@ export default function MainLayout() {
                             type="button"
                             onClick={toggleRight}
                             title={rightVisible ? 'Ocultar barra lateral derecha' : 'Mostrar barra lateral derecha'}
-                            className={`waybar-toggle${rightVisible ? ' active' : ''}`}
+                            className={`pos-btn toggle${rightVisible ? ' active' : ''}`}
                         >
                             <span>[inspector]</span>
                             <PanelRight size={13} />
@@ -84,7 +84,7 @@ export default function MainLayout() {
                         type="button"
                         onClick={toggleBottom}
                         title={bottomVisible ? 'Ocultar panel inferior' : 'Mostrar panel inferior'}
-                        className={`statusbar-toggle${bottomVisible ? ' active' : ''}`}
+                        className={`pos-btn toggle${bottomVisible ? ' active' : ''}`}
                     >
                         <PanelBottom size={12} />
                         <span>[history]</span>

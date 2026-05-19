@@ -11,6 +11,8 @@ const VARIANT_CLASS: Record<Variant, string> = {
     5: styles.danger,
 }
 
+const SPINNER_SIZE: Record<Size, number> = { sm: 10, md: 12, lg: 14 }
+
 interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: Variant
     size?: Size
@@ -25,7 +27,6 @@ export function Button({ variant = 2, size = "md", loading, className = "", chil
             disabled={disabled ?? loading}
             {...props}
         >
-            {loading && <span className={styles.spinner} />}
             {children}
         </button>
     )

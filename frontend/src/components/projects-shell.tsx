@@ -97,6 +97,10 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
                 <MenuDivider />
                 <SidebarMenuLink to="/account" label="Account" />
                 <SidebarMenuLink to="/users"   label="Users" />
+                {import.meta.env.DEV && <>
+                    <MenuDivider />
+                    <SidebarMenuLink to="/_dev" label="UI components" />
+                </>}
             </>}
             sidebarFooter={footer}
         >

@@ -537,6 +537,19 @@ a:hover { text-decoration: underline; }
 .pos-btn:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
 .pos-btn.open { color: var(--om-fg-bright); background: var(--om-bg-3); }
 
+/* Toolbar-toggle variant (waybar / statusbar) — fixed-height pill with icon + label */
+.pos-btn.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--om-bg-2);
+  flex-shrink: 0;
+}
+.pos-btn.toggle.active { color: var(--om-green); background: var(--om-bg-3); }
+
 .pos-menu {
   position: absolute;
   top: 32px;
@@ -667,21 +680,6 @@ a:hover { text-decoration: underline; }
 .waybar-nav a:hover { color: var(--om-fg-bright); background: var(--om-bg-3); text-decoration: none; }
 .waybar-nav a.active { color: var(--om-accent); background: var(--om-bg-3); }
 
-.waybar-toggle {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  color: var(--om-fg-muted);
-  background: var(--om-bg-2);
-  border: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-.waybar-toggle:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
-.waybar-toggle.active { color: var(--om-green); background: var(--om-bg-3); }
 
 /* ── Statusbar (bottom — same proportions as waybar) ──── */
 .statusbar {
@@ -774,21 +772,6 @@ a:hover { text-decoration: underline; }
 }
 .statusbar-action:hover { color: var(--om-fg-bright); background: var(--om-bg-3); text-decoration: none; }
 .statusbar-action.active { color: var(--om-green); background: var(--om-bg-3); }
-
-.statusbar-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 10px;
-  color: var(--om-fg-muted);
-  background: var(--om-bg-2);
-  border: 0;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.statusbar-toggle:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
-.statusbar-toggle.active { color: var(--om-green); background: var(--om-bg-3); }
 
 /* ── CodeMirror chrome overrides ─────────────────────── */
 .cm-editor {
