@@ -1,12 +1,16 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useMatch } from 'react-router-dom'
 import {
-    PanelLeft, PanelRight, PanelBottom,
+    PanelLeft, PanelRight, PanelBottom, Info,
 } from 'lucide-react'
 import { useSidebars } from '@/contexts/sidebars'
 import { usePageTitle } from '@/contexts/page-title'
 import { useStatusBar } from '@/contexts/status-bar'
 import { useHistoryBar } from '@/contexts/history-bar'
+import { AboutModal } from '@/components/about-modal'
 import styles from './MainLayout.module.css'
+
+declare const __APP_VERSION__: string
 
 export default function MainLayout() {
     const projectMatch  = useMatch('/connections/:id/*')
@@ -14,6 +18,7 @@ export default function MainLayout() {
     const { title, subtitle, accent } = usePageTitle()
     const { content: statusContent } = useStatusBar()
     const { content: historyContent } = useHistoryBar()
+    const [aboutOpen, setAboutOpen] = useState(false)
 
     return (
         <div className={styles.outerShell}>
@@ -23,7 +28,7 @@ export default function MainLayout() {
                         type="button"
                         onClick={toggleLeft}
                         title={leftVisible ? 'Ocultar barra lateral izquierda' : 'Mostrar barra lateral izquierda'}
-                        className={`waybar-toggle${leftVisible ? ' active' : ''}`}
+                        className={`pos-btn toggle${leftVisible ? ' active' : ''}`}
                     >
                         <PanelLeft size={13} />
                         <span>[schema]</span>
@@ -46,7 +51,7 @@ export default function MainLayout() {
                             type="button"
                             onClick={toggleRight}
                             title={rightVisible ? 'Ocultar barra lateral derecha' : 'Mostrar barra lateral derecha'}
-                            className={`waybar-toggle${rightVisible ? ' active' : ''}`}
+                            className={`pos-btn toggle${rightVisible ? ' active' : ''}`}
                         >
                             <span>[inspector]</span>
                             <PanelRight size={13} />
@@ -79,18 +84,30 @@ export default function MainLayout() {
             <div className="statusbar">
                 {statusContent}
                 <span className="sp" />
+                {!projectMatch && (
+                    <button
+                        type="button"
+                        onClick={() => setAboutOpen(true)}
+                        title="About Postgre Hub"
+                        className="pos-btn toggle"
+                    >
+                        <Info size={11} />
+                        <span>[v{__APP_VERSION__}]</span>
+                    </button>
+                )}
                 {projectMatch && (
                     <button
                         type="button"
                         onClick={toggleBottom}
                         title={bottomVisible ? 'Ocultar panel inferior' : 'Mostrar panel inferior'}
-                        className={`statusbar-toggle${bottomVisible ? ' active' : ''}`}
+                        className={`pos-btn toggle${bottomVisible ? ' active' : ''}`}
                     >
                         <PanelBottom size={12} />
                         <span>[history]</span>
                     </button>
                 )}
             </div>
+            <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         </div>
     )
 }

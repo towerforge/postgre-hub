@@ -12,10 +12,9 @@ button { font-family: inherit; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ── Palette (always dark) ──────────────────────────── */
+/* ── Dark palette (default + explicit) ─────────────── */
 :root,
-[data-theme="dark"],
-[data-theme="light"] {
+[data-theme="dark"] {
   /* Surfaces */
   --om-bg:           #1c1c1c;    /* primary surface (editor) */
   --om-bg-2:         #232323;    /* tile / sidebar */
@@ -145,6 +144,49 @@ a:hover { text-decoration: underline; }
   --sql-comment: var(--tok-com);
   --sql-fn:      var(--tok-fn);
   --sql-ident:   var(--tok-var);
+}
+
+/* ── Light palette (only when explicitly requested) ── */
+[data-theme="light"] {
+  --om-bg:           #fafaf8;
+  --om-bg-2:         #ffffff;
+  --om-bg-3:         #f0efeb;
+  --om-bg-4:         #e3e2dd;
+  --om-gap:          #ededea;
+
+  --om-fg:           #2a2a2a;
+  --om-fg-dim:       #5a5a5a;
+  --om-fg-muted:     #8a8a8a;
+  --om-fg-bright:    #1a1a1a;
+
+  /* Accents kept identical to dark mode — same green */
+
+  --om-border:       #d8d6d0;
+  --om-border-focus: #a0a0a0;
+
+  --vsc-fg-disabled: #b8b8b8;
+  --vsc-bg-active-row: rgba(0,0,0,0.04);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --om-bg:           #fafaf8;
+    --om-bg-2:         #ffffff;
+    --om-bg-3:         #f0efeb;
+    --om-bg-4:         #e3e2dd;
+    --om-gap:          #ededea;
+
+    --om-fg:           #2a2a2a;
+    --om-fg-dim:       #5a5a5a;
+    --om-fg-muted:     #8a8a8a;
+    --om-fg-bright:    #1a1a1a;
+
+    --om-border:       #d8d6d0;
+    --om-border-focus: #a0a0a0;
+
+    --vsc-fg-disabled: #b8b8b8;
+    --vsc-bg-active-row: rgba(0,0,0,0.04);
+  }
 }
 
 ::selection { background: rgba(212,212,212,0.16); color: var(--om-fg-bright); }
@@ -537,6 +579,19 @@ a:hover { text-decoration: underline; }
 .pos-btn:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
 .pos-btn.open { color: var(--om-fg-bright); background: var(--om-bg-3); }
 
+/* Toolbar-toggle variant (waybar / statusbar) — fixed-height pill with icon + label */
+.pos-btn.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--om-bg-2);
+  flex-shrink: 0;
+}
+.pos-btn.toggle.active { color: var(--om-green); background: var(--om-bg-3); }
+
 .pos-menu {
   position: absolute;
   top: 32px;
@@ -667,21 +722,6 @@ a:hover { text-decoration: underline; }
 .waybar-nav a:hover { color: var(--om-fg-bright); background: var(--om-bg-3); text-decoration: none; }
 .waybar-nav a.active { color: var(--om-accent); background: var(--om-bg-3); }
 
-.waybar-toggle {
-  display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  color: var(--om-fg-muted);
-  background: var(--om-bg-2);
-  border: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-.waybar-toggle:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
-.waybar-toggle.active { color: var(--om-green); background: var(--om-bg-3); }
 
 /* ── Statusbar (bottom — same proportions as waybar) ──── */
 .statusbar {
@@ -774,21 +814,6 @@ a:hover { text-decoration: underline; }
 }
 .statusbar-action:hover { color: var(--om-fg-bright); background: var(--om-bg-3); text-decoration: none; }
 .statusbar-action.active { color: var(--om-green); background: var(--om-bg-3); }
-
-.statusbar-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 10px;
-  color: var(--om-fg-muted);
-  background: var(--om-bg-2);
-  border: 0;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.statusbar-toggle:hover { color: var(--om-fg-bright); background: var(--om-bg-3); }
-.statusbar-toggle.active { color: var(--om-green); background: var(--om-bg-3); }
 
 /* ── CodeMirror chrome overrides ─────────────────────── */
 .cm-editor {

@@ -48,15 +48,15 @@ export function ShortcutsButton() {
     const [open, setOpen] = useState(false)
     return (
         <>
-            <span
-                className="statusbar-section"
+            <button
+                type="button"
+                className="pos-btn toggle"
                 onClick={() => setOpen(true)}
-                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 title="Show keyboard shortcuts"
             >
                 <Keyboard size={11} />
-                <span className="v">[shortcuts]</span>
-            </span>
+                [shortcuts]
+            </button>
             <Modal open={open} onClose={() => setOpen(false)} title="Keyboard shortcuts" width="min(92vw, 640px)">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontSize: 12 }}>
                     {SHORTCUT_GROUPS.map(g => (

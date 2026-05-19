@@ -32,7 +32,7 @@ export default function QueryEditor() {
                 setProject(proj)
                 setTables(tbls.tables)
                 setTypes(typs.types)
-                setPageTitle(proj.name, `${proj.host}:${proj.port}/${proj.database}`, avatarColor(proj.id))
+                setPageTitle(proj.name, `${proj.host}:${proj.port}/${proj.database}`, avatarColor(proj.id, proj.color))
             })
             .finally(() => setSidebarLoading(false))
         apiListSequences(id).then(r => setSequences(r.sequences)).catch(() => {})

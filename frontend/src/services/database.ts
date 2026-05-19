@@ -16,6 +16,7 @@ export interface Project {
     ssh_user:        string
     ssh_key_set:     boolean
     ssh_tunnel_id:   string | null
+    color:           string
     created_at:      number
 }
 
@@ -37,6 +38,7 @@ export interface ProjectInput {
     ssh_password?:     string
     ssh_private_key?:  string
     ssh_tunnel_id?:    string | null
+    color?:            string
 }
 
 export interface TableInfo {

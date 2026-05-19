@@ -22,15 +22,20 @@
     font-family: var(--font-family);
 }
 
+/* Size variants — override the default width */
+.sizeSm  { width: 380px; }
+.sizeMd  { width: 520px; }
+.sizeLg  { width: 720px; }
+.sizeXl  { width: min(960px, 92vw); }
+
 .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
     border-bottom: 1px solid var(--om-border);
-    position: sticky;
-    top: 0;
     background: var(--om-bg-2);
+    flex-shrink: 0;
 }
 
 .title {
@@ -60,4 +65,17 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+}
+
+.bodyFlush {
+    padding: 0;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--om-border);
+    flex-shrink: 0;
 }

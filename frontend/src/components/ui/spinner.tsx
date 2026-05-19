@@ -1,17 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const INTERVAL_MS = 90
 
 /** Animated Braille spinner frame; pauses when `active` is false. */
 export function useSpinner(active = true): string {
-    const [i, setI] = useState(0)
+    const [tick, setTick] = useState(0)
+    const idRef = useRef<number | null>(null)
+
     useEffect(() => {
-        if (!active) { setI(0); return }
-        const t = setInterval(() => setI(n => (n + 1) % FRAMES.length), INTERVAL_MS)
-        return () => clearInterval(t)
+        if (!active) {
+            if (idRef.current !== null) { window.clearInterval(idRef.current); idRef.current = null }
+            return
+        }
+        idRef.current = window.setInterval(() => setTick(t => (t + 1) >>> 0), INTERVAL_MS)
+        return () => {
+            if (idRef.current !== null) { window.clearInterval(idRef.current); idRef.current = null }
+        }
     }, [active])
-    return FRAMES[i]
+
+    return FRAMES[tick % FRAMES.length]
 }
 
 interface Props {
@@ -35,7 +43,9 @@ export function Spinner({ label, color = 'var(--om-green)', size = 13, muted = t
             fontSize: size,
             lineHeight: 1,
         }}>
-            <span style={{ color }}>{frame}</span>
+            <span style={{ color, display: 'inline-block', minWidth: '1ch', textAlign: 'center' }}>
+                {frame}
+            </span>
             {label && (
                 <span style={{ color: muted ? 'var(--om-fg-dim)' : 'var(--om-fg)' }}>
                     {label}

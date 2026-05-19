@@ -1,7 +1,9 @@
-import { useState } from "react"
-import { Folder, FileText } from "lucide-react"
-import { Button, Input, Select, Card, CardHeader, CardBody, CardFooter, Grid, Col, Text, Modal, Page, Tabs, TabBar, Tab, TabPanel, Table, TableCell, Spinner, SearchBar, SegmentedControl, StatPill, InlineSelect, Switch, Checkbox } from "@/components/ui"
+import { useEffect, useRef, useState } from "react"
+import { Folder, FileText, Plus, ArrowRight, Trash2, Download, Save, Search, Play, PanelLeft, PanelBottom, Keyboard } from "lucide-react"
+import { Button, Input, Select, Card, CardHeader, CardBody, CardFooter, Grid, Col, Text, Modal, Page, Tabs, TabBar, Tab, TabPanel, Table, TableCell, Spinner, SearchBar, SegmentedControl, StatPill, InlineSelect, Switch, Checkbox, ColorPicker, ThemeToggle, CONNECTION_COLORS } from "@/components/ui"
 import type { Column } from "@/components/ui"
+import { ProjectsShell } from "@/components/projects-shell"
+import { usePageTitle } from "@/contexts/page-title"
 
 const OPTIONS = [
     { value: "1", label: "Opción 1" },
@@ -61,8 +63,31 @@ export default function Dev() {
     const [sw2,      setSw2]      = useState(false)
     const [cb1,      setCb1]      = useState(true)
     const [cb2,      setCb2]      = useState(false)
+    const [color1,   setColor1]   = useState('')
+    const [color2,   setColor2]   = useState(CONNECTION_COLORS[2])
+
+    const [infoTab,    setInfoTab]    = useState<'info' | 'columns' | 'types'>('info')
+    const [infoOpen,   setInfoOpen]   = useState(false)
+    const infoRef = useRef<HTMLDivElement>(null)
+    const [tableTab,   setTableTab]   = useState<'tables' | 'types' | 'sequences' | 'routines'>('tables')
+    const [tableOpen,  setTableOpen]  = useState(false)
+    const tableRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        if (!infoOpen && !tableOpen) return
+        const onDown = (e: MouseEvent) => {
+            const t = e.target as Node
+            if (infoOpen && infoRef.current && !infoRef.current.contains(t)) setInfoOpen(false)
+            if (tableOpen && tableRef.current && !tableRef.current.contains(t)) setTableOpen(false)
+        }
+        document.addEventListener('mousedown', onDown)
+        return () => document.removeEventListener('mousedown', onDown)
+    }, [infoOpen, tableOpen])
+
+    const { setPageTitle } = usePageTitle()
+    useEffect(() => { setPageTitle('UI components') }, [])
 
     return (
+        <ProjectsShell headerLeft="UI components" headerRight={null}>
         <Page>
             <Text variant="title">Componentes UI</Text>
             <Text variant="subtitle">Ejemplo de la librería base</Text>
@@ -78,6 +103,120 @@ export default function Dev() {
                     <Button variant={1} loading>Loading</Button>
                     <Button variant={2} size="sm">Small</Button>
                     <Button variant={2} size="lg">Large</Button>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Botones con icono</Text>
+            <Grid gap={8} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Icono a la izquierda</Text>
+                    <Button variant={1}><Plus size={14} /> New</Button>
+                    <Button variant={2}><Download size={14} /> Export</Button>
+                    <Button variant={3}><Search size={14} /> Search</Button>
+                    <Button variant={4}><Save size={14} /> Save</Button>
+                    <Button variant={5}><Trash2 size={14} /> Delete</Button>
+                </Col>
+                <Col span={12} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Icono a la derecha</Text>
+                    <Button variant={1}>Continue <ArrowRight size={14} /></Button>
+                    <Button variant={2}>Next step <ArrowRight size={14} /></Button>
+                    <Button variant={3}>Download <Download size={14} /></Button>
+                </Col>
+                <Col span={12} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Solo icono</Text>
+                    <Button variant={1} aria-label="Add"><Plus size={14} /></Button>
+                    <Button variant={2} aria-label="Save"><Save size={14} /></Button>
+                    <Button variant={3} aria-label="Delete"><Trash2 size={14} /></Button>
+                </Col>
+                <Col span={12} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Tamaños con icono</Text>
+                    <Button variant={1} size="sm"><Plus size={12} /> Small</Button>
+                    <Button variant={1}><Plus size={14} /> Medium</Button>
+                    <Button variant={1} size="lg"><Plus size={16} /> Large</Button>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Botones [pos-btn]</Text>
+            <Text variant="caption" style={{ display: 'block', marginBottom: 8, color: 'var(--om-fg-muted)' }}>
+                Patrón Towerforge: <code>{'<button className="pos-btn">'}</code> con icono opcional + texto entre corchetes. Es CSS global, no un componente UI.
+            </Text>
+            <Grid gap={8} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Solo texto</Text>
+                    <button className="pos-btn">[edit]</button>
+                    <button className="pos-btn">[test]</button>
+                    <button className="pos-btn">[delete]</button>
+                </Col>
+                <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Icono + texto (estilo [run])</Text>
+                    <button
+                        className="pos-btn"
+                        style={{ height: 32, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 14px', color: 'var(--om-green)' }}
+                    >
+                        <Play size={11} fill="currentColor" /> [run]
+                    </button>
+                </Col>
+                <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>
+                        Variante <code>.toggle</code> (waybar / statusbar — alto 22px) y <code>.active</code>
+                    </Text>
+                    <button className="pos-btn toggle"><PanelLeft size={13} /> [schema]</button>
+                    <button className="pos-btn toggle active"><PanelLeft size={13} /> [schema]</button>
+                    <button className="pos-btn toggle"><PanelBottom size={12} /> [history]</button>
+                    <button className="pos-btn toggle active"><PanelBottom size={12} /> [history]</button>
+                    <button className="pos-btn toggle"><Keyboard size={11} /> [shortcuts]</button>
+                </Col>
+                <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Estados de color (texto)</Text>
+                    <button className="pos-btn" style={{ color: 'var(--om-green)' }}>[ok]</button>
+                    <button className="pos-btn" style={{ color: 'var(--om-red)' }}>[fail]</button>
+                </Col>
+                <Col span={12} style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>
+                        Dropdown <code>pos-btn</code> + <code>pos-menu</code> (estilo [info] / [table])
+                    </Text>
+                    <div ref={infoRef} style={{ position: 'relative' }}>
+                        <button
+                            className={`pos-btn${infoOpen ? ' open' : ''}`}
+                            onClick={() => setInfoOpen(v => !v)}
+                        >
+                            [{infoTab}]
+                        </button>
+                        {infoOpen && (
+                            <div className="pos-menu">
+                                {(['info', 'columns', 'types'] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        className={infoTab === t ? 'active' : ''}
+                                        onClick={() => { setInfoTab(t); setInfoOpen(false) }}
+                                    >
+                                        [{t}]
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div ref={tableRef} style={{ position: 'relative' }}>
+                        <button
+                            className={`pos-btn${tableOpen ? ' open' : ''}`}
+                            onClick={() => setTableOpen(v => !v)}
+                        >
+                            [{tableTab}]
+                        </button>
+                        {tableOpen && (
+                            <div className="pos-menu">
+                                {(['tables', 'types', 'sequences', 'routines'] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        className={tableTab === t ? 'active' : ''}
+                                        onClick={() => { setTableTab(t); setTableOpen(false) }}
+                                    >
+                                        [{t}]
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </Col>
             </Grid>
 
@@ -213,9 +352,39 @@ export default function Dev() {
 
             <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Spinner</Text>
             <Grid gap={16} style={{ marginBottom: 32 }}>
-                <Col span={12} style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
+                <Col span={12} style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
                     <Spinner />
                     <Spinner label="Cargando…" />
+                    <Spinner color="var(--om-bg)" label="Negro" />
+                    <Spinner color="var(--om-fg-bright)" label="Bright" />
+                    <Spinner color="var(--om-red)" label="Red" />
+                    <Spinner color="var(--om-yellow)" label="Yellow" />
+                </Col>
+                <Col span={12} style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Tamaños</Text>
+                    <Spinner size={10} />
+                    <Spinner size={13} />
+                    <Spinner size={18} />
+                    <Spinner size={24} />
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>ColorPicker</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={6}>
+                    <Text variant="caption" style={{ marginBottom: 6, display: 'block' }}>Auto (sin color)</Text>
+                    <ColorPicker value={color1} onChange={setColor1} />
+                </Col>
+                <Col span={12} md={6}>
+                    <Text variant="caption" style={{ marginBottom: 6, display: 'block' }}>Con color preseleccionado</Text>
+                    <ColorPicker value={color2} onChange={setColor2} />
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>ThemeToggle</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    <ThemeToggle />
                 </Col>
             </Grid>
 
@@ -233,5 +402,6 @@ export default function Dev() {
                 </div>
             </Modal>
         </Page>
+        </ProjectsShell>
     )
 }
