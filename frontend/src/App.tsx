@@ -11,6 +11,7 @@ import ConnectionsList from '@/pages/connections/list'
 import QueryEditor from '@/pages/query-editor'
 import AccountPage from '@/pages/settings/account'
 import UsersPage from '@/pages/settings/users'
+import AppearancePage from '@/pages/settings/appearance'
 import SshTunnelsPage from '@/pages/ssh-tunnels'
 
 const Dev = import.meta.env.DEV ? lazy(() => import('@/pages/dev')) : null
@@ -25,6 +26,7 @@ function AppRoutes() {
                 <Route path="/ssh-tunnels" element={<SshTunnelsPage />} />
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/users"   element={<UsersPage />} />
+                <Route path="/appearance" element={<AppearancePage />} />
                 <Route path="/settings" element={<Navigate to="/account" replace />} />
                 <Route path="/settings/account"     element={<Navigate to="/account" replace />} />
                 <Route path="/settings/users"       element={<Navigate to="/users" replace />} />

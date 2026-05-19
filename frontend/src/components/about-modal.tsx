@@ -13,9 +13,9 @@ const rowStyle: React.CSSProperties = {
     padding: '10px 14px', border: '1px solid var(--stroke-1)',
 }
 
-interface Props { onClose: () => void }
+interface Props { open: boolean; onClose: () => void }
 
-export function AboutModal({ onClose }: Props) {
+export function AboutModal({ open, onClose }: Props) {
     const [latestVersion, setLatestVersion] = useState<string | null>(null)
     const [checking, setChecking] = useState(true)
 
@@ -30,7 +30,7 @@ export function AboutModal({ onClose }: Props) {
     const hasUpdate = __APP_VERSION__ && latestVersion && __APP_VERSION__ !== latestVersion
 
     return (
-        <Modal open onClose={onClose} title="About">
+        <Modal open={open} onClose={onClose} title="About">
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
                 <img src="/logo.svg" alt="Postgre Hub" style={{ width: 48, height: 48 }} />
                 <div>

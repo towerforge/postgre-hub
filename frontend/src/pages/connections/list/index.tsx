@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, CheckCircle, XCircle, Trash2, X } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { Button, Select, Spinner, SearchBar, ColorPicker, useSpinner } from '@/components/ui'
+import { Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Button, Select, Spinner, SearchBar, ColorPicker, Modal, useSpinner } from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -101,12 +100,6 @@ function ConnectionModal({
         } finally { setLoading(false) }
     }
 
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-    }, [onClose])
-
     const tabBtn = (id: ModalTab, label: string) => {
         const active = tab === id
         return (
@@ -129,21 +122,35 @@ function ConnectionModal({
         )
     }
 
-    return createPortal(
-        <div
-            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-            onClick={e => { if (e.target === e.currentTarget) onClose() }}
-        >
-            <div style={{ width: 520, maxWidth: '92vw', background: 'var(--om-bg-2)', border: '1px solid var(--om-border-focus)', overflow: 'hidden', fontFamily: 'var(--font-family)' }}>
+    const footer = (
+        <>
+            {isEdit && onDelete && (
+                <button
+                    onClick={() => setConfirmDelete(true)}
+                    style={{ height: 28, padding: '0 12px', border: 0, background: 'transparent', color: 'var(--om-red)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                    <Trash2 size={12} /> Delete
+                </button>
+            )}
+            <div style={{ flex: 1 }} />
+            <button onClick={onClose} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}>
+                Cancel
+            </button>
+            <button onClick={handleSave} disabled={loading} style={{ height: 28, padding: '0 16px', border: 0, background: 'var(--om-green)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer' }}>
+                {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Connect'}
+            </button>
+        </>
+    )
 
-                {/* Header */}
-                <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--om-border)' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--om-fg-bright)' }}>
-                        {isEdit ? 'Edit connection' : 'New connection'}
-                    </span>
-                    <button onClick={onClose} className="g-icon-btn" style={{ width: 26, height: 26 }}><X size={13} /></button>
-                </div>
-
+    return (
+        <>
+            <Modal
+                open
+                onClose={onClose}
+                title={isEdit ? 'Edit connection' : 'New connection'}
+                bodyFlush
+                footer={footer}
+            >
                 {/* Tab bar */}
                 <div style={{ display: 'flex', borderBottom: '1px solid var(--om-border)', background: 'var(--om-bg-2)', padding: '0 8px' }}>
                     {tabBtn('general', 'General')}
@@ -222,61 +229,41 @@ function ConnectionModal({
                     )}
                 </div>
 
-                {/* Footer */}
-                <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--om-border)' }}>
-                    {isEdit && onDelete && (
+            </Modal>
+
+            <Modal
+                open={confirmDelete && isEdit && !!onDelete}
+                onClose={() => setConfirmDelete(false)}
+                title="Delete connection"
+                size="sm"
+                zIndex={10001}
+                footer={
+                    <>
+                        <div style={{ flex: 1 }} />
                         <button
-                            onClick={() => setConfirmDelete(true)}
-                            style={{ height: 28, padding: '0 12px', border: 0, background: 'transparent', color: 'var(--om-red)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            onClick={() => setConfirmDelete(false)}
+                            style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => { setConfirmDelete(false); onDelete?.() }}
+                            style={{ height: 28, padding: '0 14px', border: 0, background: 'var(--om-red)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         >
                             <Trash2 size={12} /> Delete
                         </button>
-                    )}
-                    <div style={{ flex: 1 }} />
-                    <button onClick={onClose} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}>
-                        Cancel
-                    </button>
-                    <button onClick={handleSave} disabled={loading} style={{ height: 28, padding: '0 16px', border: 0, background: 'var(--om-green)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer' }}>
-                        {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Connect'}
-                    </button>
-                </div>
-            </div>
-
-            {confirmDelete && isEdit && onDelete && (
-                <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-                    onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false) }}
-                >
-                    <div style={{ width: 380, maxWidth: '92vw', background: 'var(--om-bg-2)', border: '1px solid var(--om-border-focus)', fontFamily: 'var(--font-family)' }}>
-                        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--om-border)', fontSize: 14, fontWeight: 600, color: 'var(--om-fg-bright)' }}>
-                            Delete connection
-                        </div>
-                        <div style={{ padding: '18px 20px', fontSize: 13, lineHeight: 1.55, color: 'var(--om-fg)' }}>
-                            Are you sure you want to delete{' '}
-                            <span style={{ color: 'var(--om-fg-bright)', fontWeight: 600 }}>"{project!.name}"</span>?
-                            <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--om-fg-muted)' }}>
-                                This only removes the saved connection. The database itself is not affected.
-                            </div>
-                        </div>
-                        <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid var(--om-border)' }}>
-                            <button
-                                onClick={() => setConfirmDelete(false)}
-                                style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => { setConfirmDelete(false); onDelete() }}
-                                style={{ height: 28, padding: '0 14px', border: 0, background: 'var(--om-red)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                            >
-                                <Trash2 size={12} /> Delete
-                            </button>
-                        </div>
+                    </>
+                }
+            >
+                <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--om-fg)' }}>
+                    Are you sure you want to delete{' '}
+                    <span style={{ color: 'var(--om-fg-bright)', fontWeight: 600 }}>"{project?.name}"</span>?
+                    <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--om-fg-muted)' }}>
+                        This only removes the saved connection. The database itself is not affected.
                     </div>
                 </div>
-            )}
-        </div>,
-        document.body
+            </Modal>
+        </>
     )
 }
 

@@ -1,8 +1,11 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { CONNECTION_COLORS } from '@/components/ui'
+import { AboutModal } from '@/components/about-modal'
 import { SidebarShell, SidebarMenuLink } from './sidebar-shell'
+
+declare const __APP_VERSION__: string
 
 function MenuDivider() {
     return (
@@ -38,6 +41,7 @@ interface Props {
 export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
     const { username, logout } = useAuth()
     const navigate = useNavigate()
+    const [aboutOpen, setAboutOpen] = useState(false)
 
     const handleLogout = async () => {
         await logout()
@@ -57,6 +61,26 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
                 <span style={{ color: 'var(--om-fg-muted)' }}>user:</span>{' '}
                 <span style={{ color: 'var(--om-fg-bright)' }}>{username || '—'}</span>
             </div>
+            <button
+                onClick={() => setAboutOpen(true)}
+                title="About Postgre Hub"
+                style={{
+                    background: 'transparent',
+                    border: 0,
+                    padding: 0,
+                    margin: 0,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    textAlign: 'left',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+                onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
+            >
+                <span style={{ color: 'var(--om-green)' }}>❯</span>{' '}
+                <span style={{ color: 'var(--om-fg-muted)' }}>version:</span>{' '}
+                <span style={{ color: 'var(--om-fg-bright)' }}>{__APP_VERSION__}</span>
+            </button>
             <div style={{
                 color: 'var(--om-border)',
                 letterSpacing: '-1px',
@@ -84,6 +108,7 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
                 <span style={{ color: 'var(--om-green)' }}>❯</span>{' '}
                 <span style={{ color: 'var(--om-red)' }}>[ exit ]</span>
             </button>
+            <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         </div>
     )
 
@@ -97,6 +122,7 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
                 <MenuDivider />
                 <SidebarMenuLink to="/account" label="Account" />
                 <SidebarMenuLink to="/users"   label="Users" />
+                <SidebarMenuLink to="/appearance" label="Appearance" />
                 {import.meta.env.DEV && <>
                     <MenuDivider />
                     <SidebarMenuLink to="/_dev" label="UI components" />
