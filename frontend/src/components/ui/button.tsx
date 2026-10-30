@@ -1,7 +1,7 @@
 import styles from "@/css/ui/button.module.css"
 
-type Variant = 1 | 2 | 3 | 4 | 5
-type Size    = "sm" | "md" | "lg"
+type Variant = 1 | 2 | 3 | 4 | 5 | 6
+type Size    = "sm" | "md" | "lg" | "xl"
 
 const VARIANT_CLASS: Record<Variant, string> = {
     1: styles.primary,
@@ -9,6 +9,7 @@ const VARIANT_CLASS: Record<Variant, string> = {
     3: styles.outline,
     4: styles.subtle,
     5: styles.danger,
+    6: styles.destructive,
 }
 
 interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {

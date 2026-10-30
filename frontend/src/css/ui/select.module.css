@@ -1,13 +1,11 @@
 .wrapper { display: flex; flex-direction: column; gap: 4px; position: relative; }
 
 .label {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    font-weight: 400;
-    line-height: 1;
-    color: var(--om-fg-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-family: var(--font-family);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--om-fg-dim);
 }
 
 .required { color: var(--om-red); margin-left: 2px; }
@@ -16,22 +14,23 @@
     position: relative;
     display: flex;
     align-items: center;
-    height: 32px;
+    height: 30px;
     background: var(--om-bg);
-    border: 1px solid var(--om-border);
-    transition: border-color 0.15s;
+    border: 1px solid var(--om-border-focus);
+    border-radius: var(--radius-1);
+    corner-shape: squircle;
+    transition: border-color 0.12s, box-shadow 0.12s;
     cursor: pointer;
     user-select: none;
 }
 
-.control:hover        { border-color: var(--om-fg-muted); }
-.control:focus-within { border-color: var(--om-green); }
-.controlOpen          { border-color: var(--om-green); }
+.control:focus-within,
+.controlOpen          { border-color: var(--om-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--om-accent) 30%, transparent); }
 
 .value {
     flex: 1;
-    padding: 0 28px 0 12px;
-    font-family: var(--font-mono);
+    padding: 0 28px 0 10px;
+    font-family: var(--font-family);
     font-size: 13px;
     color: var(--om-fg-bright);
     white-space: nowrap;
@@ -57,6 +56,9 @@
     z-index: 10000;
     background: var(--om-bg-2);
     border: 1px solid var(--om-border-focus);
+    border-radius: var(--radius-pop);
+    corner-shape: squircle;
+    box-shadow: var(--shadow-pop);
     overflow: hidden;
 }
 
@@ -67,11 +69,13 @@
     align-items: center;
     height: 28px;
     background: var(--om-bg);
-    border: 1px solid var(--om-border);
-    transition: border-color 0.15s;
+    border: 1px solid var(--om-border-focus);
+    border-radius: var(--radius-1);
+    corner-shape: squircle;
+    transition: border-color 0.12s;
 }
 
-.searchControl:focus-within { border-color: var(--om-green); }
+.searchControl:focus-within { border-color: var(--om-accent); }
 
 .searchInput {
     flex: 1;
@@ -80,10 +84,10 @@
     background: transparent;
     border: none;
     outline: none;
-    font-family: var(--font-mono);
+    font-family: var(--font-family);
     font-size: 12px;
     color: var(--om-fg-bright);
-    caret-color: var(--om-green);
+    caret-color: var(--om-accent);
 }
 
 .searchInput::placeholder { color: var(--om-fg-muted); }
@@ -92,27 +96,29 @@
     max-height: 220px;
     overflow-y: auto;
     list-style: none;
-    padding: 4px 0;
+    padding: 4px;
     margin: 0;
 }
 
 .option {
-    padding: 6px 12px;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-1);
+    corner-shape: squircle;
+    font-family: var(--font-family);
+    font-size: 13px;
     color: var(--om-fg);
     cursor: pointer;
 }
 
-.optionActive   { background: var(--om-bg-3); color: var(--om-fg-bright); }
-.optionSelected { color: var(--om-green); }
+.optionActive   { background: var(--om-selection); color: var(--om-fg-bright); }
+.optionSelected { color: var(--om-accent); font-weight: 500; }
 
 .noResults {
     padding: 10px 12px;
     font-size: 11.5px;
     color: var(--om-fg-muted);
     text-align: center;
-    font-family: var(--font-mono);
+    font-family: var(--font-family);
 }
 
 .wrapper.disabled .control { opacity: 0.5; cursor: not-allowed; }
@@ -122,6 +128,6 @@
 .wrapper.error .control,
 .wrapper.error .controlOpen { border-color: var(--om-red); }
 
-.message  { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1; font-family: var(--font-mono); }
+.message  { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1; font-family: var(--font-family); }
 .errorMsg { color: var(--om-red); }
 .hint     { color: var(--om-fg-muted); }

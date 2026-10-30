@@ -8,6 +8,14 @@
 
 .outlined  { background: transparent; box-shadow: none; }
 .elevated  { border-color: transparent; box-shadow: var(--shadow-2); }
+/* Mismo aspecto que las filas del listado de conexiones */
+.card.panel {
+    background: var(--om-bg-2);
+    border-color: var(--om-border);
+    border-radius: var(--panel-radius);
+    corner-shape: squircle;
+    box-shadow: none;
+}
 .filled    { background: var(--layer-2); border-color: transparent; box-shadow: none; }
 
 .interactive {

@@ -1,12 +1,13 @@
 import { AlertCircle } from "lucide-react"
 import styles from "@/css/ui/input.module.css"
 
-interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
+interface Props extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
     label?: string
     hint?: string
     error?: string
     iconLeft?: React.ReactNode
     iconRight?: React.ReactNode
+    size?: "md" | "lg"
 }
 
 export function Input({
@@ -15,6 +16,7 @@ export function Input({
     error,
     iconLeft,
     iconRight,
+    size = "md",
     disabled,
     required,
     id,
@@ -36,7 +38,7 @@ export function Input({
                 </label>
             )}
 
-            <div className={styles.control}>
+            <div className={`${styles.control} ${size === "lg" ? styles.lg : ""}`}>
                 {iconLeft  && <span className={styles.iconLeft}>{iconLeft}</span>}
                 <input
                     id={id}

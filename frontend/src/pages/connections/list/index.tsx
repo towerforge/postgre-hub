@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, CheckCircle, XCircle, Trash2 } from 'lucide-react'
-import { Button, Select, Spinner, SearchBar, ColorPicker, Modal, useSpinner } from '@/components/ui'
+import { Plus, CheckCircle, XCircle, Trash2, Plug, Pencil } from 'lucide-react'
+import { Button, Input, Select, Spinner, SearchBar, ColorPicker, Modal, Tabs, TabBar, Tab, FormRow, InfoBox, ListItem, ListItemGroup, ToolButton, Alert, useSpinner } from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -19,19 +19,6 @@ const SSL_OPTIONS = [
     { value: 'require', label: 'Require' },
 ]
 
-// ── form field ────────────────────────────────────────────────────────────────
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0 12px', alignItems: 'center', minHeight: 34 }}>
-            <span style={{ fontSize: 12, color: 'var(--om-fg-dim)', fontFamily: 'var(--font-family)', fontWeight: 500 }}>{label}</span>
-            {children}
-        </div>
-    )
-}
-
-const inputStyle: React.CSSProperties = { width: '100%' }
-const inputClass = 'om-input'
 // ── modal ─────────────────────────────────────────────────────────────────────
 
 type ModalTab = 'general' | 'ssh'
@@ -100,45 +87,20 @@ function ConnectionModal({
         } finally { setLoading(false) }
     }
 
-    const tabBtn = (id: ModalTab, label: string) => {
-        const active = tab === id
-        return (
-            <button
-                onClick={() => { setTab(id); setError('') }}
-                style={{
-                    height: 36, padding: '0 14px', border: 'none', cursor: 'pointer',
-                    fontSize: 12.5, fontFamily: 'var(--font-family)', fontWeight: active ? 600 : 400,
-                    background: 'transparent',
-                    color: active ? 'var(--om-fg-bright)' : 'var(--om-fg-muted)',
-                    borderBottom: active ? '2px solid var(--om-green)' : '2px solid transparent',
-                    marginBottom: -1,
-                }}
-            >
-                {label}
-                {id === 'ssh' && !!form.ssh_tunnel_id && (
-                    <span style={{ marginLeft: 6, width: 6, height: 6, background: 'var(--om-green)', display: 'inline-block', verticalAlign: 'middle' }} />
-                )}
-            </button>
-        )
-    }
-
     const footer = (
         <>
             {isEdit && onDelete && (
-                <button
-                    onClick={() => setConfirmDelete(true)}
-                    style={{ height: 28, padding: '0 12px', border: 0, background: 'transparent', color: 'var(--om-red)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                    <Trash2 size={12} /> Delete
-                </button>
+                <Button variant={5} onClick={() => setConfirmDelete(true)}>
+                    <Trash2 size={13} /> Delete
+                </Button>
             )}
             <div style={{ flex: 1 }} />
-            <button onClick={onClose} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}>
+            <Button variant={2} onClick={onClose}>
                 Cancel
-            </button>
-            <button onClick={handleSave} disabled={loading} style={{ height: 28, padding: '0 16px', border: 0, background: 'var(--om-green)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer' }}>
+            </Button>
+            <Button variant={1} onClick={handleSave} disabled={loading}>
                 {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Connect'}
-            </button>
+            </Button>
         </>
     )
 
@@ -151,55 +113,60 @@ function ConnectionModal({
                 bodyFlush
                 footer={footer}
             >
-                {/* Tab bar */}
-                <div style={{ display: 'flex', borderBottom: '1px solid var(--om-border)', background: 'var(--om-bg-2)', padding: '0 8px' }}>
-                    {tabBtn('general', 'General')}
-                    {tabBtn('ssh', 'SSH Tunnel')}
-                </div>
+                <Tabs value={tab} onChange={id => { setTab(id as ModalTab); setError('') }}>
+                    <TabBar>
+                        <Tab id="general">General</Tab>
+                        <Tab id="ssh" dot={!!form.ssh_tunnel_id}>SSH Tunnel</Tab>
+                    </TabBar>
+                </Tabs>
 
                 {/* Body */}
-                <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 280 }}>
+                <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 300 }}>
 
                     {tab === 'general' && <>
-                        <Field label="Name">
-                            <input className={inputClass} style={inputStyle} value={form.name} onChange={str('name')} placeholder="My database" autoFocus />
-                        </Field>
-                        <Field label="Host">
+                        <FormRow label="Name">
+                            <Input size="lg" value={form.name} onChange={str('name')} placeholder="My database" autoFocus />
+                        </FormRow>
+                        <FormRow label="Host">
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <input className={inputClass} style={{ flex: 1 }} value={form.host} onChange={str('host')} placeholder="localhost" />
-                                <input
-                                    className={inputClass} style={{ width: 80 }}
-                                    value={String(form.port)}
-                                    onChange={e => setForm(f => ({ ...f, port: Number(e.target.value) }))}
-                                    type="number" placeholder="5432"
-                                />
+                                <div style={{ flex: 1 }}>
+                                    <Input size="lg" value={form.host} onChange={str('host')} placeholder="localhost" />
+                                </div>
+                                <div style={{ width: 96 }}>
+                                    <Input
+                                        size="lg"
+                                        value={String(form.port)}
+                                        onChange={e => setForm(f => ({ ...f, port: Number(e.target.value) }))}
+                                        type="number" placeholder="5432"
+                                    />
+                                </div>
                             </div>
-                        </Field>
-                        <Field label="Database">
-                            <input className={inputClass} style={inputStyle} value={form.database} onChange={str('database')} placeholder="mydb" />
-                        </Field>
-                        <Field label="Username">
-                            <input className={inputClass} style={inputStyle} value={form.username} onChange={str('username')} placeholder="postgres" />
-                        </Field>
-                        <Field label="Password">
-                            <input className={inputClass} style={inputStyle} value={form.password ?? ''} onChange={str('password')} type="password" placeholder="••••••••" />
-                        </Field>
-                        <Field label="SSL">
+                        </FormRow>
+                        <FormRow label="Database">
+                            <Input size="lg" value={form.database} onChange={str('database')} placeholder="mydb" />
+                        </FormRow>
+                        <FormRow label="Username">
+                            <Input size="lg" value={form.username} onChange={str('username')} placeholder="postgres" />
+                        </FormRow>
+                        <FormRow label="Password">
+                            <Input size="lg" value={form.password ?? ''} onChange={str('password')} type="password" placeholder="••••••••" />
+                        </FormRow>
+                        <FormRow label="SSL">
                             <Select value={form.ssl_mode} options={SSL_OPTIONS} onChange={e => setForm(f => ({ ...f, ssl_mode: e.target.value }))} />
-                        </Field>
-                        <Field label="Color">
+                        </FormRow>
+                        <FormRow label="Color">
                             <ColorPicker
                                 value={form.color ?? ''}
                                 onChange={c => setForm(f => ({ ...f, color: c }))}
                             />
-                        </Field>
-                        <div style={{ marginLeft: 142, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', padding: '7px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 8, wordBreak: 'break-all' }}>
+                        </FormRow>
+                        <InfoBox style={{ marginLeft: 132 }}>
                             {connUrl}
-                        </div>
+                        </InfoBox>
                     </>}
 
                     {tab === 'ssh' && <>
-                        <Field label="SSH Tunnel">
+                        <FormRow label="SSH Tunnel">
                             <Select
                                 value={form.ssh_tunnel_id ?? ''}
                                 options={[
@@ -208,14 +175,14 @@ function ConnectionModal({
                                 ]}
                                 onChange={e => setForm(f => ({ ...f, ssh_tunnel_id: e.target.value || null }))}
                             />
-                        </Field>
+                        </FormRow>
                         {form.ssh_tunnel_id && (() => {
                             const t = tunnels.find(t => t.id === form.ssh_tunnel_id)
                             if (!t) return null
                             return (
-                                <div style={{ marginLeft: 142, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', padding: '7px 10px', background: 'rgba(0,0,0,0.04)', borderRadius: 8 }}>
+                                <InfoBox style={{ marginLeft: 132 }}>
                                     {t.username}@{t.host}:{t.port} · {t.auth_type === 'key' ? 'Private key' : 'Password'}
-                                </div>
+                                </InfoBox>
                             )
                         })()}
                         <div style={{ marginLeft: 142, fontSize: 11, color: 'var(--text-3)', lineHeight: 1.6 }}>
@@ -224,9 +191,7 @@ function ConnectionModal({
                         </div>
                     </>}
 
-                    {error && (
-                        <div style={{ fontSize: 12, color: 'var(--color-danger)' }}>{error}</div>
-                    )}
+                    {error && <Alert tone="error">{error}</Alert>}
                 </div>
 
             </Modal>
@@ -240,18 +205,12 @@ function ConnectionModal({
                 footer={
                     <>
                         <div style={{ flex: 1 }} />
-                        <button
-                            onClick={() => setConfirmDelete(false)}
-                            style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}
-                        >
+                        <Button variant={2} onClick={() => setConfirmDelete(false)}>
                             Cancel
-                        </button>
-                        <button
-                            onClick={() => { setConfirmDelete(false); onDelete?.() }}
-                            style={{ height: 28, padding: '0 14px', border: 0, background: 'var(--om-red)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        >
-                            <Trash2 size={12} /> Delete
-                        </button>
+                        </Button>
+                        <Button variant={6} onClick={() => { setConfirmDelete(false); onDelete?.() }}>
+                            <Trash2 size={13} /> Delete
+                        </Button>
                     </>
                 }
             >
@@ -333,10 +292,10 @@ export default function ProjectsHome() {
     return (
         <>
         <ProjectsShell
-            headerLeft={`${projects.length} connection${projects.length !== 1 ? 's' : ''}`}
+            headerLeft={<>Connections<span style={{ marginLeft: 8, fontSize: 13, fontWeight: 400, color: 'var(--om-fg-muted)' }}>{projects.length}</span></>}
             headerRight={
-                <Button variant={1} size="sm" onClick={() => setModal('create')}>
-                    <Plus size={12} /> new connection
+                <Button variant={1} size="xl" onClick={() => setModal('create')}>
+                    <Plus size={14} /> New connection
                 </Button>
             }
         >
@@ -347,25 +306,26 @@ export default function ProjectsHome() {
             ) : projects.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
                     No connections yet.<br />
-                    Click <Plus size={11} style={{ verticalAlign: 'middle' }} /> new connection to start.
+                    Click <b>New connection</b> to start.
                 </div>
             ) : (
                 <>
                 <div style={{ padding: '12px 16px 0' }}>
                     <SearchBar
+                        size="lg"
                         value={query}
                         onChange={setQuery}
-                        placeholder="filter by name, host, database, user…"
+                        placeholder="Filter by name, host, database, user…"
                         style={{ width: '100%' }}
                         autoFocus
                     />
                 </div>
                 {filtered.length === 0 ? (
-                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12, fontFamily: 'var(--font-mono)' }}>
-                        no matches for <span style={{ color: 'var(--om-fg-bright)' }}>"{query}"</span>
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 13 }}>
+                        No matches for <span style={{ color: 'var(--om-fg-bright)' }}>"{query}"</span>
                     </div>
                 ) : (
-                    <div className="conn-list">
+                    <ListItemGroup>
                         {filtered.map(p => {
                             const isHovered = hovered === p.id
                             const test = tests[p.id]
@@ -373,74 +333,57 @@ export default function ProjectsHome() {
                             const testResult = test && test !== 'testing' ? test : null
                             const showActions = isHovered || !!test
                             return (
-                                <div
+                                <ListItem
                                     key={p.id}
-                                    className="conn-item"
                                     onClick={() => navigate(`/connections/${p.id}`)}
                                     onMouseEnter={() => setHovered(p.id)}
                                     onMouseLeave={() => setHovered(null)}
-                                >
-                                    {testing ? (
+                                    leading={testing ? (
                                         <span
+                                            className="conn-avatar"
                                             style={{
-                                                width: 96,
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontFamily: '"Press Start 2P", "JetBrains Mono", monospace',
+                                                background: 'var(--om-bg-4)',
+                                                color: 'var(--om-fg-bright)',
+                                                fontFamily: 'var(--font-mono)',
                                                 fontSize: 16,
-                                                lineHeight: 1,
-                                                color: 'var(--om-green)',
-                                                flexShrink: 0,
-                                                transform: 'translateY(-3px)',
                                             }}
                                         >
                                             {spinnerFrame}
                                         </span>
                                     ) : (
-                                        <span className="conn-avatar" style={{ color: avatarColor(p.id, p.color) }}>
+                                        <span className="conn-avatar" style={{ background: avatarColor(p.id, p.color) }}>
                                             {initialsOf(p.name)}
                                         </span>
                                     )}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="conn-item-name">{p.name}</div>
-                                        <div className="conn-item-uri">
-                                            postgres://{p.username}@{p.host}:{p.port}/{p.database}
-                                        </div>
-                                    </div>
-                                    {showActions && (
-                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    title={p.name}
+                                    subtitle={`postgres://${p.username}@${p.host}:${p.port}/${p.database}`}
+                                    actions={showActions && (
+                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                                             {!testing && (
-                                                <button
-                                                    className="pos-btn"
+                                                <ToolButton
                                                     onClick={e => { e.stopPropagation(); handleTest(p) }}
                                                     title={testResult?.message}
                                                     style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 4,
                                                         color: testResult
                                                             ? (testResult.ok ? 'var(--color-success)' : 'var(--color-danger)')
                                                             : undefined,
                                                     }}
                                                 >
-                                                    {testResult?.ok && <CheckCircle size={10} />}
-                                                    {testResult && !testResult.ok && <XCircle size={10} />}
-                                                    {testResult ? (testResult.ok ? '[ok]' : '[fail]') : '[test]'}
-                                                </button>
+                                                    {!testResult && <Plug size={13} />}
+                                                    {testResult?.ok && <CheckCircle size={13} />}
+                                                    {testResult && !testResult.ok && <XCircle size={13} />}
+                                                    {testResult ? (testResult.ok ? 'Connected' : 'Failed') : 'Test'}
+                                                </ToolButton>
                                             )}
-                                            <button
-                                                className="pos-btn"
-                                                onClick={e => { e.stopPropagation(); setModal(p) }}
-                                            >
-                                                [edit]
-                                            </button>
+                                            <ToolButton onClick={e => { e.stopPropagation(); setModal(p) }}>
+                                                <Pencil size={13} /> Edit
+                                            </ToolButton>
                                         </div>
                                     )}
-                                </div>
+                                />
                             )
                         })}
-                    </div>
+                    </ListItemGroup>
                 )}
                 </>
             )}

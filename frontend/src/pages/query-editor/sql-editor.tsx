@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Play, Terminal, Maximize2, Minimize2,
-    X, Plus,
+    X, Plus, FileCode2,
 } from 'lucide-react'
 import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
@@ -9,7 +9,7 @@ import { keymap } from '@codemirror/view'
 import { editorTheme } from './editor-theme'
 import { useSetStatusBar } from '@/contexts/status-bar'
 import { useSetHistoryBar } from '@/contexts/history-bar'
-import { Spinner, useSpinner } from '@/components/ui'
+import { Alert, Spinner, ToolButton, useSpinner } from '@/components/ui'
 import { apiRunQuery, type Project, type TableInfo, type QueryResult } from '@/services/database'
 import { QueryInspector } from './query-inspector'
 import { QueryResultView } from './query-result-view'
@@ -206,8 +206,8 @@ export function SqlEditor({
                         onAuxClick={e => { if (e.button === 1) closeTab(tab.id, e as unknown as React.MouseEvent) }}
                         className={`vsc-tab${isActive ? ' active' : ''}`}
                     >
-                        <span className="ico" style={{ width: 10, display: 'inline-flex', justifyContent: 'center', color: 'var(--om-green)' }}>
-                            {isActive ? '●' : ''}
+                        <span className="ico">
+                            <FileCode2 size={14} />
                         </span>
                         {isRenaming ? (
                             <input
@@ -223,7 +223,7 @@ export function SqlEditor({
                                     if (e.key === 'Escape') setRenamingTabId(null)
                                 }}
                                 onClick={e => e.stopPropagation()}
-                                style={{ width: 100, fontSize: 13, background: 'var(--vsc-bg-input)', border: '1px solid var(--acc-blue)', borderRadius: 2, padding: '1px 4px', color: 'var(--vsc-fg-strong)', outline: 'none', fontFamily: 'var(--font-family)' }}
+                                style={{ width: 100, fontSize: 13, background: 'var(--vsc-bg-input)', border: '1px solid var(--acc-blue)', borderRadius: 4, padding: '1px 4px', color: 'var(--vsc-fg-strong)', outline: 'none', fontFamily: 'var(--font-family)' }}
                             />
                         ) : (
                             <span onDoubleClick={e => { e.stopPropagation(); setActiveTabId(tab.id); setRenamingTabId(tab.id) }}>
@@ -242,42 +242,32 @@ export function SqlEditor({
                     </div>
                 )
             })}
-            <button
-                onClick={addTab}
-                title="New tab"
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 35, height: 32, border: 0, background: 'transparent', cursor: 'pointer', color: 'var(--vsc-fg-muted)', flexShrink: 0 }}
-            >
-                <Plus size={14} />
-            </button>
+            <ToolButton iconOnly onClick={addTab} title="New tab">
+                <Plus size={15} />
+            </ToolButton>
             <div style={{ flex: 1 }} />
-            <button
-                onClick={() => setExpanded(e => !e)}
-                title={expanded ? 'Collapse editor' : 'Expand editor'}
-                className="pos-btn"
-                style={{ height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}
-            >
-                {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-            </button>
-            <button
+            <ToolButton iconOnly onClick={() => setExpanded(e => !e)} title={expanded ? 'Collapse editor' : 'Expand editor'}>
+                {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </ToolButton>
+            <ToolButton
                 onClick={() => runQuery()}
                 disabled={loading}
                 title="Run (⌘⏎)"
-                className="pos-btn"
-                style={{ height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 14px', color: 'var(--om-green)' }}
+                style={{ margin: '0 4px', color: 'var(--om-fg-bright)' }}
             >
                 {loading
-                    ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1 }}>{runSpinner}</span>
-                    : <Play size={11} fill="currentColor" />}
-                [run]
-            </button>
+                    ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1, color: 'var(--om-green)' }}>{runSpinner}</span>
+                    : <Play size={13} fill="var(--om-green)" color="var(--om-green)" />}
+                Run
+            </ToolButton>
         </div>
     )
 
     return (
-        <div style={{ display: 'flex', height: '100%', minWidth: 0, gap: 8 }}>
+        <div style={{ display: 'flex', height: '100%', minWidth: 0, gap: 10 }}>
 
         {/* ── Left column: tab bar + breadcrumbs + editor/results ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: 10 }}>
 
             {/* ── Editor tile ────────────────────────────── */}
             <div className="tile" style={{ flexShrink: 0 }}>
@@ -303,8 +293,8 @@ export function SqlEditor({
                     {loading ? (
                         <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><Spinner /></div>
                     ) : activeError ? (
-                        <div style={{ padding: '12px 16px', margin: 12, background: 'rgba(244,135,113,0.10)', border: '1px solid rgba(244,135,113,0.4)', color: 'var(--acc-red)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                            {activeError}
+                        <div style={{ margin: 12 }}>
+                            <Alert tone="error">{activeError}</Alert>
                         </div>
                     ) : activeResult ? (
                         <QueryResultView

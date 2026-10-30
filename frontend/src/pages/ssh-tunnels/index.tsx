@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Plus, Trash2, X, CheckCircle, XCircle, Loader } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { Button } from '@/components/ui'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, Trash2, CheckCircle, Pencil, FileKey } from 'lucide-react'
+import {
+    Button, Input, PasswordInput, Textarea, SegmentedControl, Modal, FormRow, Alert, Text,
+    Spinner, ListItem, ListItemGroup, ToolButton,
+} from '@/components/ui'
 import { usePageTitle } from '@/contexts/page-title'
 import { ProjectsShell, avatarColor, initialsOf } from '@/components/projects-shell'
 import {
@@ -9,19 +11,12 @@ import {
     type SshTunnel, type SshTunnelInput,
 } from '@/services/tunnels'
 
-// ── shared styles ─────────────────────────────────────────────────────────────
+type AuthType = 'password' | 'key'
 
-const inputStyle: React.CSSProperties = { width: '100%' }
-const inputClass = 'om-input'
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '0 12px', alignItems: 'center', minHeight: 34 }}>
-            <span style={{ fontSize: 12, color: 'var(--om-fg-dim)', fontFamily: 'var(--font-family)', fontWeight: 500 }}>{label}</span>
-            {children}
-        </div>
-    )
-}
+const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
+    { value: 'password', label: 'Password' },
+    { value: 'key',      label: 'Private key' },
+]
 
 // ── tunnel modal ──────────────────────────────────────────────────────────────
 
@@ -42,7 +37,7 @@ function TunnelModal({
         host:        tunnel?.host        ?? '',
         port:        tunnel?.port        ?? 22,
         username:    tunnel?.username    ?? '',
-        auth_type:   (tunnel?.auth_type as 'password' | 'key') ?? 'password',
+        auth_type:   (tunnel?.auth_type as AuthType) ?? 'password',
         password:    '',
         private_key: tunnel?.private_key ?? '',
     })
@@ -50,6 +45,7 @@ function TunnelModal({
     const [testing,  setTesting]  = useState(false)
     const [testRes,  setTestRes]  = useState<{ ok: boolean; msg: string } | null>(null)
     const [error,    setError]    = useState('')
+    const fileRef = useRef<HTMLInputElement>(null)
 
     const str = (k: keyof SshTunnelInput) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm(f => ({ ...f, [k]: e.target.value }))
@@ -80,131 +76,112 @@ function TunnelModal({
         } finally { setLoading(false) }
     }
 
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-    }, [onClose])
+    const footer = (
+        <>
+            {isEdit && onDelete && (
+                <Button
+                    variant={5}
+                    onClick={() => { if (confirm(`Delete tunnel "${tunnel!.name}"? Connections using it will lose SSH access.`)) onDelete() }}
+                >
+                    <Trash2 size={13} /> Delete
+                </Button>
+            )}
+            <div style={{ flex: 1 }} />
+            <Button variant={2} onClick={onClose}>
+                Cancel
+            </Button>
+            {isEdit && (
+                <Button variant={2} onClick={handleTest} disabled={testing}>
+                    <CheckCircle size={13} /> {testing ? 'Testing…' : 'Test'}
+                </Button>
+            )}
+            <Button variant={1} onClick={handleSave} disabled={loading}>
+                {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Create tunnel'}
+            </Button>
+        </>
+    )
 
-    const segBtn = (val: 'password' | 'key', label: string) => {
-        const active = form.auth_type === val
-        return (
-            <button onClick={() => setForm(f => ({ ...f, auth_type: val }))} style={{
-                flex: 1, height: 26, border: 'none', borderRadius: 6, cursor: 'pointer',
-                fontSize: 12, fontFamily: 'var(--font-family)',
-                background: active ? 'var(--content-0)' : 'transparent',
-                color: active ? 'var(--text-1)' : 'var(--text-3)',
-                boxShadow: active ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px var(--stroke-1)' : 'none',
-                transition: 'background 0.1s',
-            }}>{label}</button>
-        )
-    }
-
-    return createPortal(
-        <div
-            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
-            onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    return (
+        <Modal
+            open
+            onClose={onClose}
+            title={isEdit ? 'Edit SSH tunnel' : 'New SSH tunnel'}
+            bodyFlush
+            footer={footer}
         >
-            <div style={{ width: 520, maxWidth: '92vw', background: 'var(--om-bg-2)', border: '1px solid var(--om-border-focus)', overflow: 'hidden', fontFamily: 'var(--font-family)' }}>
-                <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--om-border)' }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--om-fg-bright)' }}>
-                        {isEdit ? 'Edit SSH tunnel' : 'New SSH tunnel'}
-                    </span>
-                    <button onClick={onClose} className="g-icon-btn" style={{ width: 26, height: 26 }}><X size={13} /></button>
-                </div>
-                <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <Field label="Name">
-                        <input className={inputClass} style={inputStyle} value={form.name} onChange={str('name')} placeholder="Production bastion" autoFocus />
-                    </Field>
-                    <Field label="SSH host">
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <input className={inputClass} style={{ flex: 1 }} value={form.host} onChange={str('host')} placeholder="bastion.example.com" />
-                            <input className={inputClass} style={{ width: 70 }} value={String(form.port)} onChange={e => setForm(f => ({ ...f, port: Number(e.target.value) }))} type="number" placeholder="22" />
+            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <FormRow label="Name">
+                    <Input size="lg" value={form.name} onChange={str('name')} placeholder="Production bastion" autoFocus />
+                </FormRow>
+                <FormRow label="SSH host">
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                            <Input size="lg" value={form.host} onChange={str('host')} placeholder="bastion.example.com" />
                         </div>
-                    </Field>
-                    <Field label="SSH user">
-                        <input className={inputClass} style={inputStyle} value={form.username} onChange={str('username')} placeholder="ubuntu" />
-                    </Field>
-                    <Field label="Auth">
-                        <div style={{ display: 'flex', gap: 2, padding: 3, background: 'rgba(0,0,0,0.05)', borderRadius: 9 }}>
-                            {segBtn('password', 'Password')}
-                            {segBtn('key', 'Private key')}
+                        <div style={{ width: 96 }}>
+                            <Input
+                                size="lg"
+                                value={String(form.port)}
+                                onChange={e => setForm(f => ({ ...f, port: Number(e.target.value) }))}
+                                type="number" placeholder="22"
+                            />
                         </div>
-                    </Field>
-                    {form.auth_type === 'password' ? (
-                        <Field label="Password">
-                            <input className={inputClass} style={inputStyle} value={form.password ?? ''} onChange={str('password')} type="password" placeholder={isEdit ? '(unchanged)' : '••••••••'} />
-                        </Field>
-                    ) : (
-                        <>
-                        <Field label="Private key">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                <textarea
-                                    className={inputClass} style={{ width: '100%', height: 'auto', minHeight: 72, padding: '6px 10px', resize: 'vertical', lineHeight: 1.35 }}
-                                    value={form.private_key ?? ''}
-                                    onChange={e => setForm(f => ({ ...f, private_key: e.target.value }))}
-                                    placeholder={isEdit ? '(unchanged)' : '-----BEGIN OPENSSH PRIVATE KEY-----\n…\nor a path like ~/.ssh/id_rsa'}
+                    </div>
+                </FormRow>
+                <FormRow label="SSH user">
+                    <Input size="lg" value={form.username} onChange={str('username')} placeholder="ubuntu" />
+                </FormRow>
+                <FormRow label="Auth">
+                    <SegmentedControl
+                        options={AUTH_OPTIONS}
+                        value={form.auth_type as AuthType}
+                        onChange={v => setForm(f => ({ ...f, auth_type: v }))}
+                    />
+                </FormRow>
+                {form.auth_type === 'password' ? (
+                    <FormRow label="Password">
+                        <PasswordInput size="lg" value={form.password ?? ''} onChange={str('password')} placeholder={isEdit ? '(unchanged)' : '••••••••'} />
+                    </FormRow>
+                ) : (
+                    <>
+                    <FormRow label="Private key">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Textarea
+                                mono
+                                value={form.private_key ?? ''}
+                                onChange={e => setForm(f => ({ ...f, private_key: e.target.value }))}
+                                placeholder={isEdit ? '(unchanged)' : '-----BEGIN OPENSSH PRIVATE KEY-----\n…\nor a path like ~/.ssh/id_rsa'}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Button variant={3} size="sm" onClick={() => fileRef.current?.click()}>
+                                    <FileKey size={12} /> Browse…
+                                </Button>
+                                <Text variant="hint">Load a key file, or paste its contents, or type a path.</Text>
+                                {/* Input de fichero oculto; lo abre el botón Browse */}
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    hidden
+                                    onChange={async e => {
+                                        const file = e.target.files?.[0]
+                                        if (!file) return
+                                        const text = await file.text()
+                                        setForm(f => ({ ...f, private_key: text }))
+                                        e.target.value = ''
+                                    }}
                                 />
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <label style={{ display: 'inline-flex', alignItems: 'center', height: 24, padding: '0 10px', borderRadius: 999, background: 'rgba(0,0,0,0.06)', color: 'var(--text-1)', fontSize: 11.5, cursor: 'pointer' }}>
-                                        Browse…
-                                        <input
-                                            type="file"
-                                            style={{ display: 'none' }}
-                                            onChange={async e => {
-                                                const file = e.target.files?.[0]
-                                                if (!file) return
-                                                const text = await file.text()
-                                                setForm(f => ({ ...f, private_key: text }))
-                                                e.target.value = ''
-                                            }}
-                                        />
-                                    </label>
-                                    <span style={{ fontSize: 10.5, color: 'var(--text-3)' }}>
-                                        Load a key file, or paste its contents, or type a path.
-                                    </span>
-                                </div>
                             </div>
-                        </Field>
-                        <Field label="Passphrase">
-                            <input className={inputClass} style={inputStyle} value={form.password ?? ''} onChange={str('password')} type="password" placeholder={isEdit ? '(unchanged)' : 'optional'} />
-                        </Field>
-                        </>
-                    )}
-                    {testRes && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: testRes.ok ? 'rgba(48,209,88,0.12)' : 'rgba(255,69,58,0.12)', fontSize: 12, color: testRes.ok ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                            {testRes.ok ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                            {testRes.msg}
                         </div>
-                    )}
-                    {error && <div style={{ fontSize: 12, color: 'var(--color-danger)' }}>{error}</div>}
-                </div>
-                <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--om-border)' }}>
-                    {isEdit && onDelete && (
-                        <button
-                            onClick={() => { if (confirm(`Delete tunnel "${tunnel!.name}"? Connections using it will lose SSH access.`)) onDelete() }}
-                            style={{ height: 28, padding: '0 12px', border: 0, background: 'transparent', color: 'var(--om-red)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        >
-                            <Trash2 size={12} /> Delete
-                        </button>
-                    )}
-                    <div style={{ flex: 1 }} />
-                    <button onClick={onClose} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer' }}>
-                        Cancel
-                    </button>
-                    {isEdit && (
-                        <button onClick={handleTest} disabled={testing} style={{ height: 28, padding: '0 14px', border: '1px solid var(--om-border)', background: 'var(--om-bg-2)', color: 'var(--om-fg)', fontSize: 12, fontFamily: 'var(--font-family)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            {testing ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle size={11} />}
-                            Test
-                        </button>
-                    )}
-                    <button onClick={handleSave} disabled={loading} style={{ height: 28, padding: '0 16px', border: 0, background: 'var(--om-green)', color: 'var(--om-bg)', fontSize: 12, fontFamily: 'var(--font-family)', fontWeight: 600, cursor: 'pointer' }}>
-                        {loading ? 'Saving…' : isEdit ? 'Save changes' : 'Create tunnel'}
-                    </button>
-                </div>
+                    </FormRow>
+                    <FormRow label="Passphrase">
+                        <PasswordInput size="lg" value={form.password ?? ''} onChange={str('password')} placeholder={isEdit ? '(unchanged)' : 'optional'} />
+                    </FormRow>
+                    </>
+                )}
+                {testRes && <Alert tone={testRes.ok ? 'success' : 'error'}>{testRes.msg}</Alert>}
+                {error && <Alert tone="error">{error}</Alert>}
             </div>
-        </div>,
-        document.body
+        </Modal>
     )
 }
 
@@ -234,53 +211,45 @@ export default function SshTunnelsPage() {
     return (
         <>
         <ProjectsShell
-            headerLeft={`${tunnels.length} tunnel${tunnels.length !== 1 ? 's' : ''}`}
+            headerLeft={<>SSH Tunnels<span style={{ marginLeft: 8, fontSize: 13, fontWeight: 400, color: 'var(--om-fg-muted)' }}>{tunnels.length}</span></>}
             headerRight={
-                <Button variant={1} size="sm" onClick={() => setModal('create')}>
-                    <Plus size={12} /> new tunnel
+                <Button variant={1} size="xl" onClick={() => setModal('create')}>
+                    <Plus size={14} /> New tunnel
                 </Button>
             }
         >
             {loading ? (
-                <div style={{ padding: 16, textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12 }}>Loading…</div>
+                <div style={{ padding: 16, display: 'flex', justifyContent: 'center' }}>
+                    <Spinner label="Loading…" />
+                </div>
             ) : tunnels.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--om-fg-muted)', fontSize: 12, lineHeight: 1.6 }}>
                     No SSH tunnels yet.<br />
-                    Click <Plus size={11} style={{ verticalAlign: 'middle' }} /> new tunnel to start.
+                    Click <b>New tunnel</b> to start.
                 </div>
             ) : (
-                <div className="conn-list">
-                    {tunnels.map(t => {
-                        const isH = hovered === t.id
-                        return (
-                            <div
-                                key={t.id}
-                                className="conn-item"
-                                onClick={() => setModal(t)}
-                                onMouseEnter={() => setHovered(t.id)}
-                                onMouseLeave={() => setHovered(null)}
-                            >
-                                <span className="conn-avatar" style={{ color: avatarColor(t.id) }}>
+                <ListItemGroup>
+                    {tunnels.map(t => (
+                        <ListItem
+                            key={t.id}
+                            onClick={() => setModal(t)}
+                            onMouseEnter={() => setHovered(t.id)}
+                            onMouseLeave={() => setHovered(null)}
+                            leading={
+                                <span className="conn-avatar" style={{ background: avatarColor(t.id) }}>
                                     {initialsOf(t.name)}
                                 </span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="conn-item-name">{t.name}</div>
-                                    <div className="conn-item-uri">
-                                        {t.username}@{t.host}:{t.port} · {t.auth_type === 'key' ? 'key' : 'password'}
-                                    </div>
-                                </div>
-                                {isH && (
-                                    <button
-                                        className="pos-btn"
-                                        onClick={e => { e.stopPropagation(); setModal(t) }}
-                                    >
-                                        [edit]
-                                    </button>
-                                )}
-                            </div>
-                        )
-                    })}
-                </div>
+                            }
+                            title={t.name}
+                            subtitle={`${t.username}@${t.host}:${t.port} · ${t.auth_type === 'key' ? 'key' : 'password'}`}
+                            actions={hovered === t.id && (
+                                <ToolButton onClick={e => { e.stopPropagation(); setModal(t) }}>
+                                    <Pencil size={13} /> Edit
+                                </ToolButton>
+                            )}
+                        />
+                    ))}
+                </ListItemGroup>
             )}
         </ProjectsShell>
 

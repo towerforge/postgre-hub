@@ -2,7 +2,7 @@ use axum::{
     routing::{get, post, put},
     Router,
     http::StatusCode,
-    extract::Path,
+    extract::{DefaultBodyLimit, Path},
     response::{IntoResponse, Response},
     body::Body,
     Json,
@@ -19,7 +19,7 @@ use crate::database::{
     test_connection, list_tables, list_types, list_sequences, list_routines,
     get_table_data, get_table_schema, run_query, build_changes,
     get_sessions, explain_query,
-    export_dump, import_dump,
+    list_schemas, export_dump, import_dump,
     list_tunnels, create_tunnel, update_tunnel, delete_tunnel, test_tunnel,
 };
 
@@ -78,8 +78,10 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/projects/{id}/query/explain",         post(explain_query))
         .route("/api/projects/{id}/build-changes",         post(build_changes))
         .route("/api/projects/{id}/sessions",              get(get_sessions))
-        .route("/api/projects/{id}/export",                get(export_dump))
-        .route("/api/projects/{id}/import",                post(import_dump))
+        // Export / import SQL
+        .route("/api/projects/{id}/schemas",               get(list_schemas))
+        .route("/api/projects/{id}/export",                post(export_dump))
+        .route("/api/projects/{id}/import",                post(import_dump).layer(DefaultBodyLimit::max(512 * 1024 * 1024)))
         // SSH Tunnels
         .route("/api/tunnels",      get(list_tunnels).post(create_tunnel))
         .route("/api/tunnels/{id}",       put(update_tunnel).delete(delete_tunnel))

@@ -18,8 +18,30 @@ Postgre Hub runs as a single binary and serves a browser dashboard. No external 
 | **SSH tunnels** | Define reusable SSH tunnel profiles (password or private-key) and attach them to any connection. Tunnels are dialed transparently on demand |
 | **SQL editor** | CodeMirror-based query editor with syntax highlighting, multiple tabs, `EXPLAIN` and a live sessions view |
 | **Schema browser** | Browse tables, columns, types, sequences and routines for the active database, with table-data viewer and pagination |
-| **Dump / restore** | Export a connection to a SQL dump or import one back, directly from the UI |
+| **Export / import** | Export any set of schemas to a plain `.sql` file and import `.sql` files back, choosing what to include from a dialog |
 | **Users** | Multi-user access with username + password auth. Sessions stored server-side, configurable lifetime |
+
+## Export and import
+
+Both actions live at the bottom of the schema sidebar of an open connection. Files are always plain SQL.
+
+**Export** opens a dialog where you pick:
+
+- **Schemas** — all of them are selected by default; system schemas are never listed.
+- **What to include** — structure (types, sequences, tables, constraints, indexes), data, functions and procedures, views (including materialized views), triggers and extensions. Everything except extensions is on by default.
+- **Drop schemas before recreating them** — adds `DROP SCHEMA … CASCADE` at the top of the file. Importing such a file deletes everything in those schemas on the target database first.
+
+The file is laid out so it can be replayed without dependency errors: tables are created first, then functions, then column defaults, data, constraints, indexes, foreign keys, views and finally triggers. Statements that cannot be written as `IF NOT EXISTS` are wrapped so they are skipped when the object already exists, which means a file can be imported over a database that already contains part of it. Sequence and identity counters are restored to their exported values.
+
+**Import** accepts a `.sql` file — one exported by Postgre Hub or written by hand — shows its first lines and runs it against the open connection **in a single transaction**: if any statement fails, nothing is applied and the PostgreSQL error is shown. The schema sidebar reloads when it finishes.
+
+Limits to keep in mind:
+
+- The dump is built in memory, so very large tables make the export slow and the file big. For multi-gigabyte databases use `pg_dump`.
+- Domains, grants/ownership and comments are not exported.
+- A view that depends on another view created later may fail on import.
+- Uploads are limited to 512 MB. Behind a reverse proxy, raise its body size limit as well (see below).
+- A hand-written file that contains its own `COMMIT` ends the transaction at that point.
 
 ## Requirements
 
@@ -104,6 +126,9 @@ location / {
     proxy_set_header   Host              $host;
     proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header   X-Real-IP         $remote_addr;
+
+    # Allow importing large .sql files (nginx defaults to 1 MB)
+    client_max_body_size 512m;
 }
 ```
 
@@ -121,6 +146,10 @@ your.domain.tld {
 </details>
 
 Once behind HTTPS, set `SECURE_COOKIES=true` so session cookies carry the `Secure` flag.
+
+## Development
+
+The frontend is built from a shared component kit. See [docs/ui-components.md](docs/ui-components.md) for the components, sizing rules and page patterns before adding UI.
 
 ## License
 

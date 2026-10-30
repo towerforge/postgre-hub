@@ -8,12 +8,24 @@ APP_NAME     ?= postgre-hub
 BACKEND_DIR  := backend
 FRONTEND_DIR := frontend
 PORT         ?= 8080
-LOGS_DIR     := $(CURDIR)/.logs
+
+# Permite usar `docker-compose` (v1) si no esta disponible el plugin `docker compose`.
+COMPOSE ?= docker compose
 
 RESET := \033[0m
 BOLD  := \033[1m
 DIM   := \033[2m
 GREEN := \033[0;32m
+
+# Badges de servicio
+B_DB    := \033[1;37;48;5;25m  db   \033[0m
+B_API   := \033[1;37;48;5;208m api  \033[0m
+B_FRONT := \033[1;30;48;5;35m front \033[0m
+
+# URLs de desarrollo (puertos publicados en docker-compose.override.yml)
+URL_FRONT := http://localhost:4300
+URL_API   := http://localhost:4301
+URL_DB    := postgres://postgres:postgres@localhost:4302/sandbox
 
 VERSION     ?= $(shell sed -n 's/^version = "\(.*\)"/\1/p' $(BACKEND_DIR)/Cargo.toml | head -n1)
 VERSION_TAG ?= v$(VERSION)
@@ -84,13 +96,12 @@ WINDOWS_TARGETS ?= \
 # ---------------------------------------------------------------------------
 
 .PHONY: help version \
-        install dev start stop status logs \
-        dev-backend watch-backend dev-frontend \
+        start up dev down stop logs ps status images check fmt clean \
         install-frontend build-frontend build-backend build run release \
         package package-one \
         package-all package-all-linux package-all-macos package-all-windows \
         _package-linux-binaries _package-macos-binaries _package-windows-binaries \
-        checksums rust-targets clean dist-clean
+        checksums rust-targets clean-target dist-clean
 
 # ---------------------------------------------------------------------------
 # Help
@@ -99,15 +110,16 @@ WINDOWS_TARGETS ?= \
 help:
 	@echo "Postgres Hub — available targets"
 	@echo ""
-	@echo "  Development"
-	@echo "    make install                  Install all dependencies (skips if up to date)"
-	@echo "    make dev / make start         Install + start backend & frontend"
-	@echo "    make stop                     Stop all running dev services"
-	@echo "    make status                   Show which services are running"
-	@echo "    make logs                     Tail live output (interactive selection)"
-	@echo "    make dev-backend              Run backend only (foreground)"
-	@echo "    make watch-backend            Run backend with cargo-watch (auto-reload)"
-	@echo "    make dev-frontend             Run frontend only (foreground)"
+	@echo "  Desarrollo (Docker Compose)"
+	@echo "    make start / make up / make dev   Construye y levanta la pila (API, Vite, PostgreSQL de pruebas)"
+	@echo "    make down                     Para y elimina los contenedores (conserva volumenes)"
+	@echo "    make stop                     Detiene los contenedores sin eliminarlos"
+	@echo "    make logs [S=servicio]        Sigue los logs (todos o uno: app, frontend, sandbox)"
+	@echo "    make ps / make status         Estado de los servicios"
+	@echo "    make images                   Construye las imagenes Docker"
+	@echo "    make check                    cargo check + clippy y eslint, dentro de los contenedores"
+	@echo "    make fmt                      cargo fmt dentro del contenedor"
+	@echo "    make clean                    Para todo y elimina volumenes (datos de dev incluidos)"
 	@echo ""
 	@echo "  Building"
 	@echo "    make build                    Build frontend + backend for the host"
@@ -128,11 +140,11 @@ help:
 	@echo "    make rust-targets             List all targets used by package-all-*"
 	@echo "    make install-frontend         Install frontend dependencies"
 	@echo "    make checksums                Generate SHA256 checksums for dist artifacts"
-	@echo "    make clean                    Remove backend build artifacts"
+	@echo "    make clean-target             Remove host backend build artifacts (cargo clean)"
 	@echo "    make dist-clean               Remove the dist directory"
 	@echo ""
 	@echo "  Variables"
-	@echo "    PORT=<port>                   Backend port at runtime (default: 8080)"
+	@echo "    PORT=<port>                   Port for make run (default: 8080)"
 	@echo "    VERSION=<x.y.z>              Override the version from Cargo.toml"
 	@echo "    DIST_DIR=<dir>               Output directory for artifacts (default: dist)"
 	@echo "    CARGO_TARGET=<triple>        Rust target triple (e.g. aarch64-apple-darwin)"
@@ -141,17 +153,6 @@ help:
 	@echo "    WINDOWS_TARGETS=\"...\"       Space-separated triples for package-all-windows"
 	@echo "    ENABLE_LATEST_ASSET=1        Also write an unversioned copy of each artifact"
 	@echo "    ARTIFACT_BASENAME=<name>     Artifact filename prefix (default: postgre-hub)"
-
-# ---------------------------------------------------------------------------
-# Dev directory
-# ---------------------------------------------------------------------------
-
-$(LOGS_DIR):
-	@mkdir -p $(LOGS_DIR)
-
-# ---------------------------------------------------------------------------
-# Development
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Version
@@ -202,110 +203,56 @@ set-version:
 	printf "    frontend/package.json   → \"version\": \"$$new\"\n"; \
 	printf "\n  $(DIM)review with$(RESET)  git diff  $(DIM)then commit & tag$(RESET)  git tag v$$new\n\n"
 
-install: $(LOGS_DIR)
-	@echo ""
-	@printf "  $(BOLD)Instalando dependencias$(RESET)\n"
-	@echo ""
-	@if [ ! -d $(FRONTEND_DIR)/node_modules ] || [ $(FRONTEND_DIR)/pnpm-lock.yaml -nt $(FRONTEND_DIR)/node_modules ]; then \
-		printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)instalando dependencias...$(RESET)\n\n"; \
-		cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile --silent; \
-		echo ""; \
-	else \
-		printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)ok$(RESET)\n"; \
-	fi
-	@if ! command -v cargo > /dev/null 2>&1; then \
-		printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)cargo no encontrado — instala Rust desde https://rustup.rs$(RESET)\n"; \
-	else \
-		printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)ok (cargo gestiona dependencias al compilar)$(RESET)\n"; \
-	fi
-	@echo ""
+# ---------------------------------------------------------------------------
+# Desarrollo (Docker Compose)
+#   docker-compose.yml            produccion: el binario con la SPA embebida
+#   docker-compose.override.yml   desarrollo: API --dev con cargo watch, Vite y
+#                                 un PostgreSQL de pruebas (`sandbox`)
+# ---------------------------------------------------------------------------
 
-dev start: $(LOGS_DIR) install
-	@echo ""
-	@printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)http://localhost:$(PORT)$(RESET)\n"
-	@( cargo run --manifest-path $(BACKEND_DIR)/Cargo.toml -- --dev --port $(PORT) \
-		> $(LOGS_DIR)/backend.log 2>&1 ) & echo $$! > $(LOGS_DIR)/backend.pid
-	@printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)http://localhost:5173$(RESET)\n"
-	@( cd $(FRONTEND_DIR) && pnpm dev > $(LOGS_DIR)/frontend.log 2>&1 ) & echo $$! > $(LOGS_DIR)/frontend.pid
-	@echo ""
-	@printf "  $(DIM)make logs · make stop$(RESET)\n"
-	@echo ""
+## Construye las imagenes y levanta toda la pila en segundo plano.
+start up dev:
+	@printf "\n  $(BOLD)Levantando postgre-hub$(RESET)\n\n"
+	$(COMPOSE) up -d --build
+	@printf "\n  $(B_FRONT)  $(GREEN)$(URL_FRONT)$(RESET)\n"
+	@printf "  $(B_API)  $(GREEN)$(URL_API)$(RESET)  $(DIM)la primera compilacion de Rust tarda: make logs S=app$(RESET)\n"
+	@printf "  $(B_DB)  $(GREEN)$(URL_DB)$(RESET)  $(DIM)desde la app: host sandbox, puerto 5432$(RESET)\n"
+	@printf "\n  $(DIM)make logs - make down$(RESET)\n\n"
 
+## Para y elimina los contenedores (conserva los volumenes de datos y caches).
+down:
+	$(COMPOSE) down
+
+## Detiene los contenedores sin eliminarlos.
 stop:
-	@echo ""
-	@printf "  $(BOLD)Parando servicios$(RESET)\n"
-	@echo ""
-	@_stop() { \
-		badge=$$1; name=$$2; pid_file=$(LOGS_DIR)/$$2.pid; \
-		if [ -f "$$pid_file" ]; then \
-			pid=$$(cat "$$pid_file"); \
-			if kill -0 "$$pid" 2>/dev/null; then \
-				kill "$$pid" 2>/dev/null; \
-				printf "  $$badge  $(GREEN)parado$(RESET)\n"; \
-			else \
-				printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-			fi; \
-			rm -f "$$pid_file"; \
-		else \
-			printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-		fi \
-	}; \
-	_stop "\033[1;37;48;5;208m back  \033[0m" backend; \
-	_stop "\033[1;30;48;5;35m front \033[0m" frontend
-	@echo ""
+	$(COMPOSE) stop
 
-status:
-	@echo ""
-	@printf "  $(BOLD)Estado de servicios$(RESET)\n"
-	@echo ""
-	@_status() { \
-		badge=$$1; port=$$2; \
-		pid=$$(lsof -ti tcp:$$port 2>/dev/null | head -1); \
-		if [ -n "$$pid" ]; then \
-			printf "  $$badge  $(GREEN)activo$(RESET)   $(DIM)PID $$pid  :$$port$(RESET)\n"; \
-		else \
-			printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-		fi \
-	}; \
-	_status "\033[1;37;48;5;208m back  \033[0m" $(PORT); \
-	_status "\033[1;30;48;5;35m front \033[0m" 5173
-	@echo ""
-
+## Sigue la salida de todos los servicios, o de uno con S=<servicio>.
 logs:
-	@if [ ! -f $(LOGS_DIR)/backend.log ] && [ ! -f $(LOGS_DIR)/frontend.log ]; then \
-		echo "  No hay logs disponibles. Ejecuta 'make dev' primero."; exit 1; \
-	fi
-	@echo ""
-	@printf "  $(BOLD)Selecciona servicio$(RESET)  $(DIM)Ctrl+C para salir$(RESET)\n"
-	@echo ""
-	@printf "  \033[1;37;48;5;208m 1  back  \033[0m\n"
-	@printf "  \033[1;30;48;5;35m 2  front \033[0m\n"
-	@printf "  $(DIM) ↵  todos  todos los servicios activos$(RESET)\n"
-	@echo ""
-	@printf "  > "; read choice; echo ""; \
-	_tail() { \
-		if [ ! -f "$$1" ]; then \
-			printf "  $$2  $(DIM)sin log ($$1)$(RESET)\n"; \
-			return; \
-		fi; \
-		tail -n 20 -f "$$1" 2>/dev/null | awk -v b="$$2" '{"date +%H:%M:%S" | getline t; close("date +%H:%M:%S"); print "  " b "  \033[2m[" t "]\033[0m  " $$0; fflush()}'; \
-	}; \
-	trap 'kill 0' INT; \
-	case "$$choice" in \
-		1) _tail $(LOGS_DIR)/backend.log  "\033[1;37;48;5;208m back  \033[0m" & wait ;; \
-		2) _tail $(LOGS_DIR)/frontend.log "\033[1;30;48;5;35m front \033[0m" & wait ;; \
-		*) _tail $(LOGS_DIR)/backend.log  "\033[1;37;48;5;208m back  \033[0m" & \
-		   _tail $(LOGS_DIR)/frontend.log "\033[1;30;48;5;35m front \033[0m" & wait ;; \
-	esac
+	$(COMPOSE) logs -f $(S)
 
-dev-backend:
-	cargo run --manifest-path $(BACKEND_DIR)/Cargo.toml -- --dev --port $(PORT)
+## Estado de los servicios.
+ps status:
+	$(COMPOSE) ps
 
-watch-backend:
-	cargo watch --manifest-path $(BACKEND_DIR)/Cargo.toml -x "run -- --dev --port $(PORT)"
+## Construye (o reconstruye) las imagenes Docker.
+images:
+	$(COMPOSE) build
 
-dev-frontend:
-	cd $(FRONTEND_DIR) && pnpm dev
+## Compila el backend (cargo check + clippy) y pasa eslint al frontend.
+## Ojo: no ejecuta tests.
+check:
+	$(COMPOSE) run --rm --no-deps app cargo check
+	$(COMPOSE) run --rm --no-deps app cargo clippy
+	$(COMPOSE) run --rm --no-deps frontend pnpm lint
+
+## Formatea el backend.
+fmt:
+	$(COMPOSE) run --rm --no-deps app cargo fmt
+
+## Para todo y elimina los volumenes: datos de la app en dev, sandbox y caches.
+clean:
+	$(COMPOSE) down -v
 
 # ---------------------------------------------------------------------------
 # Build
@@ -426,7 +373,7 @@ rust-targets:
 	@for target in $(MACOS_TARGETS); do echo $$target; done
 	@for target in $(WINDOWS_TARGETS); do echo $$target; done
 
-clean:
+clean-target:
 	cargo clean --manifest-path $(BACKEND_DIR)/Cargo.toml
 
 dist-clean:

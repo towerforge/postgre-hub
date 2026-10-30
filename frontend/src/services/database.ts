@@ -172,21 +172,53 @@ export const apiGetSessions = (id: string) =>
 export const apiExplainQuery = (id: string, sql: string) =>
     post<{ plan: unknown }>(`/api/projects/${id}/query/explain`, { sql })
 
-export async function apiExportDump(id: string): Promise<Blob> {
-    const res = await fetch(`/api/projects/${id}/export`, { credentials: 'include' })
-    if (!res.ok) throw new Error(await res.text())
-    return res.blob()
+// ── Export / import SQL ──────────────────────────────────────────────────────
+
+export interface SchemaSummary {
+    name:     string
+    tables:   number
+    views:    number
+    routines: number
+}
+
+export interface ExportOptions {
+    schemas:    string[]
+    structure:  boolean
+    data:       boolean
+    routines:   boolean
+    views:      boolean
+    triggers:   boolean
+    extensions: boolean
+    drop:       boolean
+}
+
+async function errorOf(res: Response): Promise<Error> {
+    const data = await res.json().catch(() => null)
+    return new Error(data?.error ?? `${res.status} ${res.statusText}`)
+}
+
+export async function apiListSchemas(id: string): Promise<{ database: string; schemas: SchemaSummary[] }> {
+    const res = await fetch(`/api/projects/${id}/schemas`)
+    if (!res.ok) throw await errorOf(res)
+    return res.json()
+}
+
+export async function apiExportDump(id: string, options: ExportOptions): Promise<{ blob: Blob; filename: string }> {
+    const res = await fetch(`/api/projects/${id}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options),
+    })
+    if (!res.ok) throw await errorOf(res)
+    const disposition = res.headers.get('Content-Disposition') ?? ''
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'dump.sql'
+    return { blob: await res.blob(), filename }
 }
 
 export async function apiImportDump(id: string, file: File): Promise<{ ok: boolean; statements: number }> {
     const form = new FormData()
     form.append('file', file)
-    const res = await fetch(`/api/projects/${id}/import`, {
-        method: 'POST',
-        credentials: 'include',
-        body: form,
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error ?? 'Import failed')
-    return data
+    const res = await fetch(`/api/projects/${id}/import`, { method: 'POST', body: form })
+    if (!res.ok) throw await errorOf(res)
+    return res.json()
 }

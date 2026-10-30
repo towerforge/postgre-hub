@@ -2,22 +2,24 @@ import { EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags as t } from '@lezer/highlight'
 
-/* Editor palette */
+/* Paleta del editor: se lee de las variables CSS (index.css) para seguir el tema claro/oscuro */
 const P = {
-    bg:        '#1c1c1c',
-    bg2:       '#232323',
-    bg3:       '#2a2a2a',
-    fg:        '#d4d4d4',
-    fgDim:     '#a8a8a8',
-    fgMuted:   '#6a6a6a',
-    fgBright:  '#f0f0f0',
-    accent:    '#8aa6c1',   // dusty blue → functions
-    magenta:   '#c4a7e7',   // keywords
-    cyan:      '#91b4b8',   // types
-    green:     '#9eb87f',   // strings, cursor, line-num active
-    yellow:    '#d8b88a',
-    orange:    '#c98c6c',   // numbers
-    red:       '#c47b7b',
+    bg:        'var(--om-bg)',
+    bg2:       'var(--om-bg-2)',
+    fg:        'var(--tok-var)',
+    fgMuted:   'var(--om-fg-muted)',
+    fgBright:  'var(--om-fg-bright)',
+    accent:    'var(--om-accent)',
+    line:      'var(--tok-line)',
+    sel:       'var(--tok-sel)',
+    kw:        'var(--tok-kw)',
+    fn:        'var(--tok-fn)',
+    str:       'var(--tok-str)',
+    num:       'var(--tok-num)',
+    com:       'var(--tok-com)',
+    type:      'var(--tok-type)',
+    op:        'var(--tok-op)',
+    red:       'var(--om-red)',
 }
 
 const editorChrome = EditorView.theme(
@@ -30,53 +32,38 @@ const editorChrome = EditorView.theme(
         '.cm-scroller': {
             fontFamily: '"JetBrains Mono", "IBM Plex Mono", "Fira Code", ui-monospace, monospace',
             fontSize: '13px',
-            lineHeight: '1.55',
+            lineHeight: '1.7',
         },
-        '.cm-content': { caretColor: P.green, color: P.fg },
-        '.cm-cursor, .cm-dropCursor': { borderLeftColor: P.green },
-        '&.cm-focused .cm-selectionBackground, ::selection': {
-            background: 'rgba(212,212,212,0.16)',
+        '.cm-content': { caretColor: P.fgBright, color: P.fg },
+        '.cm-cursor, .cm-dropCursor': { borderLeftColor: P.fgBright, borderLeftWidth: '2px' },
+        '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
+            background: `${P.sel} !important`,
         },
-        '.cm-line': { padding: '0 8px' },
+        '.cm-line': { padding: '0 12px' },
         '.cm-gutters': {
             background: P.bg,
             color: P.fgMuted,
             border: 'none',
-            paddingRight: '4px',
+            paddingRight: '8px',
         },
-        '.cm-lineNumbers .cm-gutterElement': { color: P.fgMuted, padding: '0 6px 0 8px' },
-        '.cm-activeLine': { background: 'rgba(255,255,255,0.025)' },
-        '.cm-activeLineGutter': {
-            background: 'rgba(255,255,255,0.025)',
-            color: P.green,
-            fontWeight: '500',
-        },
-        '.cm-tooltip': {
-            background: P.bg2,
-            border: `1px solid ${P.fgMuted}`,
-            borderRadius: '0',
-            color: P.fg,
-            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
-        },
-        '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
-            background: P.bg3,
-            color: P.fgBright,
-        },
-        '.cm-panels': { background: P.bg2, color: P.fg, borderColor: P.bg3 },
+        '.cm-lineNumbers .cm-gutterElement': { color: P.fgMuted, padding: '0 6px 0 12px' },
+        '.cm-activeLine': { background: P.line },
+        '.cm-activeLineGutter': { background: 'transparent', color: P.fgBright },
+        '.cm-matchingBracket': { background: 'color-mix(in srgb, var(--om-accent) 25%, transparent)', outline: 'none' },
+        '.cm-panels': { background: P.bg2, color: P.fg, borderColor: 'var(--om-border)' },
     },
-    { dark: true },
 )
 
 const editorHighlight = HighlightStyle.define([
-    { tag: [t.keyword, t.operatorKeyword, t.modifier, t.controlKeyword], color: P.magenta },
-    { tag: [t.function(t.variableName), t.function(t.propertyName), t.macroName], color: P.accent },
-    { tag: [t.string, t.special(t.string), t.regexp], color: P.green },
-    { tag: [t.number, t.integer, t.float, t.bool], color: P.orange },
-    { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: P.fgMuted, fontStyle: 'italic' },
-    { tag: [t.typeName, t.className], color: P.cyan },
+    { tag: [t.keyword, t.operatorKeyword, t.modifier, t.controlKeyword], color: P.kw },
+    { tag: [t.function(t.variableName), t.function(t.propertyName), t.macroName], color: P.fn },
+    { tag: [t.string, t.special(t.string), t.regexp], color: P.str },
+    { tag: [t.number, t.integer, t.float, t.bool], color: P.num },
+    { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: P.com, fontStyle: 'italic' },
+    { tag: [t.typeName, t.className], color: P.type },
     { tag: [t.variableName, t.propertyName], color: P.fg },
-    { tag: [t.operator, t.punctuation, t.bracket], color: P.fgDim },
-    { tag: [t.null, t.atom], color: P.fgMuted, fontStyle: 'italic' },
+    { tag: [t.operator, t.punctuation, t.bracket], color: P.op },
+    { tag: [t.null, t.atom], color: P.kw },
     { tag: [t.invalid], color: P.red },
 ])
 

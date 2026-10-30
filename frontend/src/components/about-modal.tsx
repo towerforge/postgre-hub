@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Tag, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react'
-import { Modal } from '@/components/ui'
+import { Tag, RefreshCw, ExternalLink } from 'lucide-react'
+import { Modal, Alert } from '@/components/ui'
 
 declare const __APP_VERSION__: string
 
@@ -64,16 +64,17 @@ export function AboutModal({ open, onClose }: Props) {
                                 {latestVersion}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 'var(--radius-1)', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 13, color: '#f59e0b' }}>
-                            <AlertCircle size={14} />
-                            <span style={{ fontWeight: 500 }}>Update available</span>
-                            <a
-                                href={`${GITHUB_URL}/releases/latest`} target="_blank" rel="noreferrer"
-                                style={{ marginLeft: 'auto', color: '#f59e0b', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
-                            >
-                                View release <ExternalLink size={10} />
-                            </a>
-                        </div>
+                        <Alert tone="warning">
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 500 }}>Update available</span>
+                                <a
+                                    href={`${GITHUB_URL}/releases/latest`} target="_blank" rel="noreferrer"
+                                    style={{ marginLeft: 'auto', color: 'inherit', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                                >
+                                    View release <ExternalLink size={10} />
+                                </a>
+                            </span>
+                        </Alert>
                     </>
                 )}
             </div>

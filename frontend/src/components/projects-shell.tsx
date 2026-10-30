@@ -1,23 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Database, Server, User, Users, Palette, Blocks, Info, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
-import { CONNECTION_COLORS } from '@/components/ui'
+import { CONNECTION_COLORS, IconButton } from '@/components/ui'
 import { AboutModal } from '@/components/about-modal'
-import { SidebarShell, SidebarMenuLink } from './sidebar-shell'
-
-declare const __APP_VERSION__: string
-
-function MenuDivider() {
-    return (
-        <div
-            aria-hidden
-            style={{
-                margin: '6px 22px',
-                borderTop: '1px dashed var(--om-border)',
-            }}
-        />
-    )
-}
+import { SidebarShell, SidebarMenuLink, SidebarMenuGroup } from './sidebar-shell'
 
 export function avatarColor(id: string, override?: string | null): string {
     if (override) return override
@@ -38,6 +25,8 @@ interface Props {
     children: ReactNode
 }
 
+const ICON = 15
+
 export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
     const { username, logout } = useAuth()
     const navigate = useNavigate()
@@ -48,66 +37,26 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
         navigate('/login', { replace: true })
     }
 
+    // Pie del menú: usuario, acerca de y salir
     const footer = (
-        <div style={{
-            borderTop: '1px dashed var(--om-border)',
-            padding: '14px 22px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 11,
-            lineHeight: 1.7,
-        }}>
-            <div>
-                <span style={{ color: 'var(--om-green)' }}>❯</span>{' '}
-                <span style={{ color: 'var(--om-fg-muted)' }}>user:</span>{' '}
-                <span style={{ color: 'var(--om-fg-bright)' }}>{username || '—'}</span>
-            </div>
-            <button
-                onClick={() => setAboutOpen(true)}
-                title="About Postgre Hub"
-                style={{
-                    background: 'transparent',
-                    border: 0,
-                    padding: 0,
-                    margin: 0,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    textAlign: 'left',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
-                onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
-            >
-                <span style={{ color: 'var(--om-green)' }}>❯</span>{' '}
-                <span style={{ color: 'var(--om-fg-muted)' }}>version:</span>{' '}
-                <span style={{ color: 'var(--om-fg-bright)' }}>{__APP_VERSION__}</span>
-            </button>
-            <div style={{
-                color: 'var(--om-border)',
-                letterSpacing: '-1px',
-                userSelect: 'none',
-                lineHeight: 1,
-                padding: '6px 0',
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 8px', padding: '8px 4px 8px 12px', borderTop: '1px solid var(--om-border)' }}>
+            <span style={{
+                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                background: 'var(--om-bg-4)', color: 'var(--om-fg-bright)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 600,
             }}>
-                ─────────────
-            </div>
-            <button
-                onClick={handleLogout}
-                style={{
-                    background: 'transparent',
-                    border: 0,
-                    padding: 0,
-                    margin: 0,
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    textAlign: 'left',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
-                onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
-            >
-                <span style={{ color: 'var(--om-green)' }}>❯</span>{' '}
-                <span style={{ color: 'var(--om-red)' }}>[ exit ]</span>
-            </button>
+                {(username || '?').slice(0, 1).toUpperCase()}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, color: 'var(--om-fg-bright)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {username || '—'}
+            </span>
+            <IconButton label="About Postgre Hub" onClick={() => setAboutOpen(true)}>
+                <Info size={ICON} />
+            </IconButton>
+            <IconButton label="Log out" onClick={handleLogout}>
+                <LogOut size={ICON} />
+            </IconButton>
             <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
         </div>
     )
@@ -117,15 +66,15 @@ export function ProjectsShell({ headerLeft, headerRight, children }: Props) {
             headerLeft={headerLeft}
             headerRight={headerRight}
             menu={<>
-                <SidebarMenuLink to="/connections" label="Connections" end />
-                <SidebarMenuLink to="/ssh-tunnels" label="SSH Tunnels" />
-                <MenuDivider />
-                <SidebarMenuLink to="/account" label="Account" />
-                <SidebarMenuLink to="/users"   label="Users" />
-                <SidebarMenuLink to="/appearance" label="Appearance" />
+                <SidebarMenuLink to="/connections" label="Connections" icon={<Database size={ICON} />} end />
+                <SidebarMenuLink to="/ssh-tunnels" label="SSH Tunnels" icon={<Server size={ICON} />} />
+                <SidebarMenuGroup label="Settings" />
+                <SidebarMenuLink to="/account"    label="Account"    icon={<User size={ICON} />} />
+                <SidebarMenuLink to="/users"      label="Users"      icon={<Users size={ICON} />} />
+                <SidebarMenuLink to="/appearance" label="Appearance" icon={<Palette size={ICON} />} />
                 {import.meta.env.DEV && <>
-                    <MenuDivider />
-                    <SidebarMenuLink to="/_dev" label="UI components" />
+                    <SidebarMenuGroup label="Development" />
+                    <SidebarMenuLink to="/_dev" label="UI components" icon={<Blocks size={ICON} />} />
                 </>}
             </>}
             sidebarFooter={footer}

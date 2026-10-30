@@ -5,16 +5,17 @@
     gap: 6px;
     padding: 0 14px;
     height: 28px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
+    font-family: var(--font-family);
+    font-size: 13px;
     font-weight: 500;
     line-height: 1;
     cursor: pointer;
     border: 1px solid transparent;
+    border-radius: var(--radius-1);
+    corner-shape: squircle;
     transition: background 0.1s, border-color 0.1s, color 0.1s;
     white-space: nowrap;
     text-decoration: none;
-    letter-spacing: 0.02em;
 }
 
 .btn:disabled {
@@ -22,26 +23,25 @@
     opacity: 0.45;
 }
 
-/* 1 — Primary (green pill) */
+/* 1 — Primario (azul JetBrains) */
 .primary {
-    background: var(--om-green);
-    border-color: var(--om-green);
-    color: var(--om-bg);
-    font-weight: 600;
+    background: var(--om-primary);
+    border-color: var(--om-primary);
+    color: var(--om-on-primary);
 }
-.primary:hover:not(:disabled)  { background: var(--om-fg-bright); border-color: var(--om-fg-bright); }
-.primary:active:not(:disabled) { background: var(--om-fg); border-color: var(--om-fg); }
+.primary:hover:not(:disabled)  { background: var(--om-primary-hover); border-color: var(--om-primary-hover); }
+.primary:active:not(:disabled) { filter: brightness(0.92); }
 
-/* 2 — Secondary */
+/* 2 — Secundario */
 .secondary {
-    background: var(--om-bg-2);
-    border-color: var(--om-border);
-    color: var(--om-fg);
+    background: transparent;
+    border-color: var(--om-border-focus);
+    color: var(--om-fg-bright);
 }
-.secondary:hover:not(:disabled)  { background: var(--om-bg-3); border-color: var(--om-border-focus); color: var(--om-fg-bright); }
+.secondary:hover:not(:disabled)  { background: var(--om-bg-3); }
 .secondary:active:not(:disabled) { background: var(--om-bg-4); }
 
-/* 3 — Outline */
+/* 3 — Contorno */
 .outline {
     background: transparent;
     border-color: var(--om-border-focus);
@@ -50,31 +50,39 @@
 .outline:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
 .outline:active:not(:disabled) { background: var(--om-bg-4); }
 
-/* 4 — Subtle (ghost) */
+/* 4 — Sutil (ghost) */
 .subtle {
     background: transparent;
     border-color: transparent;
-    color: var(--om-fg-muted);
+    color: var(--om-fg-dim);
 }
 .subtle:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
 .subtle:active:not(:disabled) { background: var(--om-bg-4); }
 
-/* 5 — Danger */
+/* 5 — Peligro */
 .danger {
     background: transparent;
     border-color: transparent;
     color: var(--om-red);
 }
-.danger:hover:not(:disabled)  { background: rgba(196,123,123,0.10); }
-.danger:active:not(:disabled) { background: rgba(196,123,123,0.18); }
+.danger:hover:not(:disabled)  { background: color-mix(in srgb, var(--om-red) 12%, transparent); }
+.danger:active:not(:disabled) { background: color-mix(in srgb, var(--om-red) 20%, transparent); }
 
-/* Sizes */
-.sm { height: 22px; padding: 0 10px; font-size: 10.5px; }
-.lg { height: 32px; padding: 0 16px; font-size: 12.5px; }
+/* 6 — Destructivo sólido (confirmar borrado) */
+.destructive {
+    background: var(--om-red);
+    border-color: var(--om-red);
+    color: #fff;
+}
+.destructive:hover:not(:disabled)  { filter: brightness(1.08); }
+.destructive:active:not(:disabled) { filter: brightness(0.92); }
 
-/* Focus */
+/* Tamaños */
+.sm { height: 24px; padding: 0 10px; font-size: 12px; }
+.lg { height: 32px; padding: 0 18px; font-size: 13.5px; }
+.xl { height: 38px; padding: 0 16px; font-size: 13.5px; border-radius: 12px; }
+
 .btn:focus-visible {
-    outline: 1px solid var(--om-fg-muted);
+    outline: 2px solid color-mix(in srgb, var(--om-accent) 70%, transparent);
     outline-offset: 1px;
 }
-

@@ -1,14 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { RefreshCw, Download, Upload } from 'lucide-react'
-import { Spinner } from '@/components/ui'
+import { ChevronDown, ChevronRight, Table2, Eye, Shapes, ListOrdered, SquareFunction, Download, Upload } from 'lucide-react'
+import { Spinner, Splitter, ToolButton } from '@/components/ui'
+import { useResizable } from '@/hooks/use-resizable'
 import {
-    apiExportDump, apiImportDump,
-    type Project, type TableInfo, type TypeInfo, type SequenceInfo, type RoutineInfo,
+    type TableInfo, type TypeInfo, type SequenceInfo, type RoutineInfo,
 } from '@/services/database'
 import { fmtRows, fmtSize, groupBy } from './utils'
 
 type SidebarTab = 'tables' | 'types' | 'sequences' | 'routines'
+
+// Color del icono de cada tipo de objeto en el árbol
+const ROW_ICON_COLOR: Record<SidebarTab, string> = {
+    tables:    'var(--om-accent)',
+    types:     'var(--om-magenta)',
+    sequences: 'var(--om-cyan)',
+    routines:  'var(--om-orange)',
+}
+
+function rowIcon(tab: SidebarTab, meta?: React.ReactNode) {
+    if (tab === 'tables')    return meta === 'view' ? <Eye size={13} /> : <Table2 size={13} />
+    if (tab === 'types')     return <Shapes size={13} />
+    if (tab === 'sequences') return <ListOrdered size={13} />
+    return <SquareFunction size={13} />
+}
 
 const SIDEBAR_TABS: { id: SidebarTab; label: string }[] = [
     { id: 'tables',    label: 'tables'    },
@@ -18,8 +33,6 @@ const SIDEBAR_TABS: { id: SidebarTab; label: string }[] = [
 ]
 
 interface SchemaSidebarProps {
-    projectId: string
-    project: Project | null
     tables: TableInfo[]
     types: TypeInfo[]
     sequences: SequenceInfo[]
@@ -29,49 +42,17 @@ interface SchemaSidebarProps {
     onOpenType: (t: TypeInfo) => void
     onOpenSequence: (s: SequenceInfo) => void
     onOpenRoutine: (r: RoutineInfo) => void
+    onExport: () => void
+    onImport: () => void
 }
 
 export function SchemaSidebar({
-    projectId, project, tables, types, sequences, routines, loading,
-    onOpenTable, onOpenType, onOpenSequence, onOpenRoutine,
+    tables, types, sequences, routines, loading,
+    onOpenTable, onOpenType, onOpenSequence, onOpenRoutine, onExport, onImport,
 }: SchemaSidebarProps) {
     const [sidebarTab, setSidebarTab] = useState<SidebarTab>('tables')
+    const panel = useResizable({ key: 'schema', initial: 280, min: 200, max: 600, axis: 'x' })
     const [search, setSearch] = useState('')
-    const [exporting, setExporting] = useState(false)
-    const [importing, setImporting] = useState(false)
-    const [dumpMsg, setDumpMsg] = useState<{ ok: boolean; text: string } | null>(null)
-    const importRef = useRef<HTMLInputElement>(null)
-
-    const handleExport = async () => {
-        if (!projectId || exporting) return
-        setExporting(true); setDumpMsg(null)
-        try {
-            const blob = await apiExportDump(projectId)
-            const db   = project?.database ?? 'dump'
-            const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-            const url  = URL.createObjectURL(blob)
-            const a    = document.createElement('a')
-            a.href = url; a.download = `${db}_${date}.sql`; a.click()
-            URL.revokeObjectURL(url)
-            setDumpMsg({ ok: true, text: 'Export descargado' })
-        } catch (e) {
-            setDumpMsg({ ok: false, text: e instanceof Error ? e.message : 'Export failed' })
-        } finally { setExporting(false) }
-    }
-
-    const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        e.target.value = ''
-        if (!file || !projectId) return
-        setImporting(true); setDumpMsg(null)
-        try {
-            const r = await apiImportDump(projectId, file)
-            setDumpMsg({ ok: true, text: `Import OK — ${r.statements} sentencias ejecutadas` })
-        } catch (e) {
-            setDumpMsg({ ok: false, text: e instanceof Error ? e.message : 'Import failed' })
-        } finally { setImporting(false) }
-    }
-
     const q = search.toLowerCase()
     const filteredTables    = tables.filter(t    => t.name.toLowerCase().includes(q) || t.schema.toLowerCase().includes(q))
     const filteredTypes     = types.filter(t     => t.name.toLowerCase().includes(q) || t.schema.toLowerCase().includes(q))
@@ -118,7 +99,7 @@ export function SchemaSidebar({
                 onDoubleClick={() => { setActiveKey(key); onClick?.() }}
                 style={{ paddingLeft: 28 }}
             >
-                <span className="glyph">·</span>
+                <span className="glyph" style={{ color: ROW_ICON_COLOR[sidebarTab] }}>{rowIcon(sidebarTab, meta)}</span>
                 <span className="name">{name}</span>
                 {meta != null && <span className="meta">{meta}</span>}
             </button>
@@ -130,7 +111,7 @@ export function SchemaSidebar({
         return (
             <div key={schema}>
                 <button className="row" onClick={() => toggleSchema(schema)}>
-                    <span className="glyph">{expanded ? '▾' : '▸'}</span>
+                    <span className="glyph">{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
                     <span className="name">{schema}</span>
                     <span className="meta">{count}</span>
                 </button>
@@ -165,18 +146,17 @@ export function SchemaSidebar({
         filteredRoutines.length
 
     return createPortal(
-        <aside className="tile" style={{ width: 280, flexShrink: 0 }}>
+        <>
+        <aside className="tile" style={{ width: panel.size, flexShrink: 0 }}>
             <div className="tile-head">
-                <span className="name">schema</span>
-                <span style={{ marginLeft: 'auto', color: 'var(--om-fg-muted)', fontSize: 10.5 }}>{currentTotal}</span>
+                <span className="name">Database</span>
+                <span className="badge">{currentTotal}</span>
+                <span style={{ marginLeft: 'auto' }} />
                 <div ref={menuRef} style={{ position: 'relative' }}>
-                    <button
-                        className={`pos-btn${menuOpen ? ' open' : ''}`}
-                        onClick={() => setMenuOpen(v => !v)}
-                        style={{ marginLeft: 0 }}
-                    >
-                        [{currentTab.label}]
-                    </button>
+                    <ToolButton active={menuOpen} onClick={() => setMenuOpen(v => !v)}>
+                        {currentTab.label}
+                        <ChevronDown size={13} />
+                    </ToolButton>
                     {menuOpen && (
                         <div className="pos-menu">
                             {SIDEBAR_TABS.map(({ id: tid, label }) => (
@@ -185,7 +165,7 @@ export function SchemaSidebar({
                                     className={sidebarTab === tid ? 'active' : ''}
                                     onClick={() => { setSidebarTab(tid); setSearch(''); setMenuOpen(false) }}
                                 >
-                                    [{label}]
+                                    {label}
                                 </button>
                             ))}
                         </div>
@@ -246,61 +226,17 @@ export function SchemaSidebar({
                     )
                 )}
             </div>
-
-            <div style={{ flexShrink: 0, borderTop: '0.5px solid var(--stroke-1)' }}>
-
-                <div style={{ padding: '8px 8px', display: 'flex', gap: 5 }}>
-                    <button
-                        onClick={handleExport}
-                        disabled={exporting}
-                        style={{
-                            flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 5, height: 26, border: '0.5px solid var(--stroke-1)', borderRadius: 7,
-                            background: 'transparent', cursor: exporting ? 'not-allowed' : 'pointer',
-                            fontSize: 11, color: 'var(--text-2)', fontFamily: 'var(--font-family)',
-                            opacity: exporting ? 0.5 : 1, transition: 'background 0.12s',
-                        }}
-                        onMouseEnter={e => { if (!exporting) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                    >
-                        {exporting
-                            ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                            : <Download size={11} />}
-                        Export
-                    </button>
-                    <button
-                        onClick={() => importRef.current?.click()}
-                        disabled={importing}
-                        style={{
-                            flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 5, height: 26, border: '0.5px solid var(--stroke-1)', borderRadius: 7,
-                            background: 'transparent', cursor: importing ? 'not-allowed' : 'pointer',
-                            fontSize: 11, color: 'var(--text-2)', fontFamily: 'var(--font-family)',
-                            opacity: importing ? 0.5 : 1, transition: 'background 0.12s',
-                        }}
-                        onMouseEnter={e => { if (!importing) e.currentTarget.style.background = 'rgba(0,0,0,0.04)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                    >
-                        {importing
-                            ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                            : <Upload size={11} />}
-                        Import
-                    </button>
-                    <input ref={importRef} type="file" accept=".sql" style={{ display: 'none' }} onChange={handleImport} />
-                </div>
-
-                {dumpMsg && (
-                    <div style={{
-                        margin: '0 8px 8px', padding: '5px 8px', borderRadius: 6, fontSize: 11,
-                        background: dumpMsg.ok ? 'color-mix(in srgb, var(--color-success) 10%, transparent)' : 'color-mix(in srgb, var(--danger) 10%, transparent)',
-                        color: dumpMsg.ok ? 'var(--color-success)' : 'var(--danger)',
-                        border: `0.5px solid ${dumpMsg.ok ? 'color-mix(in srgb, var(--color-success) 25%, transparent)' : 'color-mix(in srgb, var(--danger) 25%, transparent)'}`,
-                    }}>
-                        {dumpMsg.text}
-                    </div>
-                )}
+            <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: 8, borderTop: '1px solid var(--om-border)' }}>
+                <ToolButton onClick={onExport} title="Export schemas as SQL" style={{ flex: 1 }}>
+                    <Download size={13} /> Export
+                </ToolButton>
+                <ToolButton onClick={onImport} title="Import a .sql file" style={{ flex: 1 }}>
+                    <Upload size={13} /> Import
+                </ToolButton>
             </div>
-        </aside>,
+        </aside>
+        <Splitter orientation="vertical" dragging={panel.dragging} handleProps={panel.handleProps} style={{ marginRight: -10 }} />
+        </>,
         slot,
     )
 }

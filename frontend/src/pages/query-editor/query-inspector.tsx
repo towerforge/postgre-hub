@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Table2 } from 'lucide-react'
+import { Table2, ChevronDown } from 'lucide-react'
 import type { Project, TableInfo } from '@/services/database'
+import { Splitter, ToolButton } from '@/components/ui'
+import { useResizable } from '@/hooks/use-resizable'
 import { excelCol, fmtRows, fmtSize, type InspectorData } from './utils'
 
 type InspectorTab = 'info' | 'attrs'
@@ -15,6 +17,7 @@ export function QueryInspector({
     tables: TableInfo[]
 }) {
     const [tab, setTab] = useState<InspectorTab>('info')
+    const panel = useResizable({ key: 'inspector', initial: 260, min: 200, max: 560, axis: 'x', invert: true })
 
     const [slot, setSlot] = useState<HTMLElement | null>(null)
     useEffect(() => { setSlot(document.getElementById('right-sidebar-slot')) }, [])
@@ -41,16 +44,16 @@ export function QueryInspector({
     if (!slot) return null
 
     return createPortal(
-        <div className="tile" style={{ width: 260, flexShrink: 0 }}>
+        <>
+        <Splitter orientation="vertical" dragging={panel.dragging} handleProps={panel.handleProps} style={{ marginLeft: -10 }} />
+        <div className="tile" style={{ width: panel.size, flexShrink: 0 }}>
             <div className="tile-head">
-                <span className="name">inspector</span>
+                <span className="name">Inspector</span>
                 <div ref={menuRef} style={{ marginLeft: 'auto', position: 'relative' }}>
-                    <button
-                        className={`pos-btn${menuOpen ? ' open' : ''}`}
-                        onClick={() => setMenuOpen(v => !v)}
-                    >
-                        [{tab}]
-                    </button>
+                    <ToolButton active={menuOpen} onClick={() => setMenuOpen(v => !v)}>
+                        {tab}
+                        <ChevronDown size={13} />
+                    </ToolButton>
                     {menuOpen && (
                         <div className="pos-menu">
                             {INSPECTOR_TABS.map(t => (
@@ -59,7 +62,7 @@ export function QueryInspector({
                                     className={tab === t ? 'active' : ''}
                                     onClick={() => { setTab(t); setMenuOpen(false) }}
                                 >
-                                    [{t}]
+                                    {t}
                                 </button>
                             ))}
                         </div>
@@ -137,17 +140,17 @@ export function QueryInspector({
                 )}
 
             </div>
-        </div>,
+        </div>
+        </>,
         slot,
     )
 }
 
 function InspectorSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div style={{ padding: '10px 12px', borderBottom: '0.5px solid var(--stroke-1)' }}>
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--stroke-1)' }}>
             <div style={{
-                fontSize: 10, fontWeight: 600, color: 'var(--text-3)',
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+                fontSize: 12, fontWeight: 600, color: 'var(--text-1)', marginBottom: 8,
             }}>{title}</div>
             {children}
         </div>

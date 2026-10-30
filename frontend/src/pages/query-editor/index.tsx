@@ -9,6 +9,7 @@ import {
 } from '@/services/database'
 import { SqlEditor } from './sql-editor'
 import { SchemaSidebar } from './schema-sidebar'
+import { ExportModal, ImportModal } from './sql-transfer-modals'
 import type { NewTabReq } from './utils'
 
 export default function QueryEditor() {
@@ -23,7 +24,17 @@ export default function QueryEditor() {
     const [routines,       setRoutines]       = useState<RoutineInfo[]>([])
     const [sidebarLoading, setSidebarLoading] = useState(true)
     const [newTabReq,      setNewTabReq]      = useState<NewTabReq | null>(null)
+    const [transfer,       setTransfer]       = useState<'export' | 'import' | null>(null)
     const tabReqKey = useRef(0)
+
+    // Recarga el árbol de schemas (también después de importar)
+    const loadSchema = () => {
+        if (!id) return
+        apiListTables(id).then(r => setTables(r.tables)).catch(() => {})
+        apiListTypes(id).then(r => setTypes(r.types)).catch(() => {})
+        apiListSequences(id).then(r => setSequences(r.sequences)).catch(() => {})
+        apiListRoutines(id).then(r => setRoutines(r.routines)).catch(() => {})
+    }
 
     useEffect(() => {
         if (!id) return
@@ -62,12 +73,10 @@ export default function QueryEditor() {
     }
 
     return (
-        <div style={{ display: 'flex', height: '100%', background: 'var(--vsc-bg)' }}>
+        <div style={{ display: 'flex', height: '100%' }}>
 
             {leftVisible && (
                 <SchemaSidebar
-                    projectId={id!}
-                    project={project}
                     tables={tables}
                     types={types}
                     sequences={sequences}
@@ -77,8 +86,21 @@ export default function QueryEditor() {
                     onOpenType={openTypeTab}
                     onOpenSequence={openSequenceTab}
                     onOpenRoutine={openRoutineTab}
+                    onExport={() => setTransfer('export')}
+                    onImport={() => setTransfer('import')}
                 />
             )}
+
+            {id && <>
+                <ExportModal projectId={id} open={transfer === 'export'} onClose={() => setTransfer(null)} />
+                <ImportModal
+                    projectId={id}
+                    database={project?.database ?? ''}
+                    open={transfer === 'import'}
+                    onClose={() => setTransfer(null)}
+                    onImported={loadSchema}
+                />
+            </>}
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, minHeight: 0 }}>
                 <SqlEditor projectId={id!} project={project} newTabReq={newTabReq} tables={tables} showInspector={rightVisible} />

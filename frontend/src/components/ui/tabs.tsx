@@ -60,12 +60,13 @@ interface TabProps {
     id: string
     icon?: React.ReactNode
     badge?: string | number
+    dot?: boolean
     disabled?: boolean
     className?: string
     children: React.ReactNode
 }
 
-export function Tab({ id, icon, badge, disabled = false, className = "", children }: TabProps) {
+export function Tab({ id, icon, badge, dot, disabled = false, className = "", children }: TabProps) {
     const { active, setActive } = useTabsCtx()
     const isActive = active === id
 
@@ -80,6 +81,7 @@ export function Tab({ id, icon, badge, disabled = false, className = "", childre
         >
             {icon}
             {children}
+            {dot && <span className={styles.dot} />}
             {badge !== undefined && <span className={styles.badge}>{badge}</span>}
         </button>
     )

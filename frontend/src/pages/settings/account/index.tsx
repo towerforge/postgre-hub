@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
-import { Button } from '@/components/ui'
+import { Button, Input, PasswordInput, Card, CardBody, Alert, Text } from '@/components/ui'
 import { ProjectsShell } from '@/components/projects-shell'
 import { usePageTitle } from '@/contexts/page-title'
 import { apiUpdateCredentials } from '@/services/api'
@@ -16,10 +15,11 @@ const RULES = [
 function isPasswordStrong(p: string) { return RULES.every(r => r.test(p)) }
 
 function PasswordStrength({ password }: { password: string }) {
-    if (!password.length) return <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0 }}>Min. 8 characters, uppercase, lowercase, number and special character.</p>
+    if (!password.length) return <Text variant="hint">Min. 8 characters, uppercase, lowercase, number and special character.</Text>
     const passed = RULES.filter(r => r.test(password)).length
     const pct = (passed / RULES.length) * 100
-    const barColor = pct === 100 ? '#22c55e' : pct <= 40 ? '#ef4444' : '#eab308'
+    const barColor = pct === 100 ? 'var(--om-green)' : pct <= 40 ? 'var(--om-red)' : 'var(--om-yellow)'
+    // Medidor propio: el kit no tiene barra de progreso
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ height: 4, background: 'var(--fill-2)', borderRadius: 99, overflow: 'hidden' }}>
@@ -28,63 +28,13 @@ function PasswordStrength({ password }: { password: string }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {RULES.map(r => {
                     const ok = r.test(password)
-                    return <p key={r.key} style={{ fontSize: 12, margin: 0, color: ok ? '#22c55e' : 'var(--text-3)' }}>{ok ? '✓' : '·'} {r.label}</p>
+                    return (
+                        <Text key={r.key} variant="hint" as="p" style={ok ? { color: 'var(--om-green)' } : undefined}>
+                            {ok ? '✓' : '·'} {r.label}
+                        </Text>
+                    )
                 })}
             </div>
-        </div>
-    )
-}
-
-function PasswordField({
-    value, onChange, placeholder, autoComplete,
-}: {
-    value: string
-    onChange: (v: string) => void
-    placeholder: string
-    autoComplete?: string
-}) {
-    const [show, setShow] = useState(false)
-    return (
-        <div style={{ position: 'relative' }}>
-            <input
-                type={show ? 'text' : 'password'}
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                placeholder={placeholder}
-                autoComplete={autoComplete}
-                style={{
-                    width: '100%', boxSizing: 'border-box',
-                    background: 'rgba(0,0,0,0.06)', border: 0, borderRadius: 10,
-                    padding: '8px 44px 8px 12px', fontSize: 13,
-                    color: 'var(--text-1)', outline: 'none',
-                }}
-            />
-            <button
-                type="button"
-                onClick={() => setShow(s => !s)}
-                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}
-            >
-                {show ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-        </div>
-    )
-}
-
-const inputStyle: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box',
-    background: 'rgba(0,0,0,0.06)', border: 0, borderRadius: 10,
-    padding: '8px 12px', fontSize: 13, color: 'var(--text-1)', outline: 'none',
-}
-
-const labelStyle: React.CSSProperties = {
-    fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6, display: 'block',
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={labelStyle}>{label}</span>
-            {children}
         </div>
     )
 }
@@ -134,62 +84,61 @@ export default function AccountPage() {
     return (
         <ProjectsShell headerLeft="Account" headerRight={null}>
             <div style={{ padding: 24 }}>
-            <div style={{ maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <Card variant="panel" style={{ maxWidth: 480 }}>
+            <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 {/* Current password — always required */}
-                <Field label="Current password">
-                    <PasswordField
-                        value={currentPassword}
-                        onChange={setCurrentPassword}
-                        placeholder="Required to save changes"
-                        autoComplete="current-password"
-                    />
-                </Field>
+                <PasswordInput
+                    size="lg"
+                    label="Current password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    placeholder="Required to save changes"
+                    autoComplete="current-password"
+                />
 
-                <hr style={{ border: 'none', borderTop: '1px solid var(--stroke-1)', margin: 0 }} />
+                <hr style={{ border: 'none', borderTop: '1px solid var(--om-border)', margin: 0 }} />
 
-                <Field label="New username">
-                    <input
-                        type="text"
-                        value={newUsername}
-                        onChange={e => setNewUsername(e.target.value)}
+                <Input
+                    size="lg"
+                    label="New username"
+                    type="text"
+                    value={newUsername}
+                    onChange={e => setNewUsername(e.target.value)}
+                    placeholder="Leave empty to keep current"
+                    autoComplete="username"
+                />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <PasswordInput
+                        size="lg"
+                        label="New password"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
                         placeholder="Leave empty to keep current"
-                        autoComplete="username"
-                        style={inputStyle}
+                        autoComplete="new-password"
                     />
-                </Field>
+                    {newPassword.length > 0 && (
+                        <>
+                            <PasswordStrength password={newPassword} />
+                            <PasswordInput
+                                size="lg"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                placeholder="Confirm new password"
+                                autoComplete="new-password"
+                                error={confirmPassword.length > 0 && newPassword !== confirmPassword ? 'Passwords do not match' : undefined}
+                            />
+                        </>
+                    )}
+                </div>
 
-                <Field label="New password">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <PasswordField
-                            value={newPassword}
-                            onChange={setNewPassword}
-                            placeholder="Leave empty to keep current"
-                            autoComplete="new-password"
-                        />
-                        {newPassword.length > 0 && (
-                            <>
-                                <PasswordStrength password={newPassword} />
-                                <PasswordField
-                                    value={confirmPassword}
-                                    onChange={setConfirmPassword}
-                                    placeholder="Confirm new password"
-                                    autoComplete="new-password"
-                                />
-                                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
-                                    <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>Passwords do not match</p>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </Field>
-
-                {error   && <p style={{ fontSize: 13, color: '#ef4444', margin: 0 }}>{error}</p>}
-                {success && <p style={{ fontSize: 13, color: '#22c55e', margin: 0 }}>{success}</p>}
+                {error   && <Alert tone="error">{error}</Alert>}
+                {success && <Alert tone="success">{success}</Alert>}
 
                 <div>
                     <Button
                         variant={1}
-                        size="sm"
+                        size="xl"
                         loading={saving}
                         disabled={!canSave || !newPasswordValid}
                         onClick={handleSave}
@@ -197,7 +146,8 @@ export default function AccountPage() {
                         Save changes
                     </Button>
                 </div>
-            </div>
+            </CardBody>
+            </Card>
             </div>
         </ProjectsShell>
     )

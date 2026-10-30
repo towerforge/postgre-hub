@@ -1,21 +1,22 @@
 import styles from "@/css/ui/card.module.css"
 
-type Variant = "default" | "outlined" | "elevated" | "filled"
+type Variant = "default" | "outlined" | "elevated" | "filled" | "panel"
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     variant?: Variant
     interactive?: boolean
+    as?: "div" | "nav" | "section"
 }
 
-export function Card({ variant = "default", interactive = false, className = "", children, ...props }: CardProps) {
+export function Card({ variant = "default", interactive = false, as: Tag = "div", className = "", children, ...props }: CardProps) {
     const variantClass = variant !== "default" ? styles[variant] : ""
     return (
-        <div
+        <Tag
             className={`${styles.card} ${variantClass} ${interactive ? styles.interactive : ""} ${className}`}
             {...props}
         >
             {children}
-        </div>
+        </Tag>
     )
 }
 

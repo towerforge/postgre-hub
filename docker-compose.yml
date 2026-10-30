@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# postgre-hub — orquestacion base (produccion / integracion).
+#
+# Un unico servicio: el binario con el frontend embebido (Dockerfile raiz).
+# Los datos de la app (usuarios, conexiones, tuneles) viven en SQLite dentro
+# del volumen `appdata`.
+#
+# Redes:
+#   - internal: red privada de la pila.
+#   - proxy: red EXTERNA compartida con el reverse proxy (Traefik, nginx-proxy...).
+#     Su nombre se toma de PROXY_NETWORK.
+# Aqui NO se publican puertos al host: eso es responsabilidad de
+# docker-compose.override.yml (que Compose carga automaticamente en desarrollo).
+# ---------------------------------------------------------------------------
+
+services:
+  # --- Aplicacion (API + SPA embebida) ---------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATA_DIR: /data
+      SESSION_DURATION_HOURS: ${SESSION_DURATION_HOURS:-24}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+    volumes:
+      - appdata:/data
+    networks:
+      - internal
+      - proxy
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+volumes:
+  appdata:
+
+networks:
+  # Red privada de la pila.
+  internal:
+    driver: bridge
+  # Red compartida con el reverse proxy. Es EXTERNA: debe existir antes de
+  # levantar la pila (docker network create <nombre>). En desarrollo,
+  # docker-compose.override.yml la redefine como red local gestionada por Compose.
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-proxy}

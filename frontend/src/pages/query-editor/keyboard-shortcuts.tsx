@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Keyboard } from 'lucide-react'
-import { Modal } from '@/components/ui'
+import { Modal, ToolButton } from '@/components/ui'
 
 const SHORTCUT_GROUPS: Array<{ title: string; items: Array<{ keys: string[]; desc: string }> }> = [
     {
@@ -24,7 +24,7 @@ const SHORTCUT_GROUPS: Array<{ title: string; items: Array<{ keys: string[]; des
     {
         title: 'Rows',
         items: [
-            { keys: ['[+ add row]'],    desc: 'Append a new empty row at the bottom' },
+            { keys: ['Add row'],    desc: 'Append a new empty row at the bottom' },
             { keys: ['Delete', '-'],    desc: 'On a full-row selection: toggle delete-mark for real rows, or remove pending insert rows' },
             { keys: ['Esc'],            desc: 'On a full-row selection: also clears the delete-mark' },
         ],
@@ -39,7 +39,7 @@ const SHORTCUT_GROUPS: Array<{ title: string; items: Array<{ keys: string[]; des
     {
         title: 'Apply',
         items: [
-            { keys: ['[apply]'],        desc: 'Preview the generated SQL and execute all pending changes in one transaction' },
+            { keys: ['Apply'],        desc: 'Preview the generated SQL and execute all pending changes in one transaction' },
         ],
     },
 ]
@@ -48,15 +48,10 @@ export function ShortcutsButton() {
     const [open, setOpen] = useState(false)
     return (
         <>
-            <button
-                type="button"
-                className="pos-btn toggle"
-                onClick={() => setOpen(true)}
-                title="Show keyboard shortcuts"
-            >
-                <Keyboard size={11} />
-                [shortcuts]
-            </button>
+            <ToolButton iconOnly size="sm" onClick={() => setOpen(true)} title="Show keyboard shortcuts">
+                <Keyboard size={14} />
+                Shortcuts
+            </ToolButton>
             <Modal open={open} onClose={() => setOpen(false)} title="Keyboard shortcuts" width="min(92vw, 640px)">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18, fontSize: 12 }}>
                     {SHORTCUT_GROUPS.map(g => (

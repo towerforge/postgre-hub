@@ -1,0 +1,98 @@
+.root {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+    background: var(--om-bg);
+    isolation: isolate;
+}
+
+/* Bola azul principal, desenfocada y flotando despacio */
+.orb {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    margin: auto;
+    width: min(520px, 90vw);
+    height: min(520px, 90vw);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #8fb4ff 0%, #3574f0 38%, #1b3fa8 70%, transparent 100%);
+    filter: blur(70px);
+    opacity: 0.6;
+    animation: pulse-a 6s ease-in-out infinite;
+}
+
+/* Segundo destello, más pequeño, para dar profundidad */
+.orbSmall {
+    position: absolute;
+    z-index: -1;
+    right: 12%;
+    bottom: 10%;
+    width: 260px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #2aacb8 0%, transparent 70%);
+    filter: blur(60px);
+    opacity: 0.35;
+    animation: pulse-b 8s ease-in-out infinite;
+}
+
+/* Rejilla tenue que se desvanece hacia los bordes */
+.grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+        linear-gradient(color-mix(in srgb, var(--om-fg) 7%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--om-fg) 7%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
+}
+
+@keyframes pulse-a {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.8; }
+}
+
+@keyframes pulse-b {
+    0%, 100% { opacity: 0.2; }
+    50%      { opacity: 0.5; }
+}
+
+.card {
+    width: 400px;
+    max-width: 100%;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #5b92ff, #2a5fd6);
+    box-shadow: 0 10px 32px color-mix(in srgb, #3574f0 75%, transparent), 0 0 0 4px color-mix(in srgb, #5b92ff 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--om-fg-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orb, .orbSmall { animation: none; }
+}

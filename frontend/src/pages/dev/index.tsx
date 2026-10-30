@@ -1,6 +1,7 @@
+import { SidebarMenuLink, SidebarMenuGroup } from "@/components/sidebar-shell"
 import { useEffect, useRef, useState } from "react"
-import { Folder, FileText, Plus, ArrowRight, Trash2, Download, Save, Search, Play, PanelLeft, PanelBottom, Keyboard } from "lucide-react"
-import { Button, Input, Select, Card, CardHeader, CardBody, CardFooter, Grid, Col, Text, Modal, Page, Tabs, TabBar, Tab, TabPanel, Table, TableCell, Spinner, SearchBar, SegmentedControl, StatPill, InlineSelect, Switch, Checkbox, ColorPicker, ThemeToggle, CONNECTION_COLORS } from "@/components/ui"
+import { Folder, FileText, Plus, ArrowRight, Trash2, Download, Save, Search, Play, PanelLeft, PanelBottom, Keyboard, CheckCircle, XCircle, Info, LogOut, X } from "lucide-react"
+import { Button, Input, Select, Card, CardHeader, CardBody, CardFooter, Grid, Col, Text, Modal, Page, Tabs, TabBar, Tab, TabPanel, Table, TableCell, Spinner, SearchBar, SegmentedControl, StatPill, InlineSelect, Switch, Checkbox, ColorPicker, ThemeToggle, FormRow, InfoBox, ListItem, ListItemGroup, IconButton, ToolButton, PasswordInput, Textarea, Alert, Badge, CONNECTION_COLORS } from "@/components/ui"
 import type { Column } from "@/components/ui"
 import { ProjectsShell } from "@/components/projects-shell"
 import { usePageTitle } from "@/contexts/page-title"
@@ -136,52 +137,40 @@ export default function Dev() {
                 </Col>
             </Grid>
 
-            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Botones [pos-btn]</Text>
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>ToolButton</Text>
             <Text variant="caption" style={{ display: 'block', marginBottom: 8, color: 'var(--om-fg-muted)' }}>
-                Patrón Towerforge: <code>{'<button className="pos-btn">'}</code> con icono opcional + texto entre corchetes. Es CSS global, no un componente UI.
+                Botón ligero de barras de herramientas, cabeceras y filas de listado. Sustituye a <code>pos-btn</code>.
             </Text>
             <Grid gap={8} style={{ marginBottom: 32 }}>
                 <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Solo texto</Text>
-                    <button className="pos-btn">[edit]</button>
-                    <button className="pos-btn">[test]</button>
-                    <button className="pos-btn">[delete]</button>
-                </Col>
-                <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Icono + texto (estilo [run])</Text>
-                    <button
-                        className="pos-btn"
-                        style={{ height: 32, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 14px', color: 'var(--om-green)' }}
-                    >
-                        <Play size={11} fill="currentColor" /> [run]
-                    </button>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Texto e icono + texto</Text>
+                    <ToolButton>Edit</ToolButton>
+                    <ToolButton><Play size={11} fill="currentColor" /> Run</ToolButton>
+                    <ToolButton disabled>Disabled</ToolButton>
                 </Col>
                 <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
                     <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>
-                        Variante <code>.toggle</code> (waybar / statusbar — alto 22px) y <code>.active</code>
+                        <code>iconOnly</code> y <code>active</code> (waybar / statusbar)
                     </Text>
-                    <button className="pos-btn toggle"><PanelLeft size={13} /> [schema]</button>
-                    <button className="pos-btn toggle active"><PanelLeft size={13} /> [schema]</button>
-                    <button className="pos-btn toggle"><PanelBottom size={12} /> [history]</button>
-                    <button className="pos-btn toggle active"><PanelBottom size={12} /> [history]</button>
-                    <button className="pos-btn toggle"><Keyboard size={11} /> [shortcuts]</button>
+                    <ToolButton iconOnly title="Schema"><PanelLeft size={16} /></ToolButton>
+                    <ToolButton iconOnly active title="Schema"><PanelLeft size={16} /></ToolButton>
+                    <ToolButton iconOnly><PanelBottom size={14} /> History</ToolButton>
+                    <ToolButton iconOnly active><PanelBottom size={14} /> History</ToolButton>
+                    <ToolButton iconOnly title="Shortcuts"><Keyboard size={14} /></ToolButton>
                 </Col>
                 <Col span={12} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Estados de color (texto)</Text>
-                    <button className="pos-btn" style={{ color: 'var(--om-green)' }}>[ok]</button>
-                    <button className="pos-btn" style={{ color: 'var(--om-red)' }}>[fail]</button>
+                    <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>Estados de color</Text>
+                    <ToolButton style={{ color: 'var(--om-green)' }}><CheckCircle size={13} /> Connected</ToolButton>
+                    <ToolButton style={{ color: 'var(--om-red)' }}><XCircle size={13} /> Failed</ToolButton>
                 </Col>
                 <Col span={12} style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
                     <Text variant="caption" style={{ width: '100%', marginBottom: 4, color: 'var(--om-fg-muted)' }}>
-                        Dropdown <code>pos-btn</code> + <code>pos-menu</code> (estilo [info] / [table])
+                        Dropdown: <code>ToolButton active</code> + <code>pos-menu</code>
                     </Text>
                     <div ref={infoRef} style={{ position: 'relative' }}>
-                        <button
-                            className={`pos-btn${infoOpen ? ' open' : ''}`}
-                            onClick={() => setInfoOpen(v => !v)}
-                        >
+                        <ToolButton active={infoOpen} onClick={() => setInfoOpen(v => !v)}>
                             [{infoTab}]
-                        </button>
+                        </ToolButton>
                         {infoOpen && (
                             <div className="pos-menu">
                                 {(['info', 'columns', 'types'] as const).map(t => (
@@ -197,12 +186,9 @@ export default function Dev() {
                         )}
                     </div>
                     <div ref={tableRef} style={{ position: 'relative' }}>
-                        <button
-                            className={`pos-btn${tableOpen ? ' open' : ''}`}
-                            onClick={() => setTableOpen(v => !v)}
-                        >
+                        <ToolButton active={tableOpen} onClick={() => setTableOpen(v => !v)}>
                             [{tableTab}]
-                        </button>
+                        </ToolButton>
                         {tableOpen && (
                             <div className="pos-menu">
                                 {(['tables', 'types', 'sequences', 'routines'] as const).map(t => (
@@ -255,6 +241,12 @@ export default function Dev() {
                     </Card>
                 </Col>
                 <Col span={12} md={4}>
+                    <Card variant="panel">
+                        <CardHeader title="Panel" />
+                        <CardBody><Text variant="caption">Como las filas de Connections</Text></CardBody>
+                    </Card>
+                </Col>
+                <Col span={12} md={4}>
                     <Card variant="outlined">
                         <CardHeader title="Outlined" />
                         <CardBody><Text variant="caption">Solo borde</Text></CardBody>
@@ -269,7 +261,7 @@ export default function Dev() {
                         <TabBar actions={<Button size="sm" variant={3}>+ New view</Button>}>
                             <Tab id="planning" badge={3}>Feature planning</Tab>
                             <Tab id="area">By area</Tab>
-                            <Tab id="sprint">Current sprint</Tab>
+                            <Tab id="sprint" dot>Current sprint</Tab>
                         </TabBar>
                         <TabPanel id="planning">
                             <Card style={{ margin: "16px 0" }}>
@@ -378,6 +370,124 @@ export default function Dev() {
                 <Col span={12} md={6}>
                     <Text variant="caption" style={{ marginBottom: 6, display: 'block' }}>Con color preseleccionado</Text>
                     <ColorPicker value={color2} onChange={setColor2} />
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Tamaños grandes (Button xl, Input lg, SearchBar lg)</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button variant={1} size="xl">Botón xl</Button>
+                    <Button variant={2} size="xl">Secundario xl</Button>
+                    <div style={{ width: 220 }}><Input size="lg" placeholder="Input lg" /></div>
+                    <SearchBar size="lg" value={search} onChange={setSearch} placeholder="Buscar lg…" />
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Badge</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <Badge>3</Badge>
+                    <Badge tone="neutral">12</Badge>
+                    <ToolButton style={{ color: 'var(--om-accent)', fontWeight: 600 }}>Apply <Badge>1</Badge></ToolButton>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>IconButton</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <IconButton label="Info"><Info size={15} /></IconButton>
+                    <IconButton label="Log out"><LogOut size={15} /></IconButton>
+                    <IconButton label="Close"><X size={14} /></IconButton>
+                    <IconButton label="Close" size="sm"><X size={12} /></IconButton>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>PasswordInput y Textarea</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={6}>
+                    <PasswordInput size="lg" label="Password" placeholder="••••••••" />
+                </Col>
+                <Col span={12} md={6}>
+                    <Textarea label="Private key" mono placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" />
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Alert</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={6} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Alert tone="error">Authentication failed</Alert>
+                    <Alert tone="success">Credentials updated successfully.</Alert>
+                    <Alert tone="warning">Update available</Alert>
+                    <Alert tone="info">Configure SSH tunnels in SSH Tunnels.</Alert>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>FormRow</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={6} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <FormRow label="Name"><Input size="lg" placeholder="My database" /></FormRow>
+                    <FormRow label="Host"><Input size="lg" placeholder="localhost" /></FormRow>
+                    <FormRow label="SSL"><Select value="1" options={OPTIONS} onChange={() => {}} /></FormRow>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>InfoBox</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={6} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <InfoBox>postgres://postgres@localhost:5432/mydb</InfoBox>
+                    <InfoBox mono={false}>Texto informativo sin monoespaciada</InfoBox>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>ListItem</Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12}>
+                    <ListItemGroup>
+                        <ListItem
+                            onClick={() => {}}
+                            leading={<span className="conn-avatar" style={{ background: CONNECTION_COLORS[0] }}>PG</span>}
+                            title="Producción"
+                            subtitle="postgres://admin@db.example.com:5432/app"
+                        />
+                        <ListItem
+                            onClick={() => {}}
+                            leading={<span className="conn-avatar" style={{ background: CONNECTION_COLORS[2] }}>ST</span>}
+                            title="Staging"
+                            subtitle="postgres://postgres@localhost:5432/staging"
+                            actions={<Button size="sm" variant={3}>Edit</Button>}
+                        />
+                    </ListItemGroup>
+                </Col>
+            </Grid>
+
+            <Text variant="body" as="h2" style={{ marginBottom: 12 }}>Panel (card del login, menú lateral y filas)</Text>
+            <Text variant="caption" style={{ marginBottom: 12, display: 'block' }}>
+                Los tres comparten la variante <code>Card variant="panel"</code> y el radio <code>--panel-radius</code>.
+            </Text>
+            <Grid gap={16} style={{ marginBottom: 32 }}>
+                <Col span={12} md={4}>
+                    <Card variant="panel">
+                        <CardBody style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <Text variant="body">Login</Text>
+                            <Input size="lg" label="Username" placeholder="admin" />
+                            <Input size="lg" label="Password" type="password" placeholder="••••••••" />
+                            <Button variant={1} size="xl">Sign in</Button>
+                        </CardBody>
+                    </Card>
+                </Col>
+                <Col span={12} md={4}>
+                    <Card as="nav" variant="panel" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <SidebarMenuLink to="/connections" label="Connections" end />
+                        <SidebarMenuLink to="/ssh-tunnels" label="SSH Tunnels" />
+                        <SidebarMenuGroup label="Settings" />
+                        <SidebarMenuLink to="/account" label="Account" />
+                    </Card>
+                </Col>
+                <Col span={12} md={4}>
+                    <ListItemGroup>
+                        <ListItem title="Fila de listado" subtitle="postgres://postgres@localhost:5432/db" />
+                        <ListItem selected onClick={() => {}} title="Seleccionada" subtitle="selected + mono={false}" mono={false} />
+                    </ListItemGroup>
                 </Col>
             </Grid>
 

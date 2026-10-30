@@ -5,32 +5,11 @@ import CodeMirror from '@uiw/react-codemirror'
 import { sql as sqlLang, PostgreSQL } from '@codemirror/lang-sql'
 import { EditorView } from '@codemirror/view'
 import { editorTheme } from './editor-theme'
-import { Modal, Button, Spinner } from '@/components/ui'
+import { Alert, Modal, Button, Spinner, ToolButton, Badge } from '@/components/ui'
 import { apiRunQuery, apiBuildChanges, type QueryResult, type UpdateRow, type DeleteRow, type InsertRow } from '@/services/database'
 import { excelCol } from './utils'
 
 type Sel = { ar: number; ac: number; r0: number; c0: number; r1: number; c1: number }
-
-export function ResultTabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-    return (
-        <button
-            onClick={onClick}
-            style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                height: 22, padding: '0 8px', border: 'none', borderRadius: 6,
-                cursor: 'pointer', fontSize: 11, whiteSpace: 'nowrap',
-                background: active ? 'var(--content-0)' : 'transparent',
-                color: active ? 'var(--text-1)' : 'var(--text-3)',
-                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px var(--stroke-1)' : 'none',
-                transition: 'background 0.12s',
-            }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-2)' }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-3)' }}
-        >
-            {children}
-        </button>
-    )
-}
 
 export function QueryResultView({
     result, projectId, schema, tableName, onApplied,
@@ -501,10 +480,9 @@ export function QueryResultView({
                         return (
                             <tr key={`r${ri}`}>
                                 <td
-                                    className={`row-num${inRow ? ' sel' : ''}`}
+                                    className={`row-num${inRow ? ' sel' : ''}${isDeleted ? ' cell-deleted' : ''}`}
                                     onMouseDown={e => { e.preventDefault(); startRow(ri) }}
                                     onMouseEnter={() => extendRow(ri)}
-                                    style={isDeleted ? { color: 'var(--acc-red)', background: 'rgba(244,135,113,0.18)' } : undefined}
                                 >{ri + 1}</td>
                                 {(row as unknown[]).map((cell, ci) => {
                                     const inSel  = !!sel && ri >= sel.r0 && ri <= sel.r1 && ci >= sel.c0 && ci <= sel.c1
@@ -514,21 +492,15 @@ export function QueryResultView({
                                     const display: unknown = isEdited
                                         ? (editVal!.toLowerCase() === 'null' ? null : editVal)
                                         : cell
-                                    const style: React.CSSProperties = {}
-                                    if (isDeleted) {
-                                        style.background = inSel
-                                            ? 'rgba(244,135,113,0.36)'
-                                            : 'rgba(244,135,113,0.18)'
-                                    } else if (isEdited && inSel) {
-                                        style.background = 'rgba(158,184,127,0.36)'
-                                    } else if (isEdited || inSel) {
-                                        style.background = 'rgba(158,184,127,0.18)'
-                                    }
+                                    const cls = [
+                                        display === null && 'null-cell',
+                                        inSel && 'cell-sel',
+                                        isDeleted ? 'cell-deleted' : isEdited && 'cell-edited',
+                                    ].filter(Boolean).join(' ')
                                     return (
                                         <td
                                             key={ci}
-                                            className={display === null ? 'null-cell' : ''}
-                                            style={style}
+                                            className={cls}
                                             onMouseDown={e => { e.preventDefault(); startCell(ri, ci) }}
                                             onMouseEnter={() => extendCell(ri, ci)}
                                             onClick={e => {
@@ -544,7 +516,7 @@ export function QueryResultView({
                                             {display === null
                                                 ? 'null'
                                                 : typeof display === 'boolean'
-                                                ? <span style={{ color: '#f97316' }}>{String(display)}</span>
+                                                ? <span style={{ color: 'var(--om-orange)' }}>{String(display)}</span>
                                                 : typeof display === 'number'
                                                 ? <span style={{ color: 'var(--color-info)' }}>{String(display)}</span>
                                                 : String(display)
@@ -561,10 +533,9 @@ export function QueryResultView({
                         return (
                             <tr key={`+${ii}`}>
                                 <td
-                                    className={`row-num${inRow ? ' sel' : ''}`}
+                                    className={`row-num cell-inserted${inRow ? ' sel' : ''}`}
                                     onMouseDown={e => { e.preventDefault(); startRow(ri) }}
                                     onMouseEnter={() => extendRow(ri)}
-                                    style={{ color: 'var(--om-green)', background: 'rgba(158,184,127,0.10)' }}
                                     title="New row (pending insert)"
                                 >+{ii + 1}</td>
                                 {cols.map((_, ci) => {
@@ -574,14 +545,15 @@ export function QueryResultView({
                                     const display: unknown = isSet
                                         ? (v!.toLowerCase() === 'null' ? null : v)
                                         : null
-                                    const style: React.CSSProperties = {
-                                        background: inSel ? 'rgba(158,184,127,0.36)' : 'rgba(158,184,127,0.10)',
-                                    }
+                                    const cls = [
+                                        'cell-inserted',
+                                        (!isSet || display === null) && 'null-cell',
+                                        inSel && 'cell-sel',
+                                    ].filter(Boolean).join(' ')
                                     return (
                                         <td
                                             key={ci}
-                                            className={!isSet ? 'null-cell' : (display === null ? 'null-cell' : '')}
-                                            style={style}
+                                            className={cls}
                                             onMouseDown={e => { e.preventDefault(); startCell(ri, ci) }}
                                             onMouseEnter={() => extendCell(ri, ci)}
                                         >
@@ -603,11 +575,11 @@ export function QueryResultView({
             </table>
         </div>
         <div style={{
-            height: 32, flexShrink: 0,
+            height: 40, flexShrink: 0,
             display: 'flex', alignItems: 'center', gap: 20,
-            padding: '0 16px',
+            padding: '0 12px 0 16px',
             borderTop: '1px solid var(--om-border)',
-            background: 'var(--om-bg-2)',
+            background: 'var(--om-bg)',
             fontFamily: 'var(--font-mono)', fontSize: 11,
         }}>
             <span style={{ color: 'var(--om-fg-muted)' }}>
@@ -628,9 +600,9 @@ export function QueryResultView({
                     {sel.r1 - sel.r0 + 1}R × {sel.c1 - sel.c0 + 1}C
                 </span>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
                 {pendingCount > 0 && (
-                    <span style={{ color: 'var(--om-fg-muted)' }}>
+                    <span style={{ color: 'var(--om-fg-muted)', marginRight: 12 }}>
                         {[
                             inserts.length > 0 && `${inserts.length} insert${inserts.length === 1 ? '' : 's'}`,
                             edits.size    > 0 && `${edits.size} edit${edits.size === 1 ? '' : 's'}`,
@@ -638,38 +610,24 @@ export function QueryResultView({
                         ].filter(Boolean).join(' · ')}
                     </span>
                 )}
-                {editable && (
-                    <button
-                        className="pos-btn"
-                        onClick={addInsertRow}
-                        style={{
-                            height: 22, padding: '0 10px',
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            color: 'var(--om-green)',
-                            cursor: 'pointer',
-                        }}
-                        title="Add a new empty row"
-                    >
-                        <Plus size={11} />
-                        [add row]
-                    </button>
-                )}
-                <button
-                    className="pos-btn"
+                {editable && <>
+                    <ToolButton onClick={addInsertRow} title="Add a new empty row">
+                        <Plus size={13} />
+                        Add row
+                    </ToolButton>
+                    <span style={{ width: 1, height: 16, background: 'var(--om-border-focus)', margin: '0 4px' }} />
+                </>}
+                {/* Apply solo destaca (azul + contador) cuando hay cambios pendientes */}
+                <ToolButton
                     disabled={pendingCount === 0}
                     onClick={openApplyModal}
-                    style={{
-                        height: 22, padding: '0 10px',
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        color: pendingCount > 0 ? 'var(--om-green)' : 'var(--om-fg-muted)',
-                        opacity: pendingCount > 0 ? 1 : 0.5,
-                        cursor: pendingCount > 0 ? 'pointer' : 'default',
-                    }}
                     title={!editable ? 'Editing requires opening a table from the sidebar' : 'Preview and apply pending changes'}
+                    style={pendingCount > 0 ? { color: 'var(--om-accent)', fontWeight: 600 } : undefined}
                 >
-                    <ArrowUp size={11} />
-                    [apply]
-                </button>
+                    <ArrowUp size={13} />
+                    Apply
+                    {pendingCount > 0 && <Badge>{pendingCount}</Badge>}
+                </ToolButton>
             </div>
         </div>
         {expand && createPortal(
@@ -684,7 +642,8 @@ export function QueryResultView({
                         overflow: 'auto',
                         padding: '4px 12px',
                         background: 'var(--om-bg-2)',
-                        border: '1px solid var(--om-green)',
+                        border: '1px solid var(--om-accent)',
+                        borderRadius: 'var(--radius-2)',
                         color: 'var(--om-fg-bright)',
                         fontFamily: 'var(--font-mono)',
                         fontSize: 12,
@@ -734,16 +693,7 @@ export function QueryResultView({
                             />
                         </div>
                     )}
-                    {applyError && (
-                        <div style={{
-                            padding: '8px 12px',
-                            background: 'rgba(244,135,113,0.10)',
-                            border: '1px solid rgba(244,135,113,0.4)',
-                            color: 'var(--acc-red)',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: 12,
-                        }}>{applyError}</div>
-                    )}
+                    {applyError && <Alert tone="error">{applyError}</Alert>}
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Button variant={3} size="sm" onClick={() => setModalOpen(false)} disabled={applying}>cancel</Button>
                         <Button variant={1} size="sm" onClick={handleExecute} loading={applying} disabled={!builtSQL}>execute</Button>

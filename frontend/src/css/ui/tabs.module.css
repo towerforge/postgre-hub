@@ -7,8 +7,8 @@
 /* ── Tab bar ───────────────────────────────────────────── */
 .bar {
     display: flex;
-    align-items: flex-end;
-    gap: 2px;
+    align-items: center;
+    gap: 4px;
     border-bottom: 1px solid var(--tab-border);
     padding: 0 8px;
 }
@@ -22,38 +22,27 @@
     padding-bottom: 4px;
 }
 
-/* ── Separador | entre tabs inactivos ─────────────────── */
-.tab:not(.active) + .tab:not(.active)::before {
-    content: "";
-    position: absolute;
-    left: -1px;
-    top: 20%;
-    height: 60%;
-    width: 1px;
-    background: var(--tab-border);
-}
-
-/* ── Individual tab button ─────────────────────────────── */
+/* ── Pestaña individual (caja azulada con borde, estilo Islands) ── */
 .tab {
     position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 14px;
+    height: 30px;
+    margin: 6px 0;
+    padding: 0 12px;
     font-size: 13px;
     font-weight: 500;
-    line-height: 20px;
     color: var(--text-2);
     background: transparent;
     border: 1px solid transparent;
-    border-bottom: none;
-    border-radius: 6px 6px 0 0;
+    border-radius: var(--radius-2);
+    corner-shape: squircle;
     cursor: pointer;
     white-space: nowrap;
     transition: color 0.12s, background 0.12s;
     user-select: none;
     outline: none;
-    bottom: -1px;
 }
 
 .tab:hover:not(.active) {
@@ -61,13 +50,11 @@
     background: var(--tab-hover-bg);
 }
 
-/* ── Active state ──────────────────────────────────────── */
+/* ── Estado activo ─────────────────────────────────────── */
 .tab.active {
     color: var(--text-1);
-    font-weight: 600;
-    background: var(--tab-active-bg);
-    border-color: var(--tab-border);
-    border-bottom-color: var(--tab-active-bg);
+    background: var(--om-tab-active);
+    border-color: var(--om-tab-active-border);
 }
 
 /* ── Badge / count chip ────────────────────────────────── */
@@ -95,4 +82,12 @@
 .panel {
     flex: 1;
     background: var(--tab-active-bg);
+}
+
+/* ── Punto de estado ───────────────────────────────────── */
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--om-green);
 }

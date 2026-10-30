@@ -1,0 +1,15 @@
+/* Isla casi opaca: deja pasar solo un toque del foco de luz del fondo */
+.glass {
+    background: color-mix(in srgb, var(--om-bg) 92%, transparent) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Menú lateral como tarjeta flotante (Card panel), separada del contenido */
+.floatingNav {
+    width: 208px;
+    flex-shrink: 0;
+    margin: 12px 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+}

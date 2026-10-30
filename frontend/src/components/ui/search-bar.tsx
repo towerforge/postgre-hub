@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import styles from '@/css/ui/search-bar.module.css'
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
     placeholder?: string
     label?: string
     autoFocus?: boolean
+    size?: 'md' | 'lg'
     style?: React.CSSProperties
     className?: string
 }
@@ -15,9 +16,10 @@ interface Props {
 export function SearchBar({
     value,
     onChange,
-    placeholder = 'type to filter…',
-    label = 'search:',
+    placeholder = 'Search…',
+    label,
     autoFocus,
+    size = 'md',
     style,
     className = '',
 }: Props) {
@@ -32,9 +34,9 @@ export function SearchBar({
     }, [])
 
     return (
-        <div className={`${styles.root} ${className}`} style={style}>
-            <span className={styles.prompt}>❯</span>
-            <span className={styles.label}>{label}</span>
+        <div className={`${styles.root} ${size === 'lg' ? styles.lg : ''} ${className}`} style={style}>
+            <span className={styles.prompt}><Search size={14} /></span>
+            {label && <span className={styles.label}>{label}</span>}
             <input
                 ref={inputRef}
                 className={styles.input}

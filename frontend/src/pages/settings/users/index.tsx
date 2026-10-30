@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Eye, EyeOff, Plus, Trash2, User } from 'lucide-react'
-import { Button, Modal, Input, Table } from '@/components/ui'
+import { KeyRound, Plus, Trash2, User } from 'lucide-react'
+import { Button, Modal, Input, PasswordInput, Table, Alert, ToolButton, IconButton } from '@/components/ui'
 import type { Column } from '@/components/ui'
 import { ProjectsShell } from '@/components/projects-shell'
 import { usePageTitle } from '@/contexts/page-title'
@@ -16,7 +16,6 @@ interface AddModalProps { open: boolean; onClose: () => void; onAdded: () => voi
 function AddUserModal({ open, onClose, onAdded }: AddModalProps) {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
-    const [showPw, setShowPw]     = useState(false)
     const [saving, setSaving]     = useState(false)
     const [error, setError]       = useState('')
 
@@ -35,49 +34,39 @@ function AddUserModal({ open, onClose, onAdded }: AddModalProps) {
     }
 
     return (
-        <Modal open={open} onClose={handleClose} title="Add user">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380 }}>
-                <Input
-                    label="Username" required
-                    placeholder="username"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                />
-
-                <div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>
-                        Password <span style={{ color: '#ef4444' }}>*</span>
-                    </span>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type={showPw ? 'text' : 'password'}
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            placeholder="Min. 8 characters"
-                            style={{
-                                width: '100%', boxSizing: 'border-box',
-                                background: 'rgba(0,0,0,0.06)', border: 0,
-                                borderRadius: 10, padding: '8px 44px 8px 12px',
-                                fontSize: 13, color: 'var(--text-1)', outline: 'none',
-                            }}
-                        />
-                        <button type="button" onClick={() => setShowPw(s => !s)}
-                            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
-                            {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
-                    </div>
-                </div>
-
-                {error && <p style={{ margin: 0, fontSize: 13, color: '#ef4444' }}>{error}</p>}
-
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
+        <Modal
+            open={open}
+            onClose={handleClose}
+            title="Add user"
+            size="sm"
+            footer={
+                <>
+                    <div style={{ flex: 1 }} />
                     <Button variant={2} onClick={handleClose} disabled={saving}>Cancel</Button>
                     <Button variant={1} loading={saving}
                         disabled={!username.trim() || password.length < 8}
                         onClick={handleSubmit}>
                         Add user
                     </Button>
-                </div>
+                </>
+            }
+        >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Input
+                    size="lg"
+                    label="Username" required
+                    placeholder="username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                />
+                <PasswordInput
+                    size="lg"
+                    label="Password" required
+                    placeholder="Min. 8 characters"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                />
+                {error && <Alert tone="error">{error}</Alert>}
             </div>
         </Modal>
     )
@@ -89,7 +78,6 @@ interface ResetModalProps { open: boolean; user: UserType | null; onClose: () =>
 
 function ResetPasswordModal({ open, user, onClose, onDone }: ResetModalProps) {
     const [password, setPassword] = useState('')
-    const [showPw, setShowPw]     = useState(false)
     const [saving, setSaving]     = useState(false)
     const [error, setError]       = useState('')
 
@@ -107,33 +95,29 @@ function ResetPasswordModal({ open, user, onClose, onDone }: ResetModalProps) {
     }
 
     return (
-        <Modal open={open} onClose={handleClose} title={`Reset password — ${user?.username ?? ''}`}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 340 }}>
-                <div style={{ position: 'relative' }}>
-                    <input
-                        type={showPw ? 'text' : 'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="New password (min. 8 characters)"
-                        style={{
-                            width: '100%', boxSizing: 'border-box',
-                            background: 'var(--layer-1)', border: '1px solid var(--stroke-1)',
-                            borderRadius: 'var(--radius-2)', padding: '10px 44px 10px 12px',
-                            fontSize: 13, color: 'var(--text-1)', outline: 'none',
-                        }}
-                    />
-                    <button type="button" onClick={() => setShowPw(s => !s)}
-                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
-                        {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                </div>
-                {error && <p style={{ margin: 0, fontSize: 13, color: '#ef4444' }}>{error}</p>}
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Modal
+            open={open}
+            onClose={handleClose}
+            title={`Reset password — ${user?.username ?? ''}`}
+            size="sm"
+            footer={
+                <>
+                    <div style={{ flex: 1 }} />
                     <Button variant={2} onClick={handleClose} disabled={saving}>Cancel</Button>
                     <Button variant={1} loading={saving} disabled={password.length < 8} onClick={handleSubmit}>
                         Reset password
                     </Button>
-                </div>
+                </>
+            }
+        >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <PasswordInput
+                    size="lg"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="New password (min. 8 characters)"
+                />
+                {error && <Alert tone="error">{error}</Alert>}
             </div>
         </Modal>
     )
@@ -192,26 +176,20 @@ export default function UsersPage() {
             shrink: true,
             render: u => (
                 <div style={{ display: 'flex', gap: 4 }}>
-                    <Button
-                        variant={4} size="sm"
+                    <ToolButton
                         onClick={e => { e.stopPropagation(); setResetUser(u) }}
                         title="Reset password"
-                        style={{ color: 'var(--text-3)', fontSize: 11 }}
                     >
-                        Reset pw
-                    </Button>
+                        <KeyRound size={13} /> Reset pw
+                    </ToolButton>
                     {u.id !== myId && (
-                        <Button
-                            variant={4} size="sm"
-                            loading={deleting === u.id}
+                        <IconButton
+                            label="Delete user"
+                            disabled={deleting === u.id}
                             onClick={e => { e.stopPropagation(); handleDelete(u.id) }}
-                            title="Delete user"
-                            style={{ color: 'var(--text-3)' }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
                         >
                             <Trash2 size={13} />
-                        </Button>
+                        </IconButton>
                     )}
                 </div>
             ),
@@ -220,10 +198,10 @@ export default function UsersPage() {
 
     return (
         <ProjectsShell
-            headerLeft={`${users.length} user${users.length !== 1 ? 's' : ''}`}
+            headerLeft={<>Users<span style={{ marginLeft: 8, fontSize: 13, fontWeight: 400, color: 'var(--om-fg-muted)' }}>{users.length}</span></>}
             headerRight={
-                <Button variant={1} size="sm" onClick={() => setAddOpen(true)}>
-                    <Plus size={12} /> new user
+                <Button variant={1} size="xl" onClick={() => setAddOpen(true)}>
+                    <Plus size={14} /> New user
                 </Button>
             }
         >

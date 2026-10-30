@@ -1,0 +1,86 @@
+# ---------------------------------------------------------------------------
+# postgre-hub — override de DESARROLLO.
+#
+# Compose carga este fichero automaticamente junto a docker-compose.yml. Aqui:
+#   - `app` deja de ser el binario de release y pasa a ser la API en modo --dev
+#     con recarga en caliente (cargo watch), montando el codigo del host.
+#   - `frontend` es el dev server de Vite, con proxy de /api hacia `app`.
+#   - `sandbox` es un PostgreSQL de pruebas para tener algo a lo que conectarse
+#     desde la app (host `sandbox`, puerto 5432, usuario y clave `postgres`).
+#   - Publicamos los puertos al host.
+# ---------------------------------------------------------------------------
+
+services:
+  # --- API en modo desarrollo con recarga en caliente -----------------------
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    working_dir: /app/backend
+    volumes:
+      # Repo completo: el backend embebe ../frontend/dist (rust-embed).
+      - .:/app
+      # target y registro de cargo en volumenes: no pisan los del host (macOS)
+      # y sobreviven a recrear el contenedor.
+      - cargo_target:/cargo-target
+      - cargo_registry:/usr/local/cargo/registry
+    environment:
+      CARGO_TARGET_DIR: /cargo-target
+      DATA_DIR: /data
+    # Las conexiones a bases de datos del host se dan de alta con host.docker.internal.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4301:8080"
+    restart: "no"
+
+  # --- Frontend con el dev server de Vite -----------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - app
+    volumes:
+      # Codigo fuente del frontend montado para recarga en caliente.
+      - ./frontend:/app/frontend
+      # node_modules en su propio volumen para no pisar los del host (ni al reves).
+      - frontend_node_modules:/app/frontend/node_modules
+    environment:
+      # Vite hace de proxy de /api, /users y /version hacia el servicio `app`.
+      VITE_API_PROXY: ${VITE_API_PROXY:-http://app:8080}
+    networks:
+      - internal
+    ports:
+      - "4300:5173"
+
+  # --- PostgreSQL de pruebas -------------------------------------------------
+  sandbox:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sandbox
+    volumes:
+      - sandbox_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    ports:
+      - "4302:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sandbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cargo_target:
+  cargo_registry:
+  frontend_node_modules:
+  sandbox_data:
+
+networks:
+  # En desarrollo no hay reverse proxy: la red deja de ser externa y Compose la
+  # crea/destruye sola, sin exigir un `docker network create` previo.
+  proxy:
+    external: false

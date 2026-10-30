@@ -41,9 +41,10 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   server: {
+    // En Docker, VITE_API_PROXY apunta al servicio `app` (ver docker-compose.override.yml)
     proxy: Object.fromEntries(
       ['/api', '/users', '/version']
-        .map(p => [p, { target: `http://localhost:${process.env.BACKEND_PORT ?? 8080}`, xfwd: true }])
+        .map(p => [p, { target: process.env.VITE_API_PROXY ?? `http://localhost:${process.env.BACKEND_PORT ?? 8080}`, xfwd: true }])
     ),
   },
 })
