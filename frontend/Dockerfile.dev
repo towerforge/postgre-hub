@@ -1,0 +1,15 @@
+# Imagen de desarrollo: el codigo se monta desde el host y Vite recarga en
+# caliente. node_modules vive en un volumen propio (ver docker-compose.override.yml).
+FROM node:24-slim
+
+# Sin TTY (contenedor), pnpm aborta las preguntas interactivas: modo CI.
+ENV CI=true
+RUN npm install -g pnpm@latest
+
+WORKDIR /app/frontend
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+EXPOSE 5173
+# Reinstala al arrancar por si el lockfile cambio desde que se construyo la imagen.
+CMD ["sh", "-c", "pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"]

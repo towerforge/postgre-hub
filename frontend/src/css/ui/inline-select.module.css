@@ -1,37 +1,65 @@
 .root {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px;
-    border-radius: calc(var(--radius-1) - 1px);
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border-radius: calc(var(--radius-1) - 1px);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.root:hover { background: var(--fill-2); }
+.root:hover {
+  background: var(--fill-2);
+}
 
 .label {
-    font-family: var(--font-family);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-3);
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
 }
 
 .value {
-    font-family: var(--font-family);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-1);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 160px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
 }
 
 .arrow {
-    color: var(--text-3);
-    flex-shrink: 0;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+/* Contenedor con el aspecto de SegmentedControl */
+.wrapper {
+  composes: root from "./segmented-control.module.css";
+}
+
+/* La lista desplegable es la misma que la de Select */
+.dropdown {
+  composes: dropdown from "./select.module.css";
+}
+
+.list {
+  composes: list from "./select.module.css";
+}
+
+.option {
+  composes: option from "./select.module.css";
+}
+
+.optionActive {
+  composes: optionActive from "./select.module.css";
+}
+
+.optionSelected {
+  composes: optionSelected from "./select.module.css";
 }

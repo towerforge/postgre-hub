@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -338,16 +338,40 @@ fn pg_err(e: tokio_postgres::Error) -> String {
     msg
 }
 
+/// Error de una consulta: el mensaje de Postgres con detalle y pista. El
+/// Display de tokio_postgres::Error solo dice "db error".
+fn query_err(e: tokio_postgres::Error) -> String {
+    match e.as_db_error() {
+        Some(db) => {
+            let mut msg = format!("{}: {}", db.severity(), db.message());
+            if let Some(d) = db.detail() { msg.push_str(&format!("\nDetail: {d}")); }
+            if let Some(h) = db.hint()   { msg.push_str(&format!("\nHint: {h}")); }
+            msg
+        }
+        None => pg_err(e),
+    }
+}
+
 // ── Connection helper ─────────────────────────────────────────────────────────
 
+/// Conexión abierta junto con los ajustes de seguridad de la conexión guardada
+pub struct PgSession {
+    pub client:        tokio_postgres::Client,
+    pub query_timeout: i64,
+}
+
 pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgres::Client, String> {
+    connect_session(auth, project_id).await.map(|s| s.client)
+}
+
+pub async fn connect_session(auth: &AuthState, project_id: &str) -> Result<PgSession, String> {
     use super::tunnels::get_tunnel_params;
 
     let db = auth.db.clone();
     let id = project_id.to_string();
 
     #[allow(clippy::type_complexity)]
-    let params: Option<(String, i64, String, String, String, String, String, String, String, bool, String, i64, String, String, String, Option<String>)> =
+    let params: Option<(String, i64, String, String, String, String, String, String, String, bool, String, i64, String, String, String, Option<String>, bool, i64)> =
         tokio::task::spawn_blocking(move || {
             let conn = db.lock().unwrap();
             conn.query_row(
@@ -355,7 +379,7 @@ pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgre
                          ssl_ca, ssl_client_cert, ssl_client_key,
                          ssh_enabled, ssh_host, ssh_port, ssh_user,
                          ssh_password, ssh_private_key,
-                         ssh_tunnel_id
+                         ssh_tunnel_id, read_only, query_timeout
                   FROM projects WHERE id = ?1",
                 [&id],
                 |r| Ok((
@@ -375,6 +399,8 @@ pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgre
                     r.get::<_, String>(13)?,         // ssh_password
                     r.get::<_, String>(14)?,         // ssh_private_key
                     r.get::<_, Option<String>>(15)?, // ssh_tunnel_id
+                    r.get::<_, i64>(16)? != 0,       // read_only
+                    r.get::<_, i64>(17)?,             // query_timeout
                 )),
             ).ok()
         })
@@ -386,7 +412,7 @@ pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgre
         ssl_ca, ssl_client_cert, ssl_client_key,
         mut ssh_enabled, mut ssh_host, mut ssh_port, mut ssh_user,
         mut ssh_password, mut ssh_private_key,
-        ssh_tunnel_id,
+        ssh_tunnel_id, read_only, query_timeout,
     ) = params.ok_or("Project not found")?;
 
     // If a named tunnel is assigned, override inline SSH fields with tunnel config
@@ -436,6 +462,29 @@ pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgre
         .user(&username)
         .password(&password);
 
+    let client = dial(&cfg, &ssl_mode, &ssl_ca, &ssl_client_cert, &ssl_client_key).await?;
+
+    // Solo lectura: toda transacción de la sesión arranca READ ONLY. Es una red
+    // de seguridad contra escrituras accidentales, no un control de permisos:
+    // quien ejecute `BEGIN READ WRITE` o `SET` puede saltárselo. Para garantías
+    // reales hay que conectar con un rol sin privilegios de escritura.
+    if read_only {
+        client
+            .batch_execute("SET default_transaction_read_only = on")
+            .await
+            .map_err(pg_err)?;
+    }
+
+    Ok(PgSession { client, query_timeout })
+}
+
+async fn dial(
+    cfg: &tokio_postgres::Config,
+    ssl_mode: &str,
+    ssl_ca: &str,
+    ssl_client_cert: &str,
+    ssl_client_key: &str,
+) -> Result<tokio_postgres::Client, String> {
     if ssl_mode == "disable" {
         let (client, connection) = cfg.connect(NoTls).await.map_err(pg_err)?;
         tokio::spawn(async move { let _ = connection.await; });
@@ -463,7 +512,7 @@ pub async fn connect(auth: &AuthState, project_id: &str) -> Result<tokio_postgre
         }
     }
 
-    let tls = build_tls(&ssl_mode, &ssl_ca, &ssl_client_cert, &ssl_client_key)?;
+    let tls = build_tls(ssl_mode, ssl_ca, ssl_client_cert, ssl_client_key)?;
     let (client, connection) = cfg.connect(tls).await.map_err(pg_err)?;
     tokio::spawn(async move { let _ = connection.await; });
     Ok(client)
@@ -666,11 +715,55 @@ pub async fn list_types(
 #[derive(serde::Deserialize)]
 pub struct RunQueryRequest {
     pub sql: String,
+    /// Id que genera el cliente para poder cancelar la consulta en curso
+    #[serde(default)]
+    pub query_id: Option<String>,
+}
+
+/// Aplica el timeout de la conexión guardada (0 = sin límite)
+async fn apply_timeout(client: &tokio_postgres::Client, secs: i64) -> Result<(), String> {
+    if secs <= 0 { return Ok(()) }
+    client
+        .batch_execute(&format!("SET statement_timeout = '{secs}s'"))
+        .await
+        .map_err(query_err)
+}
+
+/// Cancela en el servidor la consulta que ejecuta `pid`, desde otra conexión
+async fn cancel_backend(auth: &AuthState, project_id: &str, pid: i32) -> Result<bool, String> {
+    let client = connect(auth, project_id).await?;
+    let row = client
+        .query_one("SELECT pg_cancel_backend($1)", &[&pid])
+        .await
+        .map_err(pg_err)?;
+    Ok(row.get(0))
+}
+
+/// Registra la consulta mientras se ejecuta. Si la petición se abandona (el
+/// cliente cierra la conexión) el guard se suelta antes de terminar y cancela
+/// la consulta en Postgres para que no siga corriendo huérfana.
+struct RunningGuard {
+    auth:       AuthState,
+    query_id:   String,
+    project_id: String,
+    pid:        i32,
+    finished:   bool,
+}
+
+impl Drop for RunningGuard {
+    fn drop(&mut self) {
+        self.auth.running_queries.lock().unwrap().remove(&self.query_id);
+        if !self.finished {
+            let (auth, project_id, pid) = (self.auth.clone(), self.project_id.clone(), self.pid);
+            tokio::spawn(async move { let _ = cancel_backend(&auth, &project_id, pid).await; });
+        }
+    }
 }
 
 pub async fn run_query(
     State(auth): State<AuthState>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     Json(body): Json<RunQueryRequest>,
 ) -> impl IntoResponse {
     let sql = body.sql.trim().to_string();
@@ -678,81 +771,131 @@ pub async fn run_query(
         return (StatusCode::BAD_REQUEST, Json(json!({ "error": "SQL is empty" })));
     }
 
-    let client = match connect(&auth, &id).await {
-        Ok(c)  => c,
-        Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+    let started = std::time::Instant::now();
+    let outcome = execute_query(&auth, &id, &sql, body.query_id).await;
+    let duration_ms = started.elapsed().as_millis() as i64;
+
+    let user_id = auth.request_user_id(&headers).await;
+    let (rows, error) = match &outcome {
+        Ok((_, n)) => (Some(*n), None),
+        Err(e)     => (None, Some(e.clone())),
+    };
+    super::history::record(&auth, user_id, id, sql, duration_ms, rows, error).await;
+
+    match outcome {
+        Ok((mut payload, _)) => {
+            payload["duration_ms"] = json!(duration_ms);
+            (StatusCode::OK, Json(payload))
+        }
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+    }
+}
+
+/// Ejecuta la consulta y devuelve el cuerpo de la respuesta y el número de
+/// filas devueltas o afectadas (para el historial)
+async fn execute_query(
+    auth: &AuthState,
+    project_id: &str,
+    sql: &str,
+    query_id: Option<String>,
+) -> Result<(Value, i64), String> {
+    use tokio_postgres::SimpleQueryMessage;
+
+    let session = connect_session(auth, project_id).await?;
+    let client  = &session.client;
+    apply_timeout(client, session.query_timeout).await?;
+
+    let mut guard = match query_id {
+        Some(qid) => {
+            let pid: i32 = client
+                .query_one("SELECT pg_backend_pid()", &[])
+                .await
+                .map_err(pg_err)?
+                .get(0);
+            auth.running_queries.lock().unwrap().insert(qid.clone(), (project_id.to_string(), pid));
+            Some(RunningGuard {
+                auth: auth.clone(), query_id: qid, project_id: project_id.to_string(), pid, finished: false,
+            })
+        }
+        None => None,
     };
 
     let upper = sql.trim_start().to_uppercase();
-    let started = std::time::Instant::now();
-
-    if upper.starts_with("SELECT") || upper.starts_with("WITH") || upper.starts_with("TABLE") {
-        use tokio_postgres::SimpleQueryMessage;
-
+    let result = if upper.starts_with("SELECT") || upper.starts_with("WITH") || upper.starts_with("TABLE") {
         // Prepare first to learn the column types (simple_query only gives names).
-        let col_types: Vec<(String, String)> = match client.prepare(&sql).await {
+        let col_types: Vec<(String, String)> = match client.prepare(sql).await {
             Ok(stmt) => stmt.columns().iter()
                 .map(|c| (c.name().to_string(), c.type_().name().to_string()))
                 .collect(),
             Err(_) => vec![],
         };
 
-        match client.simple_query(&sql).await {
-            Ok(messages) => {
-                let mut names: Vec<String> = vec![];
-                let mut data: Vec<Vec<Value>> = vec![];
-                for msg in messages {
-                    if let SimpleQueryMessage::Row(row) = msg {
-                        if names.is_empty() {
-                            names = row.columns().iter().map(|c| c.name().to_string()).collect();
-                        }
-                        let vals: Vec<Value> = (0..names.len())
-                            .map(|i| match row.get(i) {
-                                Some(v) => Value::String(v.to_string()),
-                                None    => Value::Null,
-                            })
-                            .collect();
-                        data.push(vals);
+        client.simple_query(sql).await.map(|messages| {
+            let mut names: Vec<String> = vec![];
+            let mut data: Vec<Vec<Value>> = vec![];
+            for msg in messages {
+                if let SimpleQueryMessage::Row(row) = msg {
+                    if names.is_empty() {
+                        names = row.columns().iter().map(|c| c.name().to_string()).collect();
                     }
+                    let vals: Vec<Value> = (0..names.len())
+                        .map(|i| match row.get(i) {
+                            Some(v) => Value::String(v.to_string()),
+                            None    => Value::Null,
+                        })
+                        .collect();
+                    data.push(vals);
                 }
-                if names.is_empty() && !col_types.is_empty() {
-                    names = col_types.iter().map(|(n, _)| n.clone()).collect();
-                }
-
-                // Merge names + types into [{name, type}, …]
-                let type_by_name: std::collections::HashMap<_, _> = col_types.iter()
-                    .map(|(n, t)| (n.clone(), t.clone())).collect();
-                let columns: Vec<Value> = names.iter().map(|n| json!({
-                    "name": n,
-                    "type": type_by_name.get(n).cloned().unwrap_or_default(),
-                })).collect();
-
-                let duration_ms = started.elapsed().as_millis() as u64;
-                let total = data.len();
-                (StatusCode::OK, Json(json!({
-                    "columns": columns,
-                    "rows": data,
-                    "total": total,
-                    "duration_ms": duration_ms,
-                })))
             }
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
-        }
+            if names.is_empty() && !col_types.is_empty() {
+                names = col_types.iter().map(|(n, _)| n.clone()).collect();
+            }
+
+            // Merge names + types into [{name, type}, …]
+            let type_by_name: std::collections::HashMap<_, _> = col_types.iter()
+                .map(|(n, t)| (n.clone(), t.clone())).collect();
+            let columns: Vec<Value> = names.iter().map(|n| json!({
+                "name": n,
+                "type": type_by_name.get(n).cloned().unwrap_or_default(),
+            })).collect();
+
+            let total = data.len();
+            (json!({ "columns": columns, "rows": data, "total": total }), total as i64)
+        })
     } else {
         // simple_query supports multiple statements separated by ';'; sum the
         // affected counts reported by each CommandComplete.
-        use tokio_postgres::SimpleQueryMessage;
-        match client.simple_query(&sql).await {
-            Ok(messages) => {
-                let affected: u64 = messages.iter().filter_map(|m| match m {
-                    SimpleQueryMessage::CommandComplete(n) => Some(*n),
-                    _ => None,
-                }).sum();
-                let duration_ms = started.elapsed().as_millis() as u64;
-                (StatusCode::OK, Json(json!({ "affected": affected, "duration_ms": duration_ms })))
-            }
-            Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
-        }
+        client.simple_query(sql).await.map(|messages| {
+            let affected: u64 = messages.iter().filter_map(|m| match m {
+                SimpleQueryMessage::CommandComplete(n) => Some(*n),
+                _ => None,
+            }).sum();
+            (json!({ "affected": affected }), affected as i64)
+        })
+    };
+
+    if let Some(g) = guard.as_mut() { g.finished = true; }
+    result.map_err(query_err)
+}
+
+#[derive(Deserialize)]
+pub struct CancelQueryRequest {
+    pub query_id: String,
+}
+
+pub async fn cancel_query(
+    State(auth): State<AuthState>,
+    Path(id): Path<String>,
+    Json(body): Json<CancelQueryRequest>,
+) -> impl IntoResponse {
+    let running = auth.running_queries.lock().unwrap().get(&body.query_id).cloned();
+    match running {
+        Some((project_id, pid)) if project_id == id => match cancel_backend(&auth, &id, pid).await {
+            Ok(cancelled) => (StatusCode::OK, Json(json!({ "ok": cancelled }))),
+            Err(e)        => (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
+        },
+        // Ya terminó (o nunca existió): no hay nada que cancelar
+        _ => (StatusCode::OK, Json(json!({ "ok": false }))),
     }
 }
 
@@ -1100,10 +1243,14 @@ pub async fn explain_query(
         return (StatusCode::BAD_REQUEST, Json(json!({ "error": "SQL is empty" })));
     }
 
-    let client = match connect(&auth, &id).await {
-        Ok(c)  => c,
+    let session = match connect_session(&auth, &id).await {
+        Ok(s)  => s,
         Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({ "error": e }))),
     };
+    if let Err(e) = apply_timeout(&session.client, session.query_timeout).await {
+        return (StatusCode::BAD_REQUEST, Json(json!({ "error": e })));
+    }
+    let client = session.client;
 
     let explain_sql = format!("EXPLAIN (FORMAT JSON) {sql}");
     match client.query_one(&explain_sql, &[]).await {
@@ -1112,6 +1259,6 @@ pub async fn explain_query(
             let plan: Value = serde_json::from_str(&plan_str).unwrap_or(Value::Null);
             (StatusCode::OK, Json(json!({ "plan": plan })))
         }
-        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": e.to_string() }))),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(json!({ "error": query_err(e) }))),
     }
 }
