@@ -1,0 +1,17 @@
+.row {
+  display: grid;
+  gap: 0 12px;
+  align-items: center;
+  min-height: 34px;
+}
+
+.label {
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--om-fg-dim);
+}
+
+.control {
+  min-width: 0;
+}

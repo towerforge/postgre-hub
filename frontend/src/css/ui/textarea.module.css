@@ -1,0 +1,40 @@
+/* Textarea: mismo contenedor y etiqueta que Input (compuestos desde su módulo);
+   el campo es propio porque no lleva la caja .control de Input. */
+.wrapper {
+  composes: wrapper from "./input.module.css";
+}
+
+.label {
+  composes: label from "./input.module.css";
+}
+
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  padding: 9px 12px;
+  resize: vertical;
+  background: var(--om-bg);
+  border: 1px solid var(--om-border-focus);
+  border-radius: 12px;
+  corner-shape: squircle;
+  outline: none;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--om-fg-bright);
+  caret-color: var(--om-accent);
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.textarea:focus {
+  border-color: var(--om-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--om-accent) 30%, transparent);
+}
+.textarea::placeholder {
+  color: var(--om-fg-muted);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}

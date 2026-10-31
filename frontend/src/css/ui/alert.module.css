@@ -1,0 +1,45 @@
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  border-radius: var(--radius-2);
+  corner-shape: squircle;
+  border: 1px solid;
+  word-break: break-word;
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error {
+  color: var(--om-red);
+  background: color-mix(in srgb, var(--om-red) 12%, transparent);
+  border-color: color-mix(in srgb, var(--om-red) 35%, transparent);
+}
+
+.success {
+  color: var(--om-green);
+  background: color-mix(in srgb, var(--om-green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--om-green) 35%, transparent);
+}
+
+.warning {
+  color: var(--om-yellow);
+  background: color-mix(in srgb, var(--om-yellow) 12%, transparent);
+  border-color: color-mix(in srgb, var(--om-yellow) 35%, transparent);
+}
+
+.info {
+  color: var(--om-accent);
+  background: color-mix(in srgb, var(--om-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--om-accent) 35%, transparent);
+}

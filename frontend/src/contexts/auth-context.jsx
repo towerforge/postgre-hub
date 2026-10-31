@@ -1,0 +1,78 @@
+// Contexto de autenticación: sabe si la instalación aún necesita su primer
+// administrador (`setup_required`), si hay sesión y con qué usuario. Existe para
+// que `app.jsx` decida entre la pantalla de acceso y la app sin que cada página
+// vuelva a preguntar a la API; las llamadas en sí están en services/auth.
+import { createContext, useContext, useEffect, useState } from "react";
+import {
+  apiAuthStatus,
+  apiAuthSetup,
+  apiAuthLogin,
+  apiAuthLogout,
+  apiAuthMe,
+} from "@/services/auth";
+
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [status, setStatus] = useState(null);
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // El nombre de usuario se pide aparte y sin bloquear: si falla, la sesión
+  // sigue siendo válida y solo se queda sin mostrar el nombre.
+  const refresh = async () => {
+    try {
+      const data = await apiAuthStatus();
+      setStatus(data);
+      if (data.authenticated) {
+        apiAuthMe()
+          .then((me) => setUsername(me.username))
+          .catch(() => {});
+      }
+    } catch {
+      // Sin respuesta del estado se asume instalación nueva y se muestra el alta.
+      setStatus({ setup_required: true, authenticated: false });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const setup = async (u, password, confirmPassword) => {
+    await apiAuthSetup(u, password, confirmPassword);
+    setStatus({ setup_required: false, authenticated: true });
+    apiAuthMe()
+      .then((me) => setUsername(me.username))
+      .catch(() => {});
+  };
+
+  const login = async (u, password) => {
+    await apiAuthLogin(u, password);
+    setStatus({ setup_required: false, authenticated: true });
+    apiAuthMe()
+      .then((me) => setUsername(me.username))
+      .catch(() => {});
+  };
+
+  const logout = async () => {
+    await apiAuthLogout();
+    setStatus({ setup_required: false, authenticated: false });
+    setUsername("");
+  };
+
+  return (
+    <AuthContext.Provider value={{ status, username, loading, setup, login, logout, refresh }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+/** Estado de sesión y acciones de acceso; solo dentro de `<AuthProvider>`. */
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+};

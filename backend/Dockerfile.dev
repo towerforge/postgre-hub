@@ -1,0 +1,18 @@
+# Imagen de desarrollo: el repo se monta desde el host y cargo watch recompila
+# y relanza la API (modo --dev) al cambiar el codigo. target y el registro de
+# cargo viven en volumenes propios (ver docker-compose.override.yml).
+FROM rust:1-slim
+
+# ssh2 compila OpenSSL vendorizado: necesita perl, make y pkg-config.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends perl make pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup component add rustfmt clippy \
+    && cargo install cargo-watch --locked
+
+WORKDIR /app/backend
+EXPOSE 8080
+
+# rust-embed exige que ../frontend/dist exista al compilar, aunque en --dev no se sirva.
+CMD ["sh", "-c", "mkdir -p ../frontend/dist && cargo watch -w src -w Cargo.toml -x 'run -- --dev --port 8080'"]

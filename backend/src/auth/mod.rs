@@ -17,6 +17,8 @@ pub struct AuthState {
     pub db:               Arc<std::sync::Mutex<rusqlite::Connection>>,
     pub setup_done:       Arc<AtomicBool>,
     pub secure_cookies:   bool,
+    /// Consultas en curso: query_id del cliente → (conexión, pid del backend)
+    pub running_queries:  Arc<std::sync::Mutex<HashMap<String, (String, i32)>>>,
 }
 
 impl AuthState {
@@ -43,6 +45,7 @@ impl AuthState {
             db:               Arc::new(std::sync::Mutex::new(conn)),
             setup_done:       Arc::new(AtomicBool::new(setup_done)),
             secure_cookies,
+            running_queries:  Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
     }
 
@@ -71,6 +74,15 @@ impl AuthState {
 
     pub async fn is_session_valid(&self, token: &str) -> bool {
         self.get_session_user_id(token).await.is_some()
+    }
+
+    /// Usuario de la petición. En modo --dev no hay sesión obligatoria y el
+    /// historial y las consultas guardadas se agrupan bajo un usuario fijo.
+    pub async fn request_user_id(&self, headers: &axum::http::HeaderMap) -> String {
+        match routes::extract_session_cookie(headers) {
+            Some(token) => self.get_session_user_id(&token).await.unwrap_or_else(|| "dev".into()),
+            None        => "dev".into(),
+        }
     }
 
     pub async fn remove_session(&self, token: &str) {

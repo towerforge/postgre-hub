@@ -27,6 +27,8 @@ pub struct Project {
     pub ssh_key_set:     bool,
     pub ssh_tunnel_id:   Option<String>,
     pub color:           String,
+    pub read_only:       bool,
+    pub query_timeout:   i64,
     pub created_at:      i64,
 }
 
@@ -50,13 +52,15 @@ pub struct ProjectRequest {
     pub ssh_private_key:  Option<String>,
     pub ssh_tunnel_id:    Option<String>,
     pub color:            Option<String>,
+    pub read_only:        Option<bool>,
+    pub query_timeout:    Option<i64>,
 }
 
 const SELECT_COLS: &str =
     "id, name, host, port, database, username, ssl_mode, ssl_ca, ssl_client_cert, \
      ssh_enabled, ssh_host, ssh_port, ssh_user, \
      (ssh_private_key <> '') AS ssh_key_set, \
-     ssh_tunnel_id, color, created_at";
+     ssh_tunnel_id, color, read_only, query_timeout, created_at";
 
 fn map_project(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
     Ok(Project {
@@ -76,7 +80,9 @@ fn map_project(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
         ssh_key_set:     r.get::<_, i64>(13)? != 0,
         ssh_tunnel_id:   r.get(14)?,
         color:           r.get(15)?,
-        created_at:      r.get(16)?,
+        read_only:       r.get::<_, i64>(16)? != 0,
+        query_timeout:   r.get(17)?,
+        created_at:      r.get(18)?,
     })
 }
 
@@ -137,8 +143,8 @@ pub async fn create_project(
                 id, name, host, port, database, username, password,
                 ssl_mode, ssl_ca, ssl_client_cert, ssl_client_key,
                 ssh_enabled, ssh_host, ssh_port, ssh_user, ssh_password, ssh_private_key,
-                ssh_tunnel_id, color
-             ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)",
+                ssh_tunnel_id, color, read_only, query_timeout
+             ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
             rusqlite::params![
                 id2,
                 body.name,
@@ -159,6 +165,8 @@ pub async fn create_project(
                 body.ssh_private_key.unwrap_or_default(),
                 body.ssh_tunnel_id,
                 body.color.unwrap_or_default(),
+                body.read_only.unwrap_or(false) as i64,
+                body.query_timeout.unwrap_or(0).max(0),
             ],
         ).is_ok()
     })
@@ -190,8 +198,8 @@ pub async fn update_project(
                 name=?1, host=?2, port=?3, database=?4, username=?5,
                 ssl_mode=?6, ssl_ca=?7, ssl_client_cert=?8,
                 ssh_enabled=?9, ssh_host=?10, ssh_port=?11, ssh_user=?12,
-                ssh_tunnel_id=?13, color=?14
-             WHERE id=?15",
+                ssh_tunnel_id=?13, color=?14, read_only=?15, query_timeout=?16
+             WHERE id=?17",
             rusqlite::params![
                 body.name, body.host, port, body.database, body.username,
                 ssl_mode,
@@ -203,6 +211,8 @@ pub async fn update_project(
                 body.ssh_user.unwrap_or_default(),
                 body.ssh_tunnel_id,
                 body.color.unwrap_or_default(),
+                body.read_only.unwrap_or(false) as i64,
+                body.query_timeout.unwrap_or(0).max(0),
                 id.clone(),
             ],
         ).map(|n| n > 0).unwrap_or(false);

@@ -2,7 +2,7 @@ use axum::{
     routing::{get, post, put},
     Router,
     http::StatusCode,
-    extract::Path,
+    extract::{DefaultBodyLimit, Path},
     response::{IntoResponse, Response},
     body::Body,
     Json,
@@ -18,8 +18,10 @@ use crate::database::{
     list_projects, create_project, get_project, update_project, delete_project,
     test_connection, list_tables, list_types, list_sequences, list_routines,
     get_table_data, get_table_schema, run_query, build_changes,
-    get_sessions, explain_query,
-    export_dump, import_dump,
+    get_sessions, explain_query, cancel_query, get_structure,
+    list_history, clear_history,
+    list_saved_queries, create_saved_query, update_saved_query, delete_saved_query,
+    list_schemas, export_dump, import_dump,
     list_tunnels, create_tunnel, update_tunnel, delete_tunnel, test_tunnel,
 };
 
@@ -62,8 +64,8 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/auth/me",          get(auth_routes::me))
         .route("/api/auth/credentials", put(auth_routes::update_credentials))
         // User management
-        .route("/users",        get(list_users).post(create_user).delete(delete_user))
-        .route("/users/update", put(update_user))
+        .route("/api/users",        get(list_users).post(create_user).delete(delete_user))
+        .route("/api/users/update", put(update_user))
         // Projects (PostgreSQL connections)
         .route("/api/projects",     get(list_projects).post(create_project))
         .route("/api/projects/{id}", get(get_project).put(update_project).delete(delete_project))
@@ -76,16 +78,24 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/projects/{id}/tables/{table}/schema", get(get_table_schema))
         .route("/api/projects/{id}/query",                 post(run_query))
         .route("/api/projects/{id}/query/explain",         post(explain_query))
+        .route("/api/projects/{id}/query/cancel",          post(cancel_query))
+        .route("/api/projects/{id}/structure",             get(get_structure))
+        // Historial y consultas guardadas (por usuario)
+        .route("/api/projects/{id}/history",               get(list_history).delete(clear_history))
+        .route("/api/projects/{id}/saved-queries",         get(list_saved_queries).post(create_saved_query))
+        .route("/api/projects/{id}/saved-queries/{qid}",   put(update_saved_query).delete(delete_saved_query))
         .route("/api/projects/{id}/build-changes",         post(build_changes))
         .route("/api/projects/{id}/sessions",              get(get_sessions))
-        .route("/api/projects/{id}/export",                get(export_dump))
-        .route("/api/projects/{id}/import",                post(import_dump))
+        // Export / import SQL
+        .route("/api/projects/{id}/schemas",               get(list_schemas))
+        .route("/api/projects/{id}/export",                post(export_dump))
+        .route("/api/projects/{id}/import",                post(import_dump).layer(DefaultBodyLimit::max(512 * 1024 * 1024)))
         // SSH Tunnels
         .route("/api/tunnels",      get(list_tunnels).post(create_tunnel))
         .route("/api/tunnels/{id}",       put(update_tunnel).delete(delete_tunnel))
         .route("/api/tunnels/{id}/test",  post(test_tunnel))
         // Version
-        .route("/version", get(version))
+        .route("/api/version", get(version))
         .with_state(auth_state.clone());
 
     let api_router = if dev_mode {

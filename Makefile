@@ -8,12 +8,25 @@ APP_NAME     ?= postgre-hub
 BACKEND_DIR  := backend
 FRONTEND_DIR := frontend
 PORT         ?= 8080
-LOGS_DIR     := $(CURDIR)/.logs
+
+# Permite usar `docker-compose` (v1) si no esta disponible el plugin `docker compose`.
+COMPOSE ?= docker compose
 
 RESET := \033[0m
 BOLD  := \033[1m
 DIM   := \033[2m
 GREEN := \033[0;32m
+RED   := \033[0;31m
+
+# Badges de servicio
+B_DB    := \033[1;37;48;5;25m  db   \033[0m
+B_API   := \033[1;37;48;5;208m api  \033[0m
+B_FRONT := \033[1;30;48;5;35m front \033[0m
+
+# URLs de desarrollo (puertos publicados en docker-compose.override.yml)
+URL_FRONT := http://localhost:4300
+URL_API   := http://localhost:4301
+URL_DB    := postgres://postgres:postgres@localhost:4302/sandbox
 
 VERSION     ?= $(shell sed -n 's/^version = "\(.*\)"/\1/p' $(BACKEND_DIR)/Cargo.toml | head -n1)
 VERSION_TAG ?= v$(VERSION)
@@ -84,13 +97,12 @@ WINDOWS_TARGETS ?= \
 # ---------------------------------------------------------------------------
 
 .PHONY: help version \
-        install dev start stop status logs \
-        dev-backend watch-backend dev-frontend \
-        install-frontend build-frontend build-backend build run release \
+        start up dev down stop logs ps status images check fmt clean \
+        install-frontend build-frontend build-backend build run release set-version \
         package package-one \
         package-all package-all-linux package-all-macos package-all-windows \
         _package-linux-binaries _package-macos-binaries _package-windows-binaries \
-        checksums rust-targets clean dist-clean
+        checksums rust-targets clean-target dist-clean
 
 # ---------------------------------------------------------------------------
 # Help
@@ -99,21 +111,25 @@ WINDOWS_TARGETS ?= \
 help:
 	@echo "Postgres Hub — available targets"
 	@echo ""
-	@echo "  Development"
-	@echo "    make install                  Install all dependencies (skips if up to date)"
-	@echo "    make dev / make start         Install + start backend & frontend"
-	@echo "    make stop                     Stop all running dev services"
-	@echo "    make status                   Show which services are running"
-	@echo "    make logs                     Tail live output (interactive selection)"
-	@echo "    make dev-backend              Run backend only (foreground)"
-	@echo "    make watch-backend            Run backend with cargo-watch (auto-reload)"
-	@echo "    make dev-frontend             Run frontend only (foreground)"
+	@echo "  Desarrollo (Docker Compose)"
+	@echo "    make start / make up / make dev   Construye y levanta la pila (API, Vite, PostgreSQL de pruebas)"
+	@echo "    make down                     Para y elimina los contenedores (conserva volumenes)"
+	@echo "    make stop                     Detiene los contenedores sin eliminarlos"
+	@echo "    make logs [S=servicio]        Sigue los logs (todos o uno: app, frontend, sandbox)"
+	@echo "    make ps / make status         Estado de los servicios"
+	@echo "    make images                   Construye las imagenes Docker"
+	@echo "    make check                    cargo check + clippy y eslint, dentro de los contenedores"
+	@echo "    make fmt                      cargo fmt dentro del contenedor"
+	@echo "    make clean                    Para todo y elimina volumenes (datos de dev incluidos)"
 	@echo ""
 	@echo "  Building"
 	@echo "    make build                    Build frontend + backend for the host"
 	@echo "    make build-frontend           Build frontend only"
 	@echo "    make build-backend            Build backend only"
 	@echo "    make run                      Run the built backend binary"
+	@echo ""
+	@echo "  Release"
+	@echo "    make release                  Bump + merge + tag siguiendo dev → beta → main"
 	@echo ""
 	@echo "  Packaging"
 	@echo "    make package                  Build and package for the host (or CARGO_TARGET)"
@@ -128,11 +144,11 @@ help:
 	@echo "    make rust-targets             List all targets used by package-all-*"
 	@echo "    make install-frontend         Install frontend dependencies"
 	@echo "    make checksums                Generate SHA256 checksums for dist artifacts"
-	@echo "    make clean                    Remove backend build artifacts"
+	@echo "    make clean-target             Remove host backend build artifacts (cargo clean)"
 	@echo "    make dist-clean               Remove the dist directory"
 	@echo ""
 	@echo "  Variables"
-	@echo "    PORT=<port>                   Backend port at runtime (default: 8080)"
+	@echo "    PORT=<port>                   Port for make run (default: 8080)"
 	@echo "    VERSION=<x.y.z>              Override the version from Cargo.toml"
 	@echo "    DIST_DIR=<dir>               Output directory for artifacts (default: dist)"
 	@echo "    CARGO_TARGET=<triple>        Rust target triple (e.g. aarch64-apple-darwin)"
@@ -141,17 +157,6 @@ help:
 	@echo "    WINDOWS_TARGETS=\"...\"       Space-separated triples for package-all-windows"
 	@echo "    ENABLE_LATEST_ASSET=1        Also write an unversioned copy of each artifact"
 	@echo "    ARTIFACT_BASENAME=<name>     Artifact filename prefix (default: postgre-hub)"
-
-# ---------------------------------------------------------------------------
-# Dev directory
-# ---------------------------------------------------------------------------
-
-$(LOGS_DIR):
-	@mkdir -p $(LOGS_DIR)
-
-# ---------------------------------------------------------------------------
-# Development
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Version
@@ -202,110 +207,57 @@ set-version:
 	printf "    frontend/package.json   → \"version\": \"$$new\"\n"; \
 	printf "\n  $(DIM)review with$(RESET)  git diff  $(DIM)then commit & tag$(RESET)  git tag v$$new\n\n"
 
-install: $(LOGS_DIR)
-	@echo ""
-	@printf "  $(BOLD)Instalando dependencias$(RESET)\n"
-	@echo ""
-	@if [ ! -d $(FRONTEND_DIR)/node_modules ] || [ $(FRONTEND_DIR)/pnpm-lock.yaml -nt $(FRONTEND_DIR)/node_modules ]; then \
-		printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)instalando dependencias...$(RESET)\n\n"; \
-		cd $(FRONTEND_DIR) && pnpm install --frozen-lockfile --silent; \
-		echo ""; \
-	else \
-		printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)ok$(RESET)\n"; \
-	fi
-	@if ! command -v cargo > /dev/null 2>&1; then \
-		printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)cargo no encontrado — instala Rust desde https://rustup.rs$(RESET)\n"; \
-	else \
-		printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)ok (cargo gestiona dependencias al compilar)$(RESET)\n"; \
-	fi
-	@echo ""
+# ---------------------------------------------------------------------------
+# Desarrollo (Docker Compose)
+#   docker-compose.yml            produccion: el binario con la SPA embebida
+#   docker-compose.override.yml   desarrollo: API --dev con cargo watch, Vite y
+#                                 un PostgreSQL de pruebas (`sandbox`)
+# ---------------------------------------------------------------------------
 
-dev start: $(LOGS_DIR) install
-	@echo ""
-	@printf "  \033[1;37;48;5;208m back  \033[0m  $(DIM)http://localhost:$(PORT)$(RESET)\n"
-	@( cargo run --manifest-path $(BACKEND_DIR)/Cargo.toml -- --dev --port $(PORT) \
-		> $(LOGS_DIR)/backend.log 2>&1 ) & echo $$! > $(LOGS_DIR)/backend.pid
-	@printf "  \033[1;30;48;5;35m front \033[0m  $(DIM)http://localhost:5173$(RESET)\n"
-	@( cd $(FRONTEND_DIR) && pnpm dev > $(LOGS_DIR)/frontend.log 2>&1 ) & echo $$! > $(LOGS_DIR)/frontend.pid
-	@echo ""
-	@printf "  $(DIM)make logs · make stop$(RESET)\n"
-	@echo ""
+## Construye las imagenes y levanta toda la pila en segundo plano.
+start up dev:
+	@printf "\n  $(BOLD)Levantando postgre-hub$(RESET)\n\n"
+	$(COMPOSE) up -d --build
+	@printf "\n  $(B_FRONT)  $(GREEN)$(URL_FRONT)$(RESET)\n"
+	@printf "  $(B_API)  $(GREEN)$(URL_API)$(RESET)  $(DIM)la primera compilacion de Rust tarda: make logs S=app$(RESET)\n"
+	@printf "  $(B_DB)  $(GREEN)$(URL_DB)$(RESET)  $(DIM)desde la app: host sandbox, puerto 5432$(RESET)\n"
+	@printf "\n  $(DIM)make logs - make down$(RESET)\n\n"
 
+## Para y elimina los contenedores (conserva los volumenes de datos y caches).
+down:
+	$(COMPOSE) down
+
+## Detiene los contenedores sin eliminarlos.
 stop:
-	@echo ""
-	@printf "  $(BOLD)Parando servicios$(RESET)\n"
-	@echo ""
-	@_stop() { \
-		badge=$$1; name=$$2; pid_file=$(LOGS_DIR)/$$2.pid; \
-		if [ -f "$$pid_file" ]; then \
-			pid=$$(cat "$$pid_file"); \
-			if kill -0 "$$pid" 2>/dev/null; then \
-				kill "$$pid" 2>/dev/null; \
-				printf "  $$badge  $(GREEN)parado$(RESET)\n"; \
-			else \
-				printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-			fi; \
-			rm -f "$$pid_file"; \
-		else \
-			printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-		fi \
-	}; \
-	_stop "\033[1;37;48;5;208m back  \033[0m" backend; \
-	_stop "\033[1;30;48;5;35m front \033[0m" frontend
-	@echo ""
+	$(COMPOSE) stop
 
-status:
-	@echo ""
-	@printf "  $(BOLD)Estado de servicios$(RESET)\n"
-	@echo ""
-	@_status() { \
-		badge=$$1; port=$$2; \
-		pid=$$(lsof -ti tcp:$$port 2>/dev/null | head -1); \
-		if [ -n "$$pid" ]; then \
-			printf "  $$badge  $(GREEN)activo$(RESET)   $(DIM)PID $$pid  :$$port$(RESET)\n"; \
-		else \
-			printf "  $$badge  $(DIM)inactivo$(RESET)\n"; \
-		fi \
-	}; \
-	_status "\033[1;37;48;5;208m back  \033[0m" $(PORT); \
-	_status "\033[1;30;48;5;35m front \033[0m" 5173
-	@echo ""
-
+## Sigue la salida de todos los servicios, o de uno con S=<servicio>.
 logs:
-	@if [ ! -f $(LOGS_DIR)/backend.log ] && [ ! -f $(LOGS_DIR)/frontend.log ]; then \
-		echo "  No hay logs disponibles. Ejecuta 'make dev' primero."; exit 1; \
-	fi
-	@echo ""
-	@printf "  $(BOLD)Selecciona servicio$(RESET)  $(DIM)Ctrl+C para salir$(RESET)\n"
-	@echo ""
-	@printf "  \033[1;37;48;5;208m 1  back  \033[0m\n"
-	@printf "  \033[1;30;48;5;35m 2  front \033[0m\n"
-	@printf "  $(DIM) ↵  todos  todos los servicios activos$(RESET)\n"
-	@echo ""
-	@printf "  > "; read choice; echo ""; \
-	_tail() { \
-		if [ ! -f "$$1" ]; then \
-			printf "  $$2  $(DIM)sin log ($$1)$(RESET)\n"; \
-			return; \
-		fi; \
-		tail -n 20 -f "$$1" 2>/dev/null | awk -v b="$$2" '{"date +%H:%M:%S" | getline t; close("date +%H:%M:%S"); print "  " b "  \033[2m[" t "]\033[0m  " $$0; fflush()}'; \
-	}; \
-	trap 'kill 0' INT; \
-	case "$$choice" in \
-		1) _tail $(LOGS_DIR)/backend.log  "\033[1;37;48;5;208m back  \033[0m" & wait ;; \
-		2) _tail $(LOGS_DIR)/frontend.log "\033[1;30;48;5;35m front \033[0m" & wait ;; \
-		*) _tail $(LOGS_DIR)/backend.log  "\033[1;37;48;5;208m back  \033[0m" & \
-		   _tail $(LOGS_DIR)/frontend.log "\033[1;30;48;5;35m front \033[0m" & wait ;; \
-	esac
+	$(COMPOSE) logs -f $(S)
 
-dev-backend:
-	cargo run --manifest-path $(BACKEND_DIR)/Cargo.toml -- --dev --port $(PORT)
+## Estado de los servicios.
+ps status:
+	$(COMPOSE) ps
 
-watch-backend:
-	cargo watch --manifest-path $(BACKEND_DIR)/Cargo.toml -x "run -- --dev --port $(PORT)"
+## Construye (o reconstruye) las imagenes Docker.
+images:
+	$(COMPOSE) build
 
-dev-frontend:
-	cd $(FRONTEND_DIR) && pnpm dev
+## Compila el backend (cargo check + clippy) y pasa eslint al frontend.
+## Ojo: no ejecuta tests.
+check:
+	$(COMPOSE) run --rm --no-deps app cargo check
+	$(COMPOSE) run --rm --no-deps app cargo clippy
+	$(COMPOSE) run --rm --no-deps frontend pnpm check
+
+## Formatea el backend (rustfmt) y el frontend (Prettier).
+fmt:
+	$(COMPOSE) run --rm --no-deps app cargo fmt
+	$(COMPOSE) run --rm --no-deps frontend pnpm fmt
+
+## Para todo y elimina los volumenes: datos de la app en dev, sandbox y caches.
+clean:
+	$(COMPOSE) down -v
 
 # ---------------------------------------------------------------------------
 # Build
@@ -323,10 +275,221 @@ build-backend:
 
 build: build-frontend build-backend
 
-release: build
-
 run:
 	./$(BACKEND_BIN) --port $(PORT)
+
+# ---------------------------------------------------------------------------
+# Release
+# ---------------------------------------------------------------------------
+
+# Archivos que llevan la version; el bump los actualiza a la vez.
+VERSION_FILES := $(BACKEND_DIR)/Cargo.toml $(FRONTEND_DIR)/package.json
+
+## Publica una release siguiendo la cadena fija dev → beta → main: la rama de
+## destino la determina la rama actual, sin preguntar.
+##
+##   · desde dev  → beta   Propone la siguiente version (patch/minor/major),
+##                         la propaga con set-version, fusiona dev en beta,
+##                         crea el tag vX.Y.Z y hace push.
+##   · desde beta → main   Modo promocion: conserva la version (sin bump),
+##                         fusiona y hace push.
+##   · otra rama           Pregunta la rama de destino (lista las locales o
+##                         acepta una de origin) y hace bump + merge + tag.
+##
+## En las promociones el tag vX.Y.Z solo se crea si aun no existia. Si el
+## merge choca solo en archivos de version se resuelve con la de la rama de
+## origen; cualquier otro conflicto aborta el merge y deja todo como estaba.
+release:
+	@set -e; \
+	if [ -n "$$(git status --porcelain -uno)" ]; then \
+		printf "\n  $(RED)✗ Hay cambios sin commitear. Haz commit o stash antes de la release.$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	V="$(VERSION)"; \
+	ORIG=$$(git rev-parse --abbrev-ref HEAD); \
+	MODE=bump; \
+	case "$$ORIG" in \
+		dev)  TARGET=beta ;; \
+		beta) TARGET=main; MODE=promo ;; \
+		*)    TARGET="" ;; \
+	esac; \
+	if [ -z "$$TARGET" ]; then \
+		BRANCHES=$$(git branch --format='%(refname:short)'); \
+		printf "\n  $(BOLD)Release$(RESET)  $(DIM)rama '$$ORIG' fuera del flujo dev → beta → main$(RESET)\n\n"; \
+		printf "  $(BOLD)Rama de destino$(RESET)\n\n"; \
+		i=0; \
+		for b in $$BRANCHES; do \
+			i=$$((i+1)); \
+			if [ "$$b" = "main" ]; then \
+				printf "    $(BOLD)$$i$(RESET)  $$b  $(DIM)enter = main$(RESET)\n"; \
+			else \
+				printf "    $(BOLD)$$i$(RESET)  $$b\n"; \
+			fi; \
+		done; \
+		printf "    $(DIM)o escribe el nombre de una rama de origin$(RESET)\n\n"; \
+		printf "  Pulsa el numero de la rama $(DIM)(enter = main)$(RESET) > "; read CH; echo ""; \
+		if [ -z "$$CH" ]; then \
+			TARGET=main; \
+		elif [[ "$$CH" =~ ^[0-9]+$$ ]]; then \
+			TARGET=$$(echo "$$BRANCHES" | sed -n "$${CH}p"); \
+			if [ -z "$$TARGET" ]; then \
+				printf "  $(RED)✗ Opcion invalida: $$CH$(RESET)\n\n"; exit 1; \
+			fi; \
+		else \
+			TARGET="$$CH"; \
+		fi; \
+	fi; \
+	if ! git rev-parse -q --verify "refs/heads/$$TARGET" >/dev/null; then \
+		if git ls-remote --exit-code --heads origin "$$TARGET" >/dev/null 2>&1; then \
+			printf "  $(DIM)La rama $$TARGET no existe en local pero si en origin — creando rama local...$(RESET)\n"; \
+			git fetch -q origin "$$TARGET:$$TARGET"; \
+		else \
+			printf "  $(RED)✗ La rama '$$TARGET' no existe ni en local ni en origin$(RESET)\n\n"; \
+			exit 1; \
+		fi; \
+	fi; \
+	case "$$TARGET" in \
+		main) CI_MSG="sin CI en el repo: los binarios se publican a mano (make package-all checksums)" ;; \
+		*)    CI_MSG="sin CI en el repo para '$$TARGET'" ;; \
+	esac; \
+	if [ "$$MODE" = "promo" ]; then \
+		printf "\n  $(BOLD)Release · promocion$(RESET)  $(DIM)$$ORIG → $$TARGET · version $$V$(RESET)\n\n"; \
+		if git rev-parse -q --verify "refs/tags/v$$V" >/dev/null; then \
+			TAG_NEW=0; \
+		else \
+			TAG_NEW=1; \
+		fi; \
+		printf "  $(BOLD)Resumen$(RESET)\n\n"; \
+		printf "    Version  $(BOLD)$$V$(RESET)  $(DIM)se conserva, sin bump$(RESET)\n"; \
+		printf "    Merge    $$ORIG → $$TARGET\n"; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			printf "    Tag      v$$V  $(DIM)no existia, se creara$(RESET)\n"; \
+			printf "    Push     origin $$TARGET · origin v$$V\n"; \
+		else \
+			printf "    Tag      v$$V  $(DIM)ya existe$(RESET)\n"; \
+			printf "    Push     origin $$TARGET\n"; \
+		fi; \
+		printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+		printf "\n  ¿Continuar? [y/N]: "; read ANS; echo ""; \
+		if [ "$$ANS" != "y" ]; then \
+			printf "  $(DIM)Cancelado — no se ha tocado nada.$(RESET)\n\n"; exit 0; \
+		fi; \
+		printf "  $(DIM)→ Fusionando $$ORIG en $$TARGET$(RESET)\n"; \
+		git checkout -q "$$TARGET"; \
+		git pull -q origin "$$TARGET"; \
+		if ! git merge -q --no-ff -X theirs "$$ORIG" -m "release: v$$V"; then \
+			CONFLICTS=$$(git diff --name-only --diff-filter=U); \
+			if [ -n "$$CONFLICTS" ] && [ -z "$$(echo "$$CONFLICTS" | grep -vxF $(VERSION_FILES:%=-e %))" ]; then \
+				printf "  $(DIM)→ Conflicto solo en archivos de version — se resuelve con $$V$(RESET)\n"; \
+				git checkout -q --theirs -- $$CONFLICTS; \
+				git add $$CONFLICTS; \
+				git commit -q --no-edit; \
+			else \
+				printf "\n  $(RED)✗ Conflictos de merge en:$(RESET)\n"; \
+				echo "$$CONFLICTS" | sed 's/^/      /'; \
+				git merge --abort; \
+				git checkout -q "$$ORIG"; \
+				printf "\n  $(DIM)Merge abortado — no se ha publicado nada. De vuelta en $$ORIG.$(RESET)\n\n"; \
+				exit 1; \
+			fi; \
+		fi; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			printf "  $(DIM)→ Creando tag v$$V$(RESET)\n"; \
+			git tag -a "v$$V" -m "Release v$$V" "$$ORIG"; \
+		fi; \
+		printf "  $(DIM)→ Publicando $$TARGET$(RESET)\n"; \
+		git push -q origin "$$TARGET"; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			git push -q origin "v$$V"; \
+		fi; \
+		git checkout -q "$$ORIG"; \
+		echo ""; \
+		printf "  $(GREEN)✓ v$$V promocionada a $$TARGET$(RESET)\n"; \
+		printf "\n  De vuelta en $(BOLD)$$ORIG$(RESET)\n\n"; \
+		exit 0; \
+	fi; \
+	IFS=. read MA MI PA <<< "$${V:-0.0.0}"; \
+	P_PATCH="$$MA.$$MI.$$((PA+1))"; \
+	P_MINOR="$$MA.$$((MI+1)).0"; \
+	P_MAJOR="$$((MA+1)).0.0"; \
+	printf "\n  $(BOLD)Release$(RESET)  $(DIM)$$ORIG → $$TARGET · version actual $$V$(RESET)\n\n"; \
+	printf "  $(BOLD)Nueva version$(RESET)\n\n"; \
+	printf "    $(BOLD)1$(RESET)  $$P_PATCH  $(DIM)patch$(RESET)\n"; \
+	printf "    $(BOLD)2$(RESET)  $$P_MINOR  $(DIM)minor$(RESET)\n"; \
+	printf "    $(BOLD)3$(RESET)  $$P_MAJOR  $(DIM)major$(RESET)\n"; \
+	printf "    $(DIM)o escribe la version a mano (X.Y.Z)$(RESET)\n\n"; \
+	printf "  > "; read CH; echo ""; \
+	case "$$CH" in \
+		1) NEW_V=$$P_PATCH ;; \
+		2) NEW_V=$$P_MINOR ;; \
+		3) NEW_V=$$P_MAJOR ;; \
+		*) NEW_V=$$CH ;; \
+	esac; \
+	if ! [[ "$$NEW_V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$$ ]]; then \
+		printf "  $(RED)✗ Version invalida: '$$NEW_V'$(RESET)  $(DIM)formato esperado X.Y.Z, ej: 0.10.0$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	if [ "$$NEW_V" = "$$V" ]; then \
+		printf "  $(RED)✗ La nueva version coincide con la actual ($$V)$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	if git rev-parse -q --verify "refs/tags/v$$NEW_V" >/dev/null; then \
+		printf "  $(RED)✗ El tag v$$NEW_V ya existe$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	printf "  $(BOLD)Resumen$(RESET)\n\n"; \
+	printf "    Version  $(DIM)$$V →$(RESET) $(BOLD)$$NEW_V$(RESET)\n"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		printf "    Merge    $$ORIG → $$TARGET\n"; \
+		printf "    Tag      v$$NEW_V\n"; \
+		printf "    Push     origin $$ORIG · origin $$TARGET · origin v$$NEW_V\n"; \
+	else \
+		printf "    Merge    $(DIM)— (ya estas en $$TARGET)$(RESET)\n"; \
+		printf "    Tag      v$$NEW_V\n"; \
+		printf "    Push     origin $$TARGET · origin v$$NEW_V\n"; \
+	fi; \
+	printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+	printf "\n  ¿Continuar? [y/N]: "; read ANS; echo ""; \
+	if [ "$$ANS" != "y" ]; then \
+		printf "  $(DIM)Cancelado — no se ha tocado nada.$(RESET)\n\n"; exit 0; \
+	fi; \
+	printf "  $(DIM)→ Version $$V → $$NEW_V · commit y push en $$ORIG$(RESET)\n"; \
+	$(MAKE) --no-print-directory set-version NEW=$$NEW_V >/dev/null; \
+	git add $(VERSION_FILES); \
+	git commit -q -m "chore: bump version to $$NEW_V"; \
+	git push -q origin "$$ORIG"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		printf "  $(DIM)→ Fusionando $$ORIG en $$TARGET$(RESET)\n"; \
+		git checkout -q "$$TARGET"; \
+		git pull -q origin "$$TARGET"; \
+		if ! git merge -q --no-ff -X theirs "$$ORIG" -m "release: v$$NEW_V"; then \
+			CONFLICTS=$$(git diff --name-only --diff-filter=U); \
+			if [ -n "$$CONFLICTS" ] && [ -z "$$(echo "$$CONFLICTS" | grep -vxF $(VERSION_FILES:%=-e %))" ]; then \
+				printf "  $(DIM)→ Conflicto solo en archivos de version — se resuelve con $$NEW_V$(RESET)\n"; \
+				git checkout -q --theirs -- $$CONFLICTS; \
+				git add $$CONFLICTS; \
+				git commit -q --no-edit; \
+			else \
+				printf "\n  $(RED)✗ Conflictos de merge en:$(RESET)\n"; \
+				echo "$$CONFLICTS" | sed 's/^/      /'; \
+				git merge --abort; \
+				git checkout -q "$$ORIG"; \
+				printf "\n  $(DIM)Merge abortado — el bump de version ya esta commiteado en $$ORIG, pero no se ha publicado la release. De vuelta en $$ORIG.$(RESET)\n\n"; \
+				exit 1; \
+			fi; \
+		fi; \
+	fi; \
+	printf "  $(DIM)→ Creando tag v$$NEW_V$(RESET)\n"; \
+	git tag -a "v$$NEW_V" -m "Release v$$NEW_V"; \
+	printf "  $(DIM)→ Publicando $$TARGET y el tag$(RESET)\n"; \
+	git push -q origin "$$TARGET"; \
+	git push -q origin "v$$NEW_V"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		git checkout -q "$$ORIG"; \
+	fi; \
+	echo ""; \
+	printf "  $(GREEN)✓ Release v$$NEW_V publicada en $$TARGET$(RESET)\n"; \
+	printf "\n  De vuelta en $(BOLD)$$ORIG$(RESET)\n\n"
 
 # ---------------------------------------------------------------------------
 # Packaging
@@ -426,7 +589,7 @@ rust-targets:
 	@for target in $(MACOS_TARGETS); do echo $$target; done
 	@for target in $(WINDOWS_TARGETS); do echo $$target; done
 
-clean:
+clean-target:
 	cargo clean --manifest-path $(BACKEND_DIR)/Cargo.toml
 
 dist-clean:
