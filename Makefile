@@ -244,11 +244,12 @@ images:
 check:
 	$(COMPOSE) run --rm --no-deps app cargo check
 	$(COMPOSE) run --rm --no-deps app cargo clippy
-	$(COMPOSE) run --rm --no-deps frontend pnpm lint
+	$(COMPOSE) run --rm --no-deps frontend pnpm check
 
-## Formatea el backend.
+## Formatea el backend (rustfmt) y el frontend (Prettier).
 fmt:
 	$(COMPOSE) run --rm --no-deps app cargo fmt
+	$(COMPOSE) run --rm --no-deps frontend pnpm fmt
 
 ## Para todo y elimina los volumenes: datos de la app en dev, sandbox y caches.
 clean:

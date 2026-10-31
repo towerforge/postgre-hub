@@ -1,88 +1,131 @@
 .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 0 14px;
-    height: 28px;
-    font-family: var(--font-family);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1;
-    cursor: pointer;
-    border: 1px solid transparent;
-    border-radius: var(--radius-1);
-    corner-shape: squircle;
-    transition: background 0.1s, border-color 0.1s, color 0.1s;
-    white-space: nowrap;
-    text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 28px;
+  font-family: var(--font-family);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--radius-1);
+  corner-shape: squircle;
+  transition:
+    background 0.1s,
+    border-color 0.1s,
+    color 0.1s;
+  white-space: nowrap;
+  text-decoration: none;
 }
 
 .btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 /* 1 — Primario (azul JetBrains) */
 .primary {
-    background: var(--om-primary);
-    border-color: var(--om-primary);
-    color: var(--om-on-primary);
+  background: var(--om-primary);
+  border-color: var(--om-primary);
+  color: var(--om-on-primary);
 }
-.primary:hover:not(:disabled)  { background: var(--om-primary-hover); border-color: var(--om-primary-hover); }
-.primary:active:not(:disabled) { filter: brightness(0.92); }
+.primary:hover:not(:disabled) {
+  background: var(--om-primary-hover);
+  border-color: var(--om-primary-hover);
+}
+.primary:active:not(:disabled) {
+  filter: brightness(0.92);
+}
 
 /* 2 — Secundario */
 .secondary {
-    background: transparent;
-    border-color: var(--om-border-focus);
-    color: var(--om-fg-bright);
+  background: transparent;
+  border-color: var(--om-border-focus);
+  color: var(--om-fg-bright);
 }
-.secondary:hover:not(:disabled)  { background: var(--om-bg-3); }
-.secondary:active:not(:disabled) { background: var(--om-bg-4); }
+.secondary:hover:not(:disabled) {
+  background: var(--om-bg-3);
+}
+.secondary:active:not(:disabled) {
+  background: var(--om-bg-4);
+}
 
 /* 3 — Contorno */
 .outline {
-    background: transparent;
-    border-color: var(--om-border-focus);
-    color: var(--om-fg);
+  background: transparent;
+  border-color: var(--om-border-focus);
+  color: var(--om-fg);
 }
-.outline:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
-.outline:active:not(:disabled) { background: var(--om-bg-4); }
+.outline:hover:not(:disabled) {
+  background: var(--om-bg-3);
+  color: var(--om-fg-bright);
+}
+.outline:active:not(:disabled) {
+  background: var(--om-bg-4);
+}
 
 /* 4 — Sutil (ghost) */
 .subtle {
-    background: transparent;
-    border-color: transparent;
-    color: var(--om-fg-dim);
+  background: transparent;
+  border-color: transparent;
+  color: var(--om-fg-dim);
 }
-.subtle:hover:not(:disabled)  { background: var(--om-bg-3); color: var(--om-fg-bright); }
-.subtle:active:not(:disabled) { background: var(--om-bg-4); }
+.subtle:hover:not(:disabled) {
+  background: var(--om-bg-3);
+  color: var(--om-fg-bright);
+}
+.subtle:active:not(:disabled) {
+  background: var(--om-bg-4);
+}
 
 /* 5 — Peligro */
 .danger {
-    background: transparent;
-    border-color: transparent;
-    color: var(--om-red);
+  background: transparent;
+  border-color: transparent;
+  color: var(--om-red);
 }
-.danger:hover:not(:disabled)  { background: color-mix(in srgb, var(--om-red) 12%, transparent); }
-.danger:active:not(:disabled) { background: color-mix(in srgb, var(--om-red) 20%, transparent); }
+.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--om-red) 12%, transparent);
+}
+.danger:active:not(:disabled) {
+  background: color-mix(in srgb, var(--om-red) 20%, transparent);
+}
 
 /* 6 — Destructivo sólido (confirmar borrado) */
 .destructive {
-    background: var(--om-red);
-    border-color: var(--om-red);
-    color: #fff;
+  background: var(--om-red);
+  border-color: var(--om-red);
+  color: #fff;
 }
-.destructive:hover:not(:disabled)  { filter: brightness(1.08); }
-.destructive:active:not(:disabled) { filter: brightness(0.92); }
+.destructive:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.destructive:active:not(:disabled) {
+  filter: brightness(0.92);
+}
 
 /* Tamaños */
-.sm { height: 24px; padding: 0 10px; font-size: 12px; }
-.lg { height: 32px; padding: 0 18px; font-size: 13.5px; }
-.xl { height: 38px; padding: 0 16px; font-size: 13.5px; border-radius: 12px; }
+.sm {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.lg {
+  height: 32px;
+  padding: 0 18px;
+  font-size: 13.5px;
+}
+.xl {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13.5px;
+  border-radius: 12px;
+}
 
 .btn:focus-visible {
-    outline: 2px solid color-mix(in srgb, var(--om-accent) 70%, transparent);
-    outline-offset: 1px;
+  outline: 2px solid color-mix(in srgb, var(--om-accent) 70%, transparent);
+  outline-offset: 1px;
 }

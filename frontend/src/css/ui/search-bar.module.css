@@ -1,53 +1,72 @@
 .root {
-    display: inline-flex;
-    align-items: center;
-    height: 30px;
-    gap: 8px;
-    padding: 0 10px;
-    background: var(--om-bg);
-    border: 1px solid var(--om-border-focus);
-    border-radius: var(--radius-2);
-    corner-shape: squircle;
-    transition: border-color 0.12s, box-shadow 0.12s;
-    font-family: var(--font-family);
-    font-size: 13px;
-    color: var(--om-fg);
-    min-width: 240px;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--om-bg);
+  border: 1px solid var(--om-border-focus);
+  border-radius: var(--radius-2);
+  corner-shape: squircle;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--om-fg);
+  min-width: 240px;
 }
 
-.root:focus-within { border-color: var(--om-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--om-accent) 30%, transparent); }
+.root:focus-within {
+  border-color: var(--om-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--om-accent) 30%, transparent);
+}
 
-.prompt { color: var(--om-fg-muted); flex-shrink: 0; display: inline-flex; }
-.label  { color: var(--om-fg-dim); flex-shrink: 0; }
+.prompt {
+  color: var(--om-fg-muted);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.label {
+  color: var(--om-fg-dim);
+  flex-shrink: 0;
+}
 
 .input {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    border: 0;
-    outline: 0;
-    padding: 0;
-    font-family: var(--font-family);
-    font-size: 13px;
-    color: var(--om-fg-bright);
-    caret-color: var(--om-accent);
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: 13px;
+  color: var(--om-fg-bright);
+  caret-color: var(--om-accent);
 }
 
-.input::placeholder { color: var(--om-fg-muted); }
+.input::placeholder {
+  color: var(--om-fg-muted);
+}
 
 .clear {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    color: var(--om-fg-muted);
-    padding: 0;
-    flex-shrink: 0;
-    transition: color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--om-fg-muted);
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.1s;
 }
 
-.clear:hover { color: var(--om-fg-bright); }
+.clear:hover {
+  color: var(--om-fg-bright);
+}
 
-.lg { height: 38px; border-radius: 12px; }
+.lg {
+  height: 38px;
+  border-radius: 12px;
+}

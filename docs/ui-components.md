@@ -2,11 +2,13 @@
 
 The frontend builds every screen from a small kit in `frontend/src/components/ui`, imported from one barrel:
 
-```tsx
-import { Button, Input, Modal, ListItem } from '@/components/ui'
+```jsx
+import { Button, Input, Modal, ListItem } from "@/components/ui";
 ```
 
-Every component has a live example at **`/_dev`**, which is only available when running in development. Check there first, before writing markup.
+Outside the kit, always import from that barrel, never from a single file (`@/components/ui/button`). The kit also exports two generic hooks, `useResizable` and `useTheme`.
+
+Every component has a live example at **`/dev`**, which is only available when running in development. Check there first, before writing markup.
 
 ## Rules
 
@@ -23,7 +25,7 @@ Every component has a live example at **`/_dev`**, which is only available when 
 | `--om-border` | panel border | the same surfaces |
 | `--om-accent` | blue | focus, selection, active state |
 
-Panels use `corner-shape: squircle`. Chromium draws it; other browsers fall back to a normal `border-radius`. A squircle looks less rounded than a plain radius of the same size, so compare against `/_dev` rather than eyeballing the number.
+Panels use `corner-shape: squircle`. Chromium draws it; other browsers fall back to a normal `border-radius`. A squircle looks less rounded than a plain radius of the same size, so compare against `/dev` rather than eyeballing the number.
 
 ## Sizing
 
@@ -73,12 +75,12 @@ Panels use `corner-shape: squircle`. Chromium draws it; other browsers fall back
 
 ## Page patterns
 
-- **List page** (Connections, SSH Tunnels, Appearance): `ProjectsShell` with the title and an `xl` primary button, an optional `SearchBar size="lg"`, then `ListItemGroup` > `ListItem`.
+- **List page** (Connections, SSH Tunnels, Appearance): `ConnectionsShell` with the title and an `xl` primary button, an optional `SearchBar size="lg"`, then `ListItemGroup` > `ListItem`.
 - **Form in a modal** (new connection, new tunnel): `Modal` with a `footer` laid out as Delete (`variant={5}`, edit only), spacer, Cancel (2), Save (1). Optional `Tabs` go at the top. Each field is a `FormRow` with a `lg` field. Errors and results are shown in an `Alert`.
 - **Settings form** (Account): `Card variant="panel"` > `CardBody`, `lg` fields with `label`, an `Alert` for feedback, and an `xl` submit button.
 - **Confirm delete**: `Modal size="sm"` with Cancel (2) and `Button variant={6}`.
 
-`ProjectsShell` always renders the floating sidebar menu and the translucent content panel. The blue page glow comes from `layouts/main-layout`. It is shown on every screen except an open connection, which glows in the connection's own colour.
+`ConnectionsShell` (`components/connections-shell.jsx`) always renders the floating sidebar menu and the translucent content panel. The blue page glow comes from `components/main-layout.jsx`. It is shown on every screen except an open connection, which glows in the connection's own colour.
 
 ## Still custom
 
@@ -94,14 +96,14 @@ If you touch one of these and it starts to repeat, turn it into a component.
 
 ## Adding a component
 
-1. Put the component in `components/ui/<name>.tsx` and its styles in `css/ui/<name>.module.css`. File names are kebab-case and identifiers are in English.
+1. Put the component in `components/ui/<name>.jsx` and its styles in `css/ui/<name>.module.css`. File names are kebab-case and identifiers are in English; comments are in Spanish and every file starts with a header comment.
 2. Use `--om-*` tokens only, and `--panel-radius` for panel-like surfaces.
-3. Export it from `components/ui/index.ts`.
-4. Add an example to `pages/dev/index.tsx`.
-5. Type-check with:
+3. Export it from `components/ui/index.js`. Inside the kit, import other kit components by relative file (`./button`), never through the barrel.
+4. Add an example to `pages/dev.jsx` (or one of its `pages/_dev-*.jsx` sections).
+5. Check it with:
 
    ```bash
-   cd frontend && npx tsc --noEmit -p tsconfig.app.json
+   make check   # or, inside frontend/: pnpm check
    ```
 
-   Plain `tsc -p .` checks nothing, because `tsconfig.json` only holds project references. `make check` also runs eslint, which currently fails on older issues that have nothing to do with the kit.
+   The frontend is plain JavaScript (no TypeScript), so `check` runs ESLint only.

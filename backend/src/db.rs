@@ -73,9 +73,40 @@ pub fn open(data_dir: &Path) -> Result<Connection> {
         "ALTER TABLE projects ADD COLUMN ssh_private_key TEXT    NOT NULL DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN ssh_tunnel_id   TEXT    REFERENCES ssh_tunnels(id)",
         "ALTER TABLE projects ADD COLUMN color           TEXT    NOT NULL DEFAULT ''",
+        "ALTER TABLE projects ADD COLUMN read_only       INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN query_timeout   INTEGER NOT NULL DEFAULT 0",
     ] {
         let _ = conn.execute(sql, []);
     }
+
+    // Historial y consultas guardadas, por usuario y conexión. user_id no lleva
+    // FK porque en modo --dev no hay sesión y se usa un id fijo.
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS query_history (
+             id           INTEGER PRIMARY KEY AUTOINCREMENT,
+             user_id      TEXT    NOT NULL,
+             project_id   TEXT    NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+             sql          TEXT    NOT NULL,
+             duration_ms  INTEGER NOT NULL DEFAULT 0,
+             rows         INTEGER,
+             error        TEXT,
+             created_at   INTEGER NOT NULL DEFAULT (unixepoch())
+         );
+         CREATE INDEX IF NOT EXISTS query_history_user_project
+             ON query_history (user_id, project_id, id DESC);
+
+         CREATE TABLE IF NOT EXISTS saved_queries (
+             id           TEXT    PRIMARY KEY,
+             user_id      TEXT    NOT NULL,
+             project_id   TEXT    NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+             name         TEXT    NOT NULL,
+             sql          TEXT    NOT NULL,
+             created_at   INTEGER NOT NULL DEFAULT (unixepoch()),
+             updated_at   INTEGER NOT NULL DEFAULT (unixepoch())
+         );
+         CREATE INDEX IF NOT EXISTS saved_queries_user_project
+             ON saved_queries (user_id, project_id);",
+    )?;
 
     Ok(conn)
 }

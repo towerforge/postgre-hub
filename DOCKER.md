@@ -2,10 +2,11 @@
 
 A self-hosted PostgreSQL admin dashboard — manage connections, run queries, browse schemas and tunnel through SSH from a single binary.
 
-- Multiple PostgreSQL connections with a saved-credentials store
-- Built-in SQL editor (CodeMirror) with EXPLAIN, history and sessions view
-- Schema browser: tables, columns, types, sequences, routines
-- Table data viewer with pagination
+- Multiple PostgreSQL connections with a saved-credentials store, optional read-only mode and query timeout
+- Built-in SQL editor (CodeMirror) with autocompletion, query cancellation, EXPLAIN and sessions view
+- Query history and saved queries per user, stored on the server
+- Results grid with inline editing and CSV / JSON download
+- Schema browser: tables, columns, types, sequences, routines, and an ER diagram
 - Reusable SSH tunnel definitions (password / private-key auth)
 - Export and import SQL dumps per connection
 - Multi-user access (username + password, sessions)
@@ -57,7 +58,7 @@ environment:
   - SESSION_DURATION_HOURS=12
 ```
 
-All app data — users, saved connections and SSH tunnels — is stored in a single SQLite database (`$DATA_DIR/postgre-hub.db`). Mount a named volume at `DATA_DIR` so it survives container updates.
+All app data — users, saved connections, SSH tunnels, query history and saved queries — is stored in a single SQLite database (`$DATA_DIR/postgre-hub.db`). Mount a named volume at `DATA_DIR` so it survives container updates.
 
 ### Persistence behaviour
 
