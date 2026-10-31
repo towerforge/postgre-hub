@@ -16,6 +16,7 @@ RESET := \033[0m
 BOLD  := \033[1m
 DIM   := \033[2m
 GREEN := \033[0;32m
+RED   := \033[0;31m
 
 # Badges de servicio
 B_DB    := \033[1;37;48;5;25m  db   \033[0m
@@ -97,7 +98,7 @@ WINDOWS_TARGETS ?= \
 
 .PHONY: help version \
         start up dev down stop logs ps status images check fmt clean \
-        install-frontend build-frontend build-backend build run release \
+        install-frontend build-frontend build-backend build run release set-version \
         package package-one \
         package-all package-all-linux package-all-macos package-all-windows \
         _package-linux-binaries _package-macos-binaries _package-windows-binaries \
@@ -126,6 +127,9 @@ help:
 	@echo "    make build-frontend           Build frontend only"
 	@echo "    make build-backend            Build backend only"
 	@echo "    make run                      Run the built backend binary"
+	@echo ""
+	@echo "  Release"
+	@echo "    make release                  Bump + merge + tag siguiendo dev → beta → main"
 	@echo ""
 	@echo "  Packaging"
 	@echo "    make package                  Build and package for the host (or CARGO_TARGET)"
@@ -271,10 +275,221 @@ build-backend:
 
 build: build-frontend build-backend
 
-release: build
-
 run:
 	./$(BACKEND_BIN) --port $(PORT)
+
+# ---------------------------------------------------------------------------
+# Release
+# ---------------------------------------------------------------------------
+
+# Archivos que llevan la version; el bump los actualiza a la vez.
+VERSION_FILES := $(BACKEND_DIR)/Cargo.toml $(FRONTEND_DIR)/package.json
+
+## Publica una release siguiendo la cadena fija dev → beta → main: la rama de
+## destino la determina la rama actual, sin preguntar.
+##
+##   · desde dev  → beta   Propone la siguiente version (patch/minor/major),
+##                         la propaga con set-version, fusiona dev en beta,
+##                         crea el tag vX.Y.Z y hace push.
+##   · desde beta → main   Modo promocion: conserva la version (sin bump),
+##                         fusiona y hace push.
+##   · otra rama           Pregunta la rama de destino (lista las locales o
+##                         acepta una de origin) y hace bump + merge + tag.
+##
+## En las promociones el tag vX.Y.Z solo se crea si aun no existia. Si el
+## merge choca solo en archivos de version se resuelve con la de la rama de
+## origen; cualquier otro conflicto aborta el merge y deja todo como estaba.
+release:
+	@set -e; \
+	if [ -n "$$(git status --porcelain -uno)" ]; then \
+		printf "\n  $(RED)✗ Hay cambios sin commitear. Haz commit o stash antes de la release.$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	V="$(VERSION)"; \
+	ORIG=$$(git rev-parse --abbrev-ref HEAD); \
+	MODE=bump; \
+	case "$$ORIG" in \
+		dev)  TARGET=beta ;; \
+		beta) TARGET=main; MODE=promo ;; \
+		*)    TARGET="" ;; \
+	esac; \
+	if [ -z "$$TARGET" ]; then \
+		BRANCHES=$$(git branch --format='%(refname:short)'); \
+		printf "\n  $(BOLD)Release$(RESET)  $(DIM)rama '$$ORIG' fuera del flujo dev → beta → main$(RESET)\n\n"; \
+		printf "  $(BOLD)Rama de destino$(RESET)\n\n"; \
+		i=0; \
+		for b in $$BRANCHES; do \
+			i=$$((i+1)); \
+			if [ "$$b" = "main" ]; then \
+				printf "    $(BOLD)$$i$(RESET)  $$b  $(DIM)enter = main$(RESET)\n"; \
+			else \
+				printf "    $(BOLD)$$i$(RESET)  $$b\n"; \
+			fi; \
+		done; \
+		printf "    $(DIM)o escribe el nombre de una rama de origin$(RESET)\n\n"; \
+		printf "  Pulsa el numero de la rama $(DIM)(enter = main)$(RESET) > "; read CH; echo ""; \
+		if [ -z "$$CH" ]; then \
+			TARGET=main; \
+		elif [[ "$$CH" =~ ^[0-9]+$$ ]]; then \
+			TARGET=$$(echo "$$BRANCHES" | sed -n "$${CH}p"); \
+			if [ -z "$$TARGET" ]; then \
+				printf "  $(RED)✗ Opcion invalida: $$CH$(RESET)\n\n"; exit 1; \
+			fi; \
+		else \
+			TARGET="$$CH"; \
+		fi; \
+	fi; \
+	if ! git rev-parse -q --verify "refs/heads/$$TARGET" >/dev/null; then \
+		if git ls-remote --exit-code --heads origin "$$TARGET" >/dev/null 2>&1; then \
+			printf "  $(DIM)La rama $$TARGET no existe en local pero si en origin — creando rama local...$(RESET)\n"; \
+			git fetch -q origin "$$TARGET:$$TARGET"; \
+		else \
+			printf "  $(RED)✗ La rama '$$TARGET' no existe ni en local ni en origin$(RESET)\n\n"; \
+			exit 1; \
+		fi; \
+	fi; \
+	case "$$TARGET" in \
+		main) CI_MSG="sin CI en el repo: los binarios se publican a mano (make package-all checksums)" ;; \
+		*)    CI_MSG="sin CI en el repo para '$$TARGET'" ;; \
+	esac; \
+	if [ "$$MODE" = "promo" ]; then \
+		printf "\n  $(BOLD)Release · promocion$(RESET)  $(DIM)$$ORIG → $$TARGET · version $$V$(RESET)\n\n"; \
+		if git rev-parse -q --verify "refs/tags/v$$V" >/dev/null; then \
+			TAG_NEW=0; \
+		else \
+			TAG_NEW=1; \
+		fi; \
+		printf "  $(BOLD)Resumen$(RESET)\n\n"; \
+		printf "    Version  $(BOLD)$$V$(RESET)  $(DIM)se conserva, sin bump$(RESET)\n"; \
+		printf "    Merge    $$ORIG → $$TARGET\n"; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			printf "    Tag      v$$V  $(DIM)no existia, se creara$(RESET)\n"; \
+			printf "    Push     origin $$TARGET · origin v$$V\n"; \
+		else \
+			printf "    Tag      v$$V  $(DIM)ya existe$(RESET)\n"; \
+			printf "    Push     origin $$TARGET\n"; \
+		fi; \
+		printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+		printf "\n  ¿Continuar? [y/N]: "; read ANS; echo ""; \
+		if [ "$$ANS" != "y" ]; then \
+			printf "  $(DIM)Cancelado — no se ha tocado nada.$(RESET)\n\n"; exit 0; \
+		fi; \
+		printf "  $(DIM)→ Fusionando $$ORIG en $$TARGET$(RESET)\n"; \
+		git checkout -q "$$TARGET"; \
+		git pull -q origin "$$TARGET"; \
+		if ! git merge -q --no-ff -X theirs "$$ORIG" -m "release: v$$V"; then \
+			CONFLICTS=$$(git diff --name-only --diff-filter=U); \
+			if [ -n "$$CONFLICTS" ] && [ -z "$$(echo "$$CONFLICTS" | grep -vxF $(VERSION_FILES:%=-e %))" ]; then \
+				printf "  $(DIM)→ Conflicto solo en archivos de version — se resuelve con $$V$(RESET)\n"; \
+				git checkout -q --theirs -- $$CONFLICTS; \
+				git add $$CONFLICTS; \
+				git commit -q --no-edit; \
+			else \
+				printf "\n  $(RED)✗ Conflictos de merge en:$(RESET)\n"; \
+				echo "$$CONFLICTS" | sed 's/^/      /'; \
+				git merge --abort; \
+				git checkout -q "$$ORIG"; \
+				printf "\n  $(DIM)Merge abortado — no se ha publicado nada. De vuelta en $$ORIG.$(RESET)\n\n"; \
+				exit 1; \
+			fi; \
+		fi; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			printf "  $(DIM)→ Creando tag v$$V$(RESET)\n"; \
+			git tag -a "v$$V" -m "Release v$$V" "$$ORIG"; \
+		fi; \
+		printf "  $(DIM)→ Publicando $$TARGET$(RESET)\n"; \
+		git push -q origin "$$TARGET"; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			git push -q origin "v$$V"; \
+		fi; \
+		git checkout -q "$$ORIG"; \
+		echo ""; \
+		printf "  $(GREEN)✓ v$$V promocionada a $$TARGET$(RESET)\n"; \
+		printf "\n  De vuelta en $(BOLD)$$ORIG$(RESET)\n\n"; \
+		exit 0; \
+	fi; \
+	IFS=. read MA MI PA <<< "$${V:-0.0.0}"; \
+	P_PATCH="$$MA.$$MI.$$((PA+1))"; \
+	P_MINOR="$$MA.$$((MI+1)).0"; \
+	P_MAJOR="$$((MA+1)).0.0"; \
+	printf "\n  $(BOLD)Release$(RESET)  $(DIM)$$ORIG → $$TARGET · version actual $$V$(RESET)\n\n"; \
+	printf "  $(BOLD)Nueva version$(RESET)\n\n"; \
+	printf "    $(BOLD)1$(RESET)  $$P_PATCH  $(DIM)patch$(RESET)\n"; \
+	printf "    $(BOLD)2$(RESET)  $$P_MINOR  $(DIM)minor$(RESET)\n"; \
+	printf "    $(BOLD)3$(RESET)  $$P_MAJOR  $(DIM)major$(RESET)\n"; \
+	printf "    $(DIM)o escribe la version a mano (X.Y.Z)$(RESET)\n\n"; \
+	printf "  > "; read CH; echo ""; \
+	case "$$CH" in \
+		1) NEW_V=$$P_PATCH ;; \
+		2) NEW_V=$$P_MINOR ;; \
+		3) NEW_V=$$P_MAJOR ;; \
+		*) NEW_V=$$CH ;; \
+	esac; \
+	if ! [[ "$$NEW_V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$$ ]]; then \
+		printf "  $(RED)✗ Version invalida: '$$NEW_V'$(RESET)  $(DIM)formato esperado X.Y.Z, ej: 0.10.0$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	if [ "$$NEW_V" = "$$V" ]; then \
+		printf "  $(RED)✗ La nueva version coincide con la actual ($$V)$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	if git rev-parse -q --verify "refs/tags/v$$NEW_V" >/dev/null; then \
+		printf "  $(RED)✗ El tag v$$NEW_V ya existe$(RESET)\n\n"; \
+		exit 1; \
+	fi; \
+	printf "  $(BOLD)Resumen$(RESET)\n\n"; \
+	printf "    Version  $(DIM)$$V →$(RESET) $(BOLD)$$NEW_V$(RESET)\n"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		printf "    Merge    $$ORIG → $$TARGET\n"; \
+		printf "    Tag      v$$NEW_V\n"; \
+		printf "    Push     origin $$ORIG · origin $$TARGET · origin v$$NEW_V\n"; \
+	else \
+		printf "    Merge    $(DIM)— (ya estas en $$TARGET)$(RESET)\n"; \
+		printf "    Tag      v$$NEW_V\n"; \
+		printf "    Push     origin $$TARGET · origin v$$NEW_V\n"; \
+	fi; \
+	printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+	printf "\n  ¿Continuar? [y/N]: "; read ANS; echo ""; \
+	if [ "$$ANS" != "y" ]; then \
+		printf "  $(DIM)Cancelado — no se ha tocado nada.$(RESET)\n\n"; exit 0; \
+	fi; \
+	printf "  $(DIM)→ Version $$V → $$NEW_V · commit y push en $$ORIG$(RESET)\n"; \
+	$(MAKE) --no-print-directory set-version NEW=$$NEW_V >/dev/null; \
+	git add $(VERSION_FILES); \
+	git commit -q -m "chore: bump version to $$NEW_V"; \
+	git push -q origin "$$ORIG"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		printf "  $(DIM)→ Fusionando $$ORIG en $$TARGET$(RESET)\n"; \
+		git checkout -q "$$TARGET"; \
+		git pull -q origin "$$TARGET"; \
+		if ! git merge -q --no-ff -X theirs "$$ORIG" -m "release: v$$NEW_V"; then \
+			CONFLICTS=$$(git diff --name-only --diff-filter=U); \
+			if [ -n "$$CONFLICTS" ] && [ -z "$$(echo "$$CONFLICTS" | grep -vxF $(VERSION_FILES:%=-e %))" ]; then \
+				printf "  $(DIM)→ Conflicto solo en archivos de version — se resuelve con $$NEW_V$(RESET)\n"; \
+				git checkout -q --theirs -- $$CONFLICTS; \
+				git add $$CONFLICTS; \
+				git commit -q --no-edit; \
+			else \
+				printf "\n  $(RED)✗ Conflictos de merge en:$(RESET)\n"; \
+				echo "$$CONFLICTS" | sed 's/^/      /'; \
+				git merge --abort; \
+				git checkout -q "$$ORIG"; \
+				printf "\n  $(DIM)Merge abortado — el bump de version ya esta commiteado en $$ORIG, pero no se ha publicado la release. De vuelta en $$ORIG.$(RESET)\n\n"; \
+				exit 1; \
+			fi; \
+		fi; \
+	fi; \
+	printf "  $(DIM)→ Creando tag v$$NEW_V$(RESET)\n"; \
+	git tag -a "v$$NEW_V" -m "Release v$$NEW_V"; \
+	printf "  $(DIM)→ Publicando $$TARGET y el tag$(RESET)\n"; \
+	git push -q origin "$$TARGET"; \
+	git push -q origin "v$$NEW_V"; \
+	if [ "$$ORIG" != "$$TARGET" ]; then \
+		git checkout -q "$$ORIG"; \
+	fi; \
+	echo ""; \
+	printf "  $(GREEN)✓ Release v$$NEW_V publicada en $$TARGET$(RESET)\n"; \
+	printf "\n  De vuelta en $(BOLD)$$ORIG$(RESET)\n\n"
 
 # ---------------------------------------------------------------------------
 # Packaging
