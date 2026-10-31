@@ -3,10 +3,15 @@
 // (`setupRequired`), y el inicio de sesión normal. Es un componente y no una
 // página porque `app.jsx` la muestra en lugar de las rutas mientras no hay
 // sesión.
+//
+// Sigue el lenguaje del login de taskflow (columna centrada sin tarjeta, título
+// grande, campos sin etiqueta, entrada en cascada y check + fundido al entrar)
+// con la identidad propia: orbe azul de PostgreSQL, rejilla de puntos y la
+// marca con el icono de base de datos.
 import { useState } from "react";
-import { Database } from "lucide-react";
+import { Check, Database } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { Alert, Button, Card, CardBody, Input } from "@/components/ui";
+import { Button, Input, PasswordInput } from "@/components/ui";
 import css from "@/css/auth.module.css";
 
 // Requisitos de contraseña del alta inicial. Se comprueban en vivo para pintar
@@ -22,18 +27,33 @@ const RULES = [
 
 const isPasswordStrong = (p) => RULES.every((r) => r.test(p));
 
+const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
 /** Formulario de acceso, o de alta del primer administrador si `setupRequired`. */
-export const AuthView = ({ setupRequired, onAuthenticated }) => {
+export const AuthView = ({ setupRequired }) => {
   const { setup, login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Coreografía del éxito: `success` dibuja el check en el botón y `leave`
+  // funde la columna; el contexto espera a que acabe antes de abrir la app.
+  const [success, setSuccess] = useState(false);
+  const [leave, setLeave] = useState(false);
+
+  const clearError = () => error && setError("");
+
+  const beforeEnter = async () => {
+    setSuccess(true);
+    await wait(500);
+    setLeave(true);
+    await wait(400);
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!username.trim() || !password) return;
+    if (loading || success || !username.trim() || !password) return;
     if (setupRequired) {
       if (!isPasswordStrong(password)) {
         setError("Password does not meet the requirements");
@@ -49,115 +69,141 @@ export const AuthView = ({ setupRequired, onAuthenticated }) => {
     setLoading(true);
     try {
       setupRequired
-        ? await setup(username.trim(), password, confirm)
-        : await login(username.trim(), password);
-      onAuthenticated?.();
+        ? await setup(username.trim(), password, confirm, beforeEnter)
+        : await login(username.trim(), password, beforeEnter);
     } catch (err) {
       setError(err?.response?.data?.error ?? err?.message ?? "Authentication failed");
       setPassword("");
       setConfirm("");
-    } finally {
       setLoading(false);
     }
   };
+
+  // El error se pinta bajo el último campo de contraseña del formulario
+  const passwordError = setupRequired ? undefined : error || undefined;
+  const confirmError = setupRequired ? error || undefined : undefined;
 
   return (
     <div className={css.root}>
       <div className={css.grid} />
       <div className={css.orb} />
       <div className={css.orbSmall} />
-      <Card variant="panel" className={css.card}>
-        <CardBody>
-          <form onSubmit={onSubmit} className={css.form}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 10,
-              }}
-            >
-              <span className={css.logo}>
-                <Database size={26} />
-              </span>
-              <div className={css.title}>Postgre Hub</div>
-              <div style={{ color: "var(--om-fg-muted)" }}>
-                {setupRequired ? "Create the first admin account" : "Sign in to continue"}
-              </div>
-            </div>
 
+      <div className={leave ? `${css.column} ${css.exit}` : css.column}>
+        <form onSubmit={onSubmit} noValidate>
+          <div className={`${css.in} ${css.brand}`}>
+            <span className={css.logo}>
+              <Database size={20} />
+            </span>
+            <span className={css.wordmark}>Postgre Hub</span>
+          </div>
+
+          <h1 className={`${css.in} ${css.delay05} ${css.title}`}>
+            {setupRequired ? "Create the first admin account" : "Welcome back."}
+          </h1>
+          {setupRequired && (
+            <p className={`${css.in} ${css.delay08} ${css.intro}`}>
+              It manages users and saved connections. You can add more users later.
+            </p>
+          )}
+
+          <div className={`${css.in} ${css.delay10}`}>
             <Input
               size="lg"
-              label="Username"
+              placeholder="Username"
+              aria-label="Username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearError();
+              }}
               autoComplete="username"
               spellCheck={false}
               autoFocus
-            />
-
-            <Input
-              size="lg"
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={setupRequired ? "new-password" : "current-password"}
               disabled={loading}
             />
+          </div>
 
-            {setupRequired && (
-              <>
-                <Input
+          <div className={`${css.in} ${css.delay15} ${css.spaced}`}>
+            <PasswordInput
+              size="lg"
+              placeholder="Password"
+              aria-label="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearError();
+              }}
+              autoComplete={setupRequired ? "new-password" : "current-password"}
+              disabled={loading}
+              error={passwordError}
+            />
+          </div>
+
+          {setupRequired && (
+            <>
+              <div className={`${css.in} ${css.delay16} ${css.spaced}`}>
+                <PasswordInput
                   size="lg"
-                  label="Confirm password"
-                  type="password"
+                  placeholder="Confirm password"
+                  aria-label="Confirm password"
                   value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  onChange={(e) => {
+                    setConfirm(e.target.value);
+                    clearError();
+                  }}
                   autoComplete="new-password"
                   disabled={loading}
+                  error={confirmError}
                 />
-                <ul
-                  style={{
-                    margin: 0,
-                    padding: 0,
-                    listStyle: "none",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "4px 12px",
-                    fontSize: 12,
-                  }}
-                >
-                  {RULES.map((r) => {
-                    const ok = r.test(password);
-                    return (
-                      <li
-                        key={r.key}
-                        style={{ color: ok ? "var(--om-green)" : "var(--om-fg-muted)" }}
-                      >
-                        {ok ? "✓" : "·"} {r.label}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </>
-            )}
+              </div>
+              <ul className={`${css.in} ${css.delay20} ${css.rules}`}>
+                {RULES.map((r) => {
+                  const ok = r.test(password);
+                  return (
+                    <li key={r.key} className={ok ? css.ruleOk : undefined}>
+                      <span className={css.ruleMark}>{ok ? "✓" : "·"}</span>
+                      {r.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
 
-            {error && <Alert tone="error">{error}</Alert>}
-
-            <Button variant={1} size="xl" type="submit" disabled={loading} style={{ marginTop: 4 }}>
-              {loading
-                ? setupRequired
-                  ? "Creating account…"
-                  : "Signing in…"
-                : setupRequired
-                  ? "Create account"
-                  : "Sign in"}
+          <div className={`${css.in} ${css.delay20} ${css.action}`}>
+            <Button
+              variant={1}
+              size="xl"
+              type="submit"
+              disabled={loading}
+              className={success ? css.buttonSuccess : undefined}
+              style={{ width: "100%" }}
+            >
+              {success ? (
+                <Check size={18} className={css.check} />
+              ) : loading ? (
+                setupRequired ? (
+                  "Creating account…"
+                ) : (
+                  "Signing in…"
+                )
+              ) : setupRequired ? (
+                "Create account"
+              ) : (
+                "Sign in"
+              )}
             </Button>
-          </form>
-        </CardBody>
-      </Card>
+          </div>
+
+          <div className={`${css.in} ${css.delay25} ${css.footer}`}>
+            <span className={css.divider} />
+            {setupRequired
+              ? "This screen only appears on the first run."
+              : "Self-hosted PostgreSQL client"}
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

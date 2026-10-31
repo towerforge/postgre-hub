@@ -1,108 +1,168 @@
-// Catálogo del kit (/dev), piezas pequeñas y de formulario: Badge,
-// IconButton, campos de contraseña y texto largo, Alert, FormRow e InfoBox.
-import { Info, LogOut, X } from "lucide-react";
+// Catálogo del kit (/dev), sección de campos: Input, PasswordInput, Textarea,
+// Select, SearchBar, Switch, Checkbox, ColorPicker y un FormRow que reproduce
+// el modal New connection. Cada control está conectado a su estado para que se
+// pueda probar de verdad.
+import { useState } from "react";
 import {
-  Alert,
-  Badge,
-  Col,
+  Checkbox,
+  ColorPicker,
+  CONNECTION_COLORS,
   FormRow,
-  Grid,
-  IconButton,
-  InfoBox,
   Input,
   PasswordInput,
+  SearchBar,
   Select,
-  Text,
+  Switch,
   Textarea,
-  ToolButton,
 } from "@/components/ui";
-import { OPTIONS } from "./_dev-content";
+import { ENVIRONMENTS } from "@/lib/environments";
+import css from "@/css/dev.module.css";
+import { DevRow, DevSection } from "./_dev-section";
 
-/** Secciones de Badge a InfoBox del catálogo. */
-export const DevForms = () => (
-  <>
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      Badge
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <Badge>3</Badge>
-        <Badge tone="neutral">12</Badge>
-        <ToolButton style={{ color: "var(--om-accent)", fontWeight: 600 }}>
-          Apply <Badge>1</Badge>
-        </ToolButton>
-      </Col>
-    </Grid>
+// Las mismas opciones que el modal de conexión
+const SSL_OPTIONS = [
+  { value: "disable", label: "Disable" },
+  { value: "prefer", label: "Prefer" },
+  { value: "require", label: "Require" },
+];
 
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      IconButton
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <IconButton label="Info">
-          <Info size={15} />
-        </IconButton>
-        <IconButton label="Log out">
-          <LogOut size={15} />
-        </IconButton>
-        <IconButton label="Close">
-          <X size={14} />
-        </IconButton>
-        <IconButton label="Close" size="sm">
-          <X size={12} />
-        </IconButton>
-      </Col>
-    </Grid>
+const ENVIRONMENT_OPTIONS = [{ value: "", label: "None" }, ...ENVIRONMENTS];
 
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      PasswordInput y Textarea
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} md={6}>
-        <PasswordInput size="lg" label="Password" placeholder="••••••••" />
-      </Col>
-      <Col span={12} md={6}>
-        <Textarea label="Private key" mono placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" />
-      </Col>
-    </Grid>
+const DATABASE_OPTIONS = [
+  { value: "postgres", label: "postgres" },
+  { value: "app", label: "app" },
+  { value: "analytics", label: "analytics" },
+  { value: "billing", label: "billing" },
+];
 
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      Alert
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} md={6} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <Alert tone="error">Authentication failed</Alert>
-        <Alert tone="success">Credentials updated successfully.</Alert>
-        <Alert tone="warning">Update available</Alert>
-        <Alert tone="info">Configure SSH tunnels in SSH Tunnels.</Alert>
-      </Col>
-    </Grid>
+/** Sección Inputs del catálogo. */
+export const DevForms = () => {
+  // Las dos SearchBar (md y lg) comparten el texto a propósito.
+  const [search, setSearch] = useState("");
+  const [readOnly, setReadOnly] = useState(true);
+  const [includeData, setIncludeData] = useState(true);
+  const [dropSchemas, setDropSchemas] = useState(false);
+  const [autoColor, setAutoColor] = useState("");
+  const [presetColor, setPresetColor] = useState(CONNECTION_COLORS[2]);
+  const [form, setForm] = useState({
+    name: "Production",
+    host: "db.internal",
+    port: "5432",
+    ssl_mode: "require",
+    environment: "production",
+  });
 
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      FormRow
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} md={6} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FormRow label="Name">
-          <Input size="lg" placeholder="My database" />
-        </FormRow>
-        <FormRow label="Host">
-          <Input size="lg" placeholder="localhost" />
-        </FormRow>
-        <FormRow label="SSL">
-          <Select value="1" options={OPTIONS} onChange={() => {}} />
-        </FormRow>
-      </Col>
-    </Grid>
+  const str = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-    <Text variant="body" as="h2" style={{ marginBottom: 12 }}>
-      InfoBox
-    </Text>
-    <Grid gap={16} style={{ marginBottom: 32 }}>
-      <Col span={12} md={6} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <InfoBox>postgres://postgres@localhost:5432/mydb</InfoBox>
-        <InfoBox mono={false}>Texto informativo sin monoespaciada</InfoBox>
-      </Col>
-    </Grid>
-  </>
-);
+  return (
+    <DevSection title="Inputs">
+      <DevRow label="Input · md, with error and with hint">
+        <div className={css.grid}>
+          <Input label="Database" placeholder="mydb" />
+          <Input label="Host" placeholder="localhost" error="Host is required" />
+          <Input
+            label="Query timeout"
+            type="number"
+            placeholder="0"
+            hint="Seconds. 0 means no limit"
+          />
+        </div>
+      </DevRow>
+
+      <DevRow label="Input lg, PasswordInput and Textarea">
+        <div className={css.grid}>
+          <Input size="lg" label="Username" placeholder="postgres" />
+          <PasswordInput size="lg" label="Password" placeholder="••••••••" />
+          <Textarea label="Private key" mono placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" />
+        </div>
+      </DevRow>
+
+      <DevRow label="Select and searchable Select">
+        <div className={css.grid}>
+          <Select label="SSL" options={SSL_OPTIONS} defaultValue="prefer" />
+          <Select
+            label="Database"
+            options={DATABASE_OPTIONS}
+            placeholder="Search databases…"
+            searchable
+          />
+        </div>
+      </DevRow>
+
+      <DevRow label="SearchBar · md and lg">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search connections…" />
+        <SearchBar
+          size="lg"
+          value={search}
+          onChange={setSearch}
+          placeholder="Search connections…"
+          className={css.searchBox}
+        />
+      </DevRow>
+
+      <DevRow label="Switch">
+        <Switch
+          checked={readOnly}
+          onChange={setReadOnly}
+          label="Open every transaction as READ ONLY"
+        />
+        <Switch checked={false} onChange={() => {}} label="Disabled" disabled />
+      </DevRow>
+
+      <DevRow label="Checkbox">
+        <Checkbox
+          checked={includeData}
+          onChange={setIncludeData}
+          label="Data"
+          description="INSERT statements for every row"
+        />
+        <Checkbox
+          checked={dropSchemas}
+          onChange={setDropSchemas}
+          label="Drop schemas before recreating them"
+        />
+        <Checkbox checked onChange={() => {}} label="Disabled" disabled />
+      </DevRow>
+
+      <DevRow label="ColorPicker · auto and preset">
+        <ColorPicker value={autoColor} onChange={setAutoColor} />
+        <ColorPicker value={presetColor} onChange={setPresetColor} />
+      </DevRow>
+
+      <DevRow label="In context · FormRow as in the New connection modal">
+        <div className={css.frame}>
+          <div className={css.formBody}>
+            <FormRow label="Name">
+              <Input size="lg" value={form.name} onChange={str("name")} placeholder="My database" />
+            </FormRow>
+            <FormRow label="Host">
+              <div className={css.hostPort}>
+                <Input size="lg" value={form.host} onChange={str("host")} placeholder="localhost" />
+                <div className={css.port}>
+                  <Input
+                    size="lg"
+                    type="number"
+                    value={form.port}
+                    onChange={str("port")}
+                    placeholder="5432"
+                  />
+                </div>
+              </div>
+            </FormRow>
+            <FormRow label="SSL">
+              <Select value={form.ssl_mode} options={SSL_OPTIONS} onChange={str("ssl_mode")} />
+            </FormRow>
+            <FormRow label="Environment">
+              <Select
+                value={form.environment}
+                options={ENVIRONMENT_OPTIONS}
+                onChange={str("environment")}
+                hint="Production asks before running UPDATE or DELETE without WHERE, TRUNCATE or DROP"
+              />
+            </FormRow>
+          </div>
+        </div>
+      </DevRow>
+    </DevSection>
+  );
+};

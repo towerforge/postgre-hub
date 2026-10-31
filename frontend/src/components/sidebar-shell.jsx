@@ -7,15 +7,26 @@ import { NavLink } from "react-router-dom";
 import css from "@/css/sidebar-shell.module.css";
 import { Card } from "@/components/ui";
 
-/** Isla con menú lateral (tono de panel) y contenido centrado bajo un título. */
+/**
+ * Isla con menú lateral (tono de panel) y contenido centrado bajo un título.
+ * `headerCenter` va entre el título y `headerRight` (p. ej. un buscador),
+ * `maxWidth` es el ancho de cabecera y contenido, y `gutter` (opcional) da el
+ * mismo margen lateral a ambos para que título y contenido arranquen en la
+ * misma guía; sin él se mantienen los márgenes de siempre.
+ */
 export const SidebarShell = ({
   menu,
   sidebarHeader,
   headerLeft,
+  headerCenter,
   headerRight,
   sidebarFooter,
+  maxWidth = 860,
+  gutter,
   children,
 }) => {
+  const headerPadding = gutter != null ? `32px ${gutter}px 4px` : "32px 36px 4px";
+  const contentPadding = gutter != null ? `0 ${gutter}px 32px` : "0 16px 32px";
   return (
     <div
       className={`tile ${css.glass}`}
@@ -52,7 +63,7 @@ export const SidebarShell = ({
       </Card>
 
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 36px 4px" }}>
+        <div style={{ maxWidth, margin: "0 auto", padding: headerPadding }}>
           <div
             style={{
               display: "flex",
@@ -78,10 +89,11 @@ export const SidebarShell = ({
             >
               {headerLeft}
             </h1>
+            {headerCenter && <div style={{ flex: "0 1 360px", minWidth: 220 }}>{headerCenter}</div>}
             {headerRight}
           </div>
         </div>
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 16px 32px" }}>{children}</div>
+        <div style={{ maxWidth, margin: "0 auto", padding: contentPadding }}>{children}</div>
       </div>
     </div>
   );

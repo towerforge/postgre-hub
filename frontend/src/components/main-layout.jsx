@@ -10,9 +10,11 @@ import { PanelLeft, PanelRight, PanelBottom, Info, ChevronDown, Database } from 
 import { useSidebars } from "@/contexts/sidebars-context";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { useStatusBar } from "@/contexts/status-bar-context";
+import { useToolbar } from "@/contexts/toolbar-context";
 import { useHistoryBar } from "@/contexts/history-bar-context";
 import { AboutModal } from "@/components/about-modal";
 import { initialsOf } from "@/components/connections-shell";
+import { environmentLabel, readableOn } from "@/lib/environments";
 import { Splitter, ToolButton, useResizable } from "@/components/ui";
 import styles from "@/css/main-layout.module.css";
 
@@ -21,8 +23,9 @@ export const MainLayout = () => {
   const connectionMatch = useMatch("/connections/:id/*");
   const { leftVisible, rightVisible, bottomVisible, toggleLeft, toggleRight, toggleBottom } =
     useSidebars();
-  const { title, subtitle, accent } = usePageTitle();
+  const { title, subtitle, accent, environment } = usePageTitle();
   const { content: statusContent } = useStatusBar();
+  const { content: toolbarContent } = useToolbar();
   const { content: historyContent } = useHistoryBar();
   const [aboutOpen, setAboutOpen] = useState(false);
   const history = useResizable({
@@ -35,18 +38,18 @@ export const MainLayout = () => {
   });
 
   // Brillo en la esquina superior izquierda con el color de la conexión abierta.
-  // Fuera de una conexión el foco es azul y más intenso.
-  const glow =
-    connectionMatch && accent
+  // Fuera de una conexión el foco es el azul de la marca y más intenso.
+  const connAccent = connectionMatch && accent ? accent : "";
+  const glow = connAccent
+    ? {
+        backgroundImage: `radial-gradient(ellipse 900px 380px at 0% 0%, color-mix(in srgb, ${connAccent} var(--om-glow), transparent), transparent 75%)`,
+      }
+    : !connectionMatch
       ? {
-          backgroundImage: `radial-gradient(ellipse 900px 380px at 0% 0%, color-mix(in srgb, ${accent} var(--om-glow), transparent), transparent 75%)`,
+          backgroundImage:
+            "radial-gradient(ellipse 1100px 560px at 0% 0%, color-mix(in srgb, var(--om-primary) 55%, transparent), transparent 72%)",
         }
-      : !connectionMatch
-        ? {
-            backgroundImage:
-              "radial-gradient(ellipse 1100px 560px at 0% 0%, color-mix(in srgb, #3574f0 55%, transparent), transparent 72%)",
-          }
-        : undefined;
+      : undefined;
 
   return (
     <div className={styles.outerShell} style={glow}>
@@ -68,9 +71,11 @@ export const MainLayout = () => {
         <NavLink to="/connections" className="title" title="Ir a conexiones">
           <span
             className="proj-icon"
-            style={{
-              background: connectionMatch ? accent || "var(--om-primary)" : "var(--om-primary)",
-            }}
+            style={
+              connAccent
+                ? { background: connAccent, color: readableOn(connAccent) }
+                : { background: "var(--om-primary)" }
+            }
           >
             {connectionMatch ? initialsOf(title) : <Database size={13} />}
           </span>
@@ -82,6 +87,11 @@ export const MainLayout = () => {
         <span className="sp" />
 
         <div className="right">
+          {/* Acciones de la pantalla abierta (diagrama, exportar, importar…) */}
+          {connectionMatch && toolbarContent}
+          {connectionMatch && environment && (
+            <span className={`env-pill ${environment}`}>{environmentLabel(environment)}</span>
+          )}
           {connectionMatch && (
             <ToolButton
               iconOnly

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -29,7 +29,11 @@ pub struct Project {
     pub color:           String,
     pub read_only:       bool,
     pub query_timeout:   i64,
+    pub environment:     String,
     pub created_at:      i64,
+    /// Última consulta del usuario actual en esta conexión (solo en el listado)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_used_at:    Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -54,13 +58,22 @@ pub struct ProjectRequest {
     pub color:            Option<String>,
     pub read_only:        Option<bool>,
     pub query_timeout:    Option<i64>,
+    pub environment:      Option<String>,
+}
+
+// Entornos admitidos; cualquier otro valor se guarda como "sin entorno"
+fn normalize_environment(env: Option<String>) -> String {
+    match env.as_deref() {
+        Some(e @ ("production" | "staging" | "development")) => e.to_string(),
+        _ => String::new(),
+    }
 }
 
 const SELECT_COLS: &str =
     "id, name, host, port, database, username, ssl_mode, ssl_ca, ssl_client_cert, \
      ssh_enabled, ssh_host, ssh_port, ssh_user, \
      (ssh_private_key <> '') AS ssh_key_set, \
-     ssh_tunnel_id, color, read_only, query_timeout, created_at";
+     ssh_tunnel_id, color, read_only, query_timeout, created_at, environment";
 
 fn map_project(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
     Ok(Project {
@@ -83,20 +96,41 @@ fn map_project(r: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
         read_only:       r.get::<_, i64>(16)? != 0,
         query_timeout:   r.get(17)?,
         created_at:      r.get(18)?,
+        environment:     r.get(19)?,
+        last_used_at:    None,
     })
 }
 
-pub async fn list_projects(State(auth): State<AuthState>) -> impl IntoResponse {
+pub async fn list_projects(
+    State(auth): State<AuthState>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let user_id = auth.request_user_id(&headers).await;
     let db = auth.db.clone();
     let rows = tokio::task::spawn_blocking(move || {
         let conn = db.lock().unwrap();
         let mut stmt = conn.prepare(
             &format!("SELECT {SELECT_COLS} FROM projects ORDER BY created_at DESC")
         ).unwrap();
-        stmt.query_map([], map_project)
+        let mut projects = stmt.query_map([], map_project)
             .unwrap()
             .filter_map(|r| r.ok())
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+
+        // Fecha de la última consulta de este usuario en cada conexión
+        let mut last = conn.prepare(
+            "SELECT project_id, MAX(created_at) FROM query_history
+             WHERE user_id = ?1 GROUP BY project_id",
+        ).unwrap();
+        let used: std::collections::HashMap<String, i64> = last
+            .query_map([&user_id], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+        for p in &mut projects {
+            p.last_used_at = used.get(&p.id).copied();
+        }
+        projects
     })
     .await
     .unwrap_or_default();
@@ -143,8 +177,8 @@ pub async fn create_project(
                 id, name, host, port, database, username, password,
                 ssl_mode, ssl_ca, ssl_client_cert, ssl_client_key,
                 ssh_enabled, ssh_host, ssh_port, ssh_user, ssh_password, ssh_private_key,
-                ssh_tunnel_id, color, read_only, query_timeout
-             ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
+                ssh_tunnel_id, color, read_only, query_timeout, environment
+             ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22)",
             rusqlite::params![
                 id2,
                 body.name,
@@ -167,6 +201,7 @@ pub async fn create_project(
                 body.color.unwrap_or_default(),
                 body.read_only.unwrap_or(false) as i64,
                 body.query_timeout.unwrap_or(0).max(0),
+                normalize_environment(body.environment),
             ],
         ).is_ok()
     })
@@ -198,8 +233,9 @@ pub async fn update_project(
                 name=?1, host=?2, port=?3, database=?4, username=?5,
                 ssl_mode=?6, ssl_ca=?7, ssl_client_cert=?8,
                 ssh_enabled=?9, ssh_host=?10, ssh_port=?11, ssh_user=?12,
-                ssh_tunnel_id=?13, color=?14, read_only=?15, query_timeout=?16
-             WHERE id=?17",
+                ssh_tunnel_id=?13, color=?14, read_only=?15, query_timeout=?16,
+                environment=?17
+             WHERE id=?18",
             rusqlite::params![
                 body.name, body.host, port, body.database, body.username,
                 ssl_mode,
@@ -213,6 +249,7 @@ pub async fn update_project(
                 body.color.unwrap_or_default(),
                 body.read_only.unwrap_or(false) as i64,
                 body.query_timeout.unwrap_or(0).max(0),
+                normalize_environment(body.environment),
                 id.clone(),
             ],
         ).map(|n| n > 0).unwrap_or(false);

@@ -4,14 +4,14 @@
 // /connections. Las secciones viven en las piezas `_dev-*.jsx` de al lado.
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import { Page, Text } from "@/components/ui";
+import { Page } from "@/components/ui";
 import { ConnectionsShell } from "@/components/connections-shell";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { DevButtons } from "./_dev-buttons";
 import { DevContent } from "./_dev-content";
-import { DevControls } from "./_dev-controls";
 import { DevForms } from "./_dev-forms";
-import { DevPanels } from "./_dev-panels";
+import { DevNavigation } from "./_dev-navigation";
+import { DevOverlays } from "./_dev-overlays";
 
 const DevCatalog = () => {
   const { setPageTitle } = usePageTitle();
@@ -22,13 +22,11 @@ const DevCatalog = () => {
   return (
     <ConnectionsShell headerLeft="UI components" headerRight={null}>
       <Page>
-        <Text variant="title">Componentes UI</Text>
-        <Text variant="subtitle">Ejemplo de la librería base</Text>
         <DevButtons />
-        <DevContent />
-        <DevControls />
         <DevForms />
-        <DevPanels />
+        <DevNavigation />
+        <DevContent />
+        <DevOverlays />
       </Page>
     </ConnectionsShell>
   );

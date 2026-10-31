@@ -30,7 +30,14 @@ export const initialsOf = (name) => {
 const ICON = 15;
 
 /** Marco de las pantallas generales: menú lateral fijo, pie de cuenta y contenido. */
-export const ConnectionsShell = ({ headerLeft, headerRight, children }) => {
+export const ConnectionsShell = ({
+  headerLeft,
+  headerCenter,
+  headerRight,
+  maxWidth,
+  gutter,
+  children,
+}) => {
   const { username, logout } = useAuth();
   const navigate = useNavigate();
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -95,7 +102,10 @@ export const ConnectionsShell = ({ headerLeft, headerRight, children }) => {
   return (
     <SidebarShell
       headerLeft={headerLeft}
+      headerCenter={headerCenter}
       headerRight={headerRight}
+      maxWidth={maxWidth}
+      gutter={gutter}
       menu={
         <>
           <SidebarMenuLink

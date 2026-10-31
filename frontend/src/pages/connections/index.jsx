@@ -1,10 +1,11 @@
-// Lista de conexiones (/connections): las conexiones PostgreSQL guardadas, con
-// buscador, prueba de conexión y acceso al editor SQL de cada una. El alta y
+// Lista de conexiones (/connections): las conexiones PostgreSQL guardadas,
+// agrupadas por entorno, con buscador, prueba de conexión y acceso al editor SQL
+// de cada una. El alta y
 // la edición están en `_connection-modal`; esta pantalla guarda la lista y
 // qué conexión se está editando.
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, CheckCircle, XCircle, Plug, Pencil } from "lucide-react";
+import { Plus, CheckCircle, XCircle, Plug, Pencil, Database, Lock, Network } from "lucide-react";
 import {
   Button,
   Spinner,
@@ -17,6 +18,9 @@ import {
 import { usePageTitle } from "@/contexts/page-title-context";
 import { ConnectionsShell, avatarColor, initialsOf } from "@/components/connections-shell";
 import { apiListProjects, apiDeleteProject, apiTestConnection } from "@/services/connections";
+import { ENVIRONMENT_ORDER, environmentLabel, readableOn } from "@/lib/environments";
+import { formatRelativeTime } from "@/lib/formatters";
+import styles from "@/css/connections.module.css";
 import { ConnectionModal } from "./_connection-modal";
 
 const ProjectsHome = () => {
@@ -24,7 +28,6 @@ const ProjectsHome = () => {
   const [loading, setLoading] = useState(true);
   // null, "create" o la conexión que se está editando.
   const [modal, setModal] = useState(null);
-  const [hovered, setHovered] = useState(null);
   const [query, setQuery] = useState("");
   // Prueba por id de conexión: "testing" o `{ ok, message }` durante 3 s.
   const [tests, setTests] = useState({});
@@ -90,23 +93,44 @@ const ProjectsHome = () => {
       )
     : projects;
 
+  // Grupos por entorno; si ninguna conexión tiene entorno, una sola lista sin título
+  const groups = ENVIRONMENT_ORDER.map((env) => ({
+    env,
+    items: filtered.filter((p) => (p.environment ?? "") === env),
+  })).filter((g) => g.items.length > 0);
+  const showHeadings = projects.some((p) => p.environment);
+
   return (
     <>
       <ConnectionsShell
+        maxWidth={1120}
+        gutter={28}
         headerLeft={
           <>
             Connections
-            <span
-              style={{ marginLeft: 8, fontSize: 13, fontWeight: 400, color: "var(--om-fg-muted)" }}
-            >
-              {projects.length}
-            </span>
+            <span className={styles.titleCount}>{projects.length}</span>
           </>
         }
+        headerCenter={
+          // El buscador sube a la línea del título; sin conexiones no hace falta
+          projects.length > 0 && (
+            <SearchBar
+              size="md"
+              value={query}
+              onChange={setQuery}
+              placeholder="Filter connections…"
+              style={{ width: "100%" }}
+              autoFocus
+            />
+          )
+        }
         headerRight={
-          <Button variant={1} size="xl" onClick={() => setModal("create")}>
-            <Plus size={14} /> New connection
-          </Button>
+          // Sin conexiones, el botón ya está en el estado vacío
+          (loading || projects.length > 0) && (
+            <Button variant={1} size="xl" onClick={() => setModal("create")}>
+              <Plus size={14} /> New connection
+            </Button>
+          )
         }
       >
         {loading ? (
@@ -114,31 +138,19 @@ const ProjectsHome = () => {
             <Spinner label="Loading…" />
           </div>
         ) : projects.length === 0 ? (
-          <div
-            style={{
-              padding: "40px 16px",
-              textAlign: "center",
-              color: "var(--om-fg-muted)",
-              fontSize: 12,
-              lineHeight: 1.6,
-            }}
-          >
-            No connections yet.
-            <br />
-            Click <b>New connection</b> to start.
+          <div className={styles.emptyState}>
+            <Database size={28} />
+            <h2>No connections yet</h2>
+            <p>
+              Add the PostgreSQL databases you work with. Credentials are stored on this server,
+              never in the browser.
+            </p>
+            <Button variant={1} size="xl" onClick={() => setModal("create")}>
+              <Plus size={14} /> New connection
+            </Button>
           </div>
         ) : (
           <>
-            <div style={{ padding: "12px 16px 0" }}>
-              <SearchBar
-                size="lg"
-                value={query}
-                onChange={setQuery}
-                placeholder="Filter by name, host, database, user…"
-                style={{ width: "100%" }}
-                autoFocus
-              />
-            </div>
             {filtered.length === 0 ? (
               <div
                 style={{
@@ -151,82 +163,125 @@ const ProjectsHome = () => {
                 No matches for <span style={{ color: "var(--om-fg-bright)" }}>"{query}"</span>
               </div>
             ) : (
-              <ListItemGroup>
-                {filtered.map((p) => {
-                  const isHovered = hovered === p.id;
-                  const test = tests[p.id];
-                  const testing = test === "testing";
-                  const testResult = test && test !== "testing" ? test : null;
-                  const showActions = isHovered || !!test;
-                  return (
-                    <ListItem
-                      key={p.id}
-                      onClick={() => navigate(`/connections/${p.id}`)}
-                      onMouseEnter={() => setHovered(p.id)}
-                      onMouseLeave={() => setHovered(null)}
-                      leading={
-                        testing ? (
-                          <span
-                            className="conn-avatar"
-                            style={{
-                              background: "var(--om-bg-4)",
-                              color: "var(--om-fg-bright)",
-                              fontFamily: "var(--font-mono)",
-                              fontSize: 16,
-                            }}
-                          >
-                            {spinnerFrame}
-                          </span>
-                        ) : (
-                          <span
-                            className="conn-avatar"
-                            style={{ background: avatarColor(p.id, p.color) }}
-                          >
-                            {initialsOf(p.name)}
-                          </span>
-                        )
-                      }
-                      title={p.name}
-                      subtitle={`postgres://${p.username}@${p.host}:${p.port}/${p.database}${p.read_only ? " · read-only" : ""}`}
-                      actions={
-                        showActions && (
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: 2 }}>
-                            {!testing && (
-                              <ToolButton
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTest(p);
-                                }}
-                                title={testResult?.message}
+              groups.map((g) => (
+                <section key={g.env || "none"} className={styles.envGroup}>
+                  {showHeadings && (
+                    <h3 className={styles.envHeading}>
+                      <span className={`${styles.envDot} ${styles[g.env] ?? ""}`} />
+                      {environmentLabel(g.env)}
+                      <span className={styles.count}>{g.items.length}</span>
+                    </h3>
+                  )}
+                  <ListItemGroup>
+                    {g.items.map((p) => {
+                      const test = tests[p.id];
+                      const testing = test === "testing";
+                      const testResult = test && test !== "testing" ? test : null;
+                      return (
+                        <ListItem
+                          key={p.id}
+                          className={styles.connRow}
+                          onClick={() => navigate(`/connections/${p.id}`)}
+                          leading={
+                            testing ? (
+                              <span
+                                className="conn-avatar"
                                 style={{
-                                  color: testResult
-                                    ? testResult.ok
-                                      ? "var(--color-success)"
-                                      : "var(--color-danger)"
-                                    : undefined,
+                                  background: "var(--om-bg-4)",
+                                  color: "var(--om-fg-bright)",
+                                  fontFamily: "var(--font-mono)",
+                                  fontSize: 16,
                                 }}
                               >
-                                {!testResult && <Plug size={13} />}
-                                {testResult?.ok && <CheckCircle size={13} />}
-                                {testResult && !testResult.ok && <XCircle size={13} />}
-                                {testResult ? (testResult.ok ? "Connected" : "Failed") : "Test"}
-                              </ToolButton>
-                            )}
-                            <ToolButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setModal(p);
-                              }}
-                            >
-                              <Pencil size={13} /> Edit
-                            </ToolButton>
-                          </div>
-                        )
-                      }
-                    />
-                  );
-                })}
-              </ListItemGroup>
+                                {spinnerFrame}
+                              </span>
+                            ) : (
+                              <span
+                                className="conn-avatar"
+                                style={{
+                                  background: avatarColor(p.id, p.color),
+                                  color: readableOn(avatarColor(p.id, p.color)),
+                                }}
+                              >
+                                {initialsOf(p.name)}
+                              </span>
+                            )
+                          }
+                          title={p.name}
+                          subtitle={p.username}
+                          actions={
+                            // Columnas fijas: destino, datos y una ranura de acciones
+                            // que solo se ve con hover o foco, sin tapar los datos
+                            <>
+                              <span
+                                className={styles.target}
+                                title={`postgres://${p.username}@${p.host}:${p.port}/${p.database}`}
+                              >
+                                {p.host}:{p.port} / {p.database}
+                              </span>
+                              <span className={styles.meta}>
+                                {(p.ssh_tunnel_id || p.ssh_enabled) && (
+                                  <span
+                                    className={styles.chip}
+                                    title="Connects through an SSH tunnel"
+                                  >
+                                    <Network size={11} /> SSH
+                                  </span>
+                                )}
+                                {p.read_only && (
+                                  <span
+                                    className={styles.chip}
+                                    title="Every transaction is READ ONLY"
+                                  >
+                                    <Lock size={11} /> Read-only
+                                  </span>
+                                )}
+                                <span className={styles.lastUsed}>
+                                  {p.last_used_at
+                                    ? `Last query ${formatRelativeTime(p.last_used_at)}`
+                                    : "Never queried"}
+                                </span>
+                              </span>
+                              {/* Con una prueba en curso o su resultado, la ranura queda fija */}
+                              <span className={`${styles.rowActions} ${test ? styles.pinned : ""}`}>
+                                {!testing && (
+                                  <ToolButton
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleTest(p);
+                                    }}
+                                    title={testResult?.message}
+                                    style={{
+                                      color: testResult
+                                        ? testResult.ok
+                                          ? "var(--color-success)"
+                                          : "var(--color-danger)"
+                                        : undefined,
+                                    }}
+                                  >
+                                    {!testResult && <Plug size={13} />}
+                                    {testResult?.ok && <CheckCircle size={13} />}
+                                    {testResult && !testResult.ok && <XCircle size={13} />}
+                                    {testResult ? (testResult.ok ? "Connected" : "Failed") : "Test"}
+                                  </ToolButton>
+                                )}
+                                <ToolButton
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setModal(p);
+                                  }}
+                                >
+                                  <Pencil size={13} /> Edit
+                                </ToolButton>
+                              </span>
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                  </ListItemGroup>
+                </section>
+              ))
             )}
           </>
         )}

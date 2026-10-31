@@ -82,7 +82,10 @@ export const ExportModal = ({ projectId, open, onClose }) => {
       .then((r) => {
         setSchemas(r.schemas);
         setDatabase(r.database);
-        setSelected(new Set(r.schemas.map((s) => s.name)));
+        // Los esquemas vacíos empiezan desmarcados: no aportan nada al fichero
+        setSelected(
+          new Set(r.schemas.filter((s) => s.tables + s.views + s.routines > 0).map((s) => s.name)),
+        );
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load schemas"))
       .finally(() => setLoading(false));
@@ -124,15 +127,16 @@ export const ExportModal = ({ projectId, open, onClose }) => {
       <Text variant="hint" style={{ flex: 1 }}>
         {plural(selected.size, "schema")} from <b>{database || "…"}</b> · plain SQL
       </Text>
-      <Button variant={2} onClick={onClose}>
-        Close
+      <Button variant={2} size="xl" onClick={onClose}>
+        Cancel
       </Button>
       <Button
         variant={1}
+        size="xl"
         onClick={handleExport}
         disabled={exporting || selected.size === 0 || nothingIncluded}
       >
-        <Download size={13} /> {exporting ? "Exporting…" : "Export .sql"}
+        <Download size={14} /> {exporting ? "Exporting…" : "Export .sql"}
       </Button>
     </>
   );
@@ -291,12 +295,16 @@ export const ImportModal = ({ projectId, database, open, onClose, onImported }) 
 
   const footer = (
     <>
-      <div style={{ flex: 1 }} />
-      <Button variant={2} onClick={onClose} disabled={importing}>
-        Close
+      <Button variant={2} size="xl" onClick={onClose} disabled={importing}>
+        {result ? "Close" : "Cancel"}
       </Button>
-      <Button variant={1} onClick={handleImport} disabled={!file || importing || result !== null}>
-        <Upload size={13} /> {importing ? "Importing…" : "Import"}
+      <Button
+        variant={1}
+        size="xl"
+        onClick={handleImport}
+        disabled={!file || importing || result !== null}
+      >
+        <Upload size={14} /> {importing ? "Importing…" : "Import"}
       </Button>
     </>
   );

@@ -6,10 +6,10 @@
 // `_use-grid-keyboard`, y el modal de aplicar y la ventana del valor completo
 // en sus piezas de al lado.
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Download, Plus } from "lucide-react";
+import { ArrowUp, Download, Lock, Plus } from "lucide-react";
 import { ToolButton, Badge } from "@/components/ui";
 import { apiRunQuery, apiBuildChanges } from "@/services/connections";
-import { excelCol } from "./_query-utils";
+import { excelCol, isNumericType } from "./_query-utils";
 import { downloadResult } from "./_result-export";
 import { useGridKeyboard } from "./_use-grid-keyboard";
 import { CellPopover } from "./_cell-popover";
@@ -118,6 +118,7 @@ export const QueryResultView = ({
   }
   const cols = result.columns;
   const lastCol = cols.length - 1;
+  const numericCols = cols.map((c) => isNumericType(c.type));
 
   const startCell = (r, c) => {
     draggingRef.current = true;
@@ -291,12 +292,15 @@ export const QueryResultView = ({
                   ref={(el) => {
                     thRefs.current[i] = el;
                   }}
+                  className={
+                    [numericCols[i] && "num", sel && i >= sel.c0 && i <= sel.c1 && "col-sel"]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
                   style={{ position: "sticky" }}
                 >
                   <span className="col-name">{c.name}</span>
-                  <span style={{ color: "var(--om-fg-muted)", fontWeight: 400, marginLeft: 6 }}>
-                    {excelCol(i)}
-                  </span>
+                  <span className="col-letter">{excelCol(i)}</span>
                   <div
                     onMouseDown={(e) => startResize(i, e)}
                     onDoubleClick={(e) => {
@@ -363,6 +367,7 @@ export const QueryResultView = ({
                         : editVal
                       : cell;
                     const cls = [
+                      numericCols[ci] && "num",
                       display === null && "null-cell",
                       inSel && "cell-sel",
                       isDeleted ? "cell-deleted" : isEdited && "cell-edited",
@@ -394,7 +399,7 @@ export const QueryResultView = ({
                         }}
                       >
                         {display === null ? (
-                          "null"
+                          "NULL"
                         ) : typeof display === "boolean" ? (
                           <span style={{ color: "var(--om-orange)" }}>{String(display)}</span>
                         ) : typeof display === "number" ? (
@@ -432,6 +437,7 @@ export const QueryResultView = ({
                     const display = isSet ? (v.toLowerCase() === "null" ? null : v) : null;
                     const cls = [
                       "cell-inserted",
+                      numericCols[ci] && "num",
                       (!isSet || display === null) && "null-cell",
                       inSel && "cell-sel",
                     ]
@@ -450,7 +456,7 @@ export const QueryResultView = ({
                         {!isSet ? (
                           <span style={{ opacity: 0.5 }}>default</span>
                         ) : display === null ? (
-                          "null"
+                          "NULL"
                         ) : typeof display === "number" ? (
                           <span style={{ color: "var(--color-info)" }}>{String(display)}</span>
                         ) : (
@@ -480,18 +486,16 @@ export const QueryResultView = ({
         }}
       >
         <span style={{ color: "var(--om-fg-muted)" }}>
-          <span style={{ opacity: 0.7 }}>rows </span>
+          <span>rows </span>
           <span style={{ color: "var(--om-fg)" }}>{result.total ?? result.rows.length}</span>
         </span>
         {result.duration_ms !== undefined && (
           <span style={{ color: "var(--om-fg-muted)" }}>
-            <span style={{ opacity: 0.7 }}>time </span>
-            <span style={{ color: "var(--om-green)" }}>
-              {(result.duration_ms / 1000).toFixed(2)}s
-            </span>
+            <span>time </span>
+            <span style={{ color: "var(--om-fg)" }}>{(result.duration_ms / 1000).toFixed(2)}s</span>
           </span>
         )}
-        <span style={{ color: sel ? "var(--om-green)" : "var(--om-fg-muted)" }}>
+        <span style={{ color: sel ? "var(--om-accent)" : "var(--om-fg-muted)" }}>
           {selLabel || "—"}
         </span>
         {isRange && sel && (
@@ -514,6 +518,7 @@ export const QueryResultView = ({
           {result.columns.length > 0 && (
             <>
               <ToolButton
+                size="sm"
                 onClick={() => downloadResult(result, "csv", tableName)}
                 title="Download all rows as CSV"
               >
@@ -521,28 +526,32 @@ export const QueryResultView = ({
                 CSV
               </ToolButton>
               <ToolButton
+                size="sm"
                 onClick={() => downloadResult(result, "json", tableName)}
                 title="Download all rows as JSON"
               >
                 <Download size={13} />
                 JSON
               </ToolButton>
-              <span
-                style={{
-                  width: 1,
-                  height: 16,
-                  background: "var(--om-border-focus)",
-                  margin: "0 4px",
-                }}
-              />
             </>
+          )}
+          {/* Editar solo tiene sentido en la pestaña de una tabla y fuera de solo lectura */}
+          {readOnly && (
+            <span
+              title="This connection is read-only"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginLeft: 8,
+                color: "var(--om-fg-muted)",
+              }}
+            >
+              <Lock size={12} /> Read-only
+            </span>
           )}
           {editable && (
             <>
-              <ToolButton onClick={addInsertRow} title="Add a new empty row">
-                <Plus size={13} />
-                Add row
-              </ToolButton>
               <span
                 style={{
                   width: 1,
@@ -551,25 +560,26 @@ export const QueryResultView = ({
                   margin: "0 4px",
                 }}
               />
+              <ToolButton size="sm" onClick={addInsertRow} title="Add a new empty row">
+                <Plus size={13} />
+                Add row
+              </ToolButton>
+              {/* Apply solo destaca (azul + contador) cuando hay cambios pendientes */}
+              <ToolButton
+                size="sm"
+                disabled={pendingCount === 0}
+                onClick={openApplyModal}
+                title="Preview and apply pending changes"
+                style={
+                  pendingCount > 0 ? { color: "var(--om-accent)", fontWeight: 600 } : undefined
+                }
+              >
+                <ArrowUp size={13} />
+                Apply
+                {pendingCount > 0 && <Badge>{pendingCount}</Badge>}
+              </ToolButton>
             </>
           )}
-          {/* Apply solo destaca (azul + contador) cuando hay cambios pendientes */}
-          <ToolButton
-            disabled={pendingCount === 0}
-            onClick={openApplyModal}
-            title={
-              readOnly
-                ? "This connection is read-only"
-                : !editable
-                  ? "Editing requires opening a table from the sidebar"
-                  : "Preview and apply pending changes"
-            }
-            style={pendingCount > 0 ? { color: "var(--om-accent)", fontWeight: 600 } : undefined}
-          >
-            <ArrowUp size={13} />
-            Apply
-            {pendingCount > 0 && <Badge>{pendingCount}</Badge>}
-          </ToolButton>
         </div>
       </div>
       {expand && <CellPopover popover={expand} />}

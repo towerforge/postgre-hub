@@ -20,12 +20,15 @@ import {
 } from "@/components/ui";
 import { apiCreateProject, apiUpdateProject } from "@/services/connections";
 import { apiListTunnels } from "@/services/ssh-tunnels";
+import { ENVIRONMENTS } from "@/lib/environments";
 
 const SSL_OPTIONS = [
   { value: "disable", label: "Disable" },
   { value: "prefer", label: "Prefer" },
   { value: "require", label: "Require" },
 ];
+
+const ENVIRONMENT_OPTIONS = [{ value: "", label: "None" }, ...ENVIRONMENTS];
 
 /**
  * Alta o edición de una conexión: con `project` edita, sin él crea. `onDelete`
@@ -58,6 +61,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
     color: project?.color ?? "",
     read_only: project?.read_only ?? false,
     query_timeout: project?.query_timeout ?? 0,
+    environment: project?.environment ?? "",
   });
 
   useEffect(() => {
@@ -94,15 +98,15 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
   const footer = (
     <>
       {isEdit && onDelete && (
-        <Button variant={5} onClick={() => setConfirmDelete(true)}>
-          <Trash2 size={13} /> Delete
+        <Button variant={5} size="xl" onClick={() => setConfirmDelete(true)}>
+          <Trash2 size={14} /> Delete
         </Button>
       )}
       <div style={{ flex: 1 }} />
-      <Button variant={2} onClick={onClose}>
+      <Button variant={2} size="xl" onClick={onClose}>
         Cancel
       </Button>
-      <Button variant={1} onClick={handleSave} disabled={loading}>
+      <Button variant={1} size="xl" onClick={handleSave} disabled={loading}>
         {loading ? "Saving…" : isEdit ? "Save changes" : "Connect"}
       </Button>
     </>
@@ -205,6 +209,14 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
                   onChange={(e) => setForm((f) => ({ ...f, ssl_mode: e.target.value }))}
                 />
               </FormRow>
+              <FormRow label="Environment">
+                <Select
+                  value={form.environment}
+                  options={ENVIRONMENT_OPTIONS}
+                  onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
+                  hint="Production asks before running UPDATE or DELETE without WHERE, TRUNCATE or DROP"
+                />
+              </FormRow>
               <FormRow label="Read-only">
                 <Switch
                   checked={form.read_only ?? false}
@@ -286,18 +298,18 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
         zIndex={10001}
         footer={
           <>
-            <div style={{ flex: 1 }} />
-            <Button variant={2} onClick={() => setConfirmDelete(false)}>
+            <Button variant={2} size="xl" onClick={() => setConfirmDelete(false)}>
               Cancel
             </Button>
             <Button
               variant={6}
+              size="xl"
               onClick={() => {
                 setConfirmDelete(false);
                 onDelete?.();
               }}
             >
-              <Trash2 size={13} /> Delete
+              <Trash2 size={14} /> Delete
             </Button>
           </>
         }

@@ -1,0 +1,149 @@
+/* Catálogo del kit (/dev): maquetación de secciones y filas de ejemplo. Solo
+   lo usan las piezas `pages/_dev-*.jsx`. */
+
+/* ── Sección por familia ───────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.heading {
+  margin: 0;
+  font-weight: 600;
+  color: var(--om-fg-bright);
+}
+
+.description {
+  display: block;
+  margin-top: -12px;
+}
+
+/* ── Fila rotulada ─────────────────────────────────────────────── */
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rowLabel {
+  font-size: 12px;
+  color: var(--om-fg-muted);
+}
+
+.rowBody {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Contenedores de ejemplo ───────────────────────────────────── */
+.grid {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.stack {
+  flex-basis: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.full {
+  flex-basis: 100%;
+}
+
+/* Superficie que imita un modal o un panel para las filas "In context" */
+.frame {
+  flex-basis: 100%;
+  max-width: 520px;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
+  overflow: hidden;
+}
+
+.frameWide {
+  max-width: none;
+}
+
+/* Cuerpo de formulario con el mismo relleno que el modal de conexión */
+.formBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 24px;
+}
+
+.hostPort {
+  display: flex;
+  gap: 8px;
+}
+
+.hostPort > :first-child {
+  flex: 1;
+}
+
+.port {
+  width: 96px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.menuAnchor {
+  position: relative;
+}
+
+.searchBox {
+  width: 260px;
+}
+
+.panelNav {
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.panelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tabPanel {
+  padding: 16px;
+  font-size: 12px;
+  color: var(--om-fg-muted);
+}
+
+.confirmText {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--om-fg);
+}
+
+.confirmName {
+  color: var(--om-fg-bright);
+  font-weight: 600;
+}
+
+.confirmNote {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--om-fg-muted);
+}
+
+.mutedCell {
+  color: var(--om-fg-muted);
+}

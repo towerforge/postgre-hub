@@ -89,6 +89,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
       {isEdit && onDelete && (
         <Button
           variant={5}
+          size="xl"
           onClick={() => {
             if (
               confirm(`Delete tunnel "${tunnel.name}"? Connections using it will lose SSH access.`)
@@ -96,19 +97,19 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
               onDelete();
           }}
         >
-          <Trash2 size={13} /> Delete
+          <Trash2 size={14} /> Delete
         </Button>
       )}
       <div style={{ flex: 1 }} />
-      <Button variant={2} onClick={onClose}>
+      <Button variant={2} size="xl" onClick={onClose}>
         Cancel
       </Button>
       {isEdit && (
-        <Button variant={2} onClick={handleTest} disabled={testing}>
-          <CheckCircle size={13} /> {testing ? "Testing…" : "Test"}
+        <Button variant={2} size="xl" onClick={handleTest} disabled={testing}>
+          <CheckCircle size={14} /> {testing ? "Testing…" : "Test"}
         </Button>
       )}
-      <Button variant={1} onClick={handleSave} disabled={loading}>
+      <Button variant={1} size="xl" onClick={handleSave} disabled={loading}>
         {loading ? "Saving…" : isEdit ? "Save changes" : "Create tunnel"}
       </Button>
     </>
@@ -187,8 +188,8 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
                   }
                 />
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Button variant={3} size="sm" onClick={() => fileRef.current?.click()}>
-                    <FileKey size={12} /> Browse…
+                  <Button variant={3} onClick={() => fileRef.current?.click()}>
+                    <FileKey size={13} /> Browse…
                   </Button>
                   <Text variant="hint">
                     Load a key file, or paste its contents, or type a path.

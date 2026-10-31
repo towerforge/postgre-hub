@@ -22,7 +22,18 @@ import { keymap } from "@codemirror/view";
 import { editorTheme } from "./_editor-theme";
 import { useSetStatusBar } from "@/contexts/status-bar-context";
 import { useSetHistoryBar } from "@/contexts/history-bar-context";
-import { Alert, Spinner, ToolButton, useSpinner } from "@/components/ui";
+import {
+  Alert,
+  Button,
+  Modal,
+  Spinner,
+  Splitter,
+  ToolButton,
+  useResizable,
+  useSpinner,
+} from "@/components/ui";
+import { avatarColor } from "@/components/connections-shell";
+import { destructiveStatements, readableOn } from "@/lib/environments";
 import {
   apiRunQuery,
   apiCancelQuery,
@@ -46,8 +57,8 @@ const queryErrorMessage = (msg, timeoutSecs) => {
   return msg;
 };
 
-const EDITOR_HEIGHT_DEFAULT = 120;
-const EDITOR_HEIGHT_EXPANDED = 300;
+// Altura mínima del editor al expandirlo con el botón
+const EDITOR_HEIGHT_EXPANDED = 480;
 
 /**
  * Pestañas de consulta con su editor, su resultado y su inspector. Las
@@ -75,11 +86,16 @@ export const SqlEditor = ({
   const [tabInspectors, setTabInspectors] = useState({});
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Altura del editor: se arrastra con el separador y se recuerda entre sesiones
+  const editorSize = useResizable({ key: "editor", initial: 200, min: 80, max: 900, axis: "y" });
+  // Sentencias destructivas pendientes de confirmar en una conexión de producción
+  const [confirmRun, setConfirmRun] = useState(null);
   const runSpinner = useSpinner(loading);
   // Cambia tras cada ejecución o guardado para que el panel inferior recargue.
   const [historyVersion, setHistoryVersion] = useState(0);
   const [saving, setSaving] = useState(false);
   const readOnly = project?.read_only ?? false;
+  const accent = project ? avatarColor(project.id, project.color) : null;
 
   useEffect(() => {
     if (!newTabReq) return;
@@ -187,7 +203,23 @@ export const SqlEditor = ({
     [activeSql, activeTabId, projectId, project],
   );
 
-  runQueryRef.current = runQuery;
+  // En producción, UPDATE o DELETE sin WHERE, TRUNCATE y DROP piden confirmación
+  const requestRun = useCallback(
+    (overrideSql, overrideTabId) => {
+      const q = (overrideSql ?? activeSql).trim();
+      if (project?.environment === "production" && !readOnly) {
+        const statements = destructiveStatements(q);
+        if (statements.length > 0) {
+          setConfirmRun({ sql: q, tabId: overrideTabId ?? activeTabId, statements });
+          return;
+        }
+      }
+      return runQuery(overrideSql, overrideTabId);
+    },
+    [activeSql, activeTabId, project, readOnly, runQuery],
+  );
+
+  runQueryRef.current = requestRun;
 
   // Pide a Postgres que cancele; si no contesta a tiempo se corta la petición,
   // y el backend cancela igualmente al ver la conexión cerrada.
@@ -264,7 +296,7 @@ export const SqlEditor = ({
     [structure],
   );
 
-  const editorH = expanded ? EDITOR_HEIGHT_EXPANDED : EDITOR_HEIGHT_DEFAULT;
+  const editorH = expanded ? Math.max(editorSize.size, EDITOR_HEIGHT_EXPANDED) : editorSize.size;
   const activeResult = tabResults[activeTabId] ?? null;
   const activeError = tabErrors[activeTabId] ?? "";
   const activeInspector = tabInspectors[activeTabId] ?? null;
@@ -421,11 +453,15 @@ export const SqlEditor = ({
         </ToolButton>
       ) : (
         <ToolButton
-          onClick={() => runQuery()}
+          onClick={() => requestRun()}
           title="Run (⌘⏎)"
-          style={{ margin: "0 4px", color: "var(--om-fg-bright)" }}
+          style={
+            accent
+              ? { margin: "0 4px", background: accent, color: readableOn(accent) }
+              : { margin: "0 4px", color: "var(--om-fg-bright)" }
+          }
         >
-          <Play size={13} fill="var(--om-green)" color="var(--om-green)" />
+          <Play size={13} fill="currentColor" />
           Run
         </ToolButton>
       )}
@@ -435,11 +471,16 @@ export const SqlEditor = ({
   return (
     <div style={{ display: "flex", height: "100%", minWidth: 0, gap: 10 }}>
       {/* ── Columna izquierda: pestañas, editor y resultados ── */}
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
         {/* ── Editor ───────────────────────────────────── */}
         <div className="tile" style={{ flexShrink: 0 }}>
           {tabsBar}
-          <div style={{ height: editorH, overflow: "hidden" }}>
+          <div
+            style={{
+              height: editorH,
+              overflow: "hidden",
+            }}
+          >
             <CodeMirror
               key={activeTabId}
               value={activeSql}
@@ -456,6 +497,12 @@ export const SqlEditor = ({
             />
           </div>
         </div>
+
+        <Splitter
+          orientation="horizontal"
+          dragging={editorSize.dragging}
+          handleProps={editorSize.handleProps}
+        />
 
         {/* ── Resultados ───────────────────────────────── */}
         <div className="tile" style={{ flex: 1, minHeight: 0 }}>
@@ -508,6 +555,49 @@ export const SqlEditor = ({
       </div>
 
       {showInspector && <QueryInspector data={activeInspector} project={project} tables={tables} />}
+
+      <Modal
+        open={!!confirmRun}
+        onClose={() => setConfirmRun(null)}
+        title={`Run on ${project?.name ?? "this connection"}?`}
+        size="sm"
+        footer={
+          <>
+            <Button variant={2} size="xl" onClick={() => setConfirmRun(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant={6}
+              size="xl"
+              onClick={() => {
+                const { sql, tabId } = confirmRun;
+                setConfirmRun(null);
+                void runQuery(sql, tabId);
+              }}
+            >
+              Run on production
+            </Button>
+          </>
+        }
+      >
+        <p style={{ margin: "0 0 10px", color: "var(--om-fg)" }}>
+          This is a production connection and the query changes every row or removes objects:
+        </p>
+        <pre
+          style={{
+            margin: 0,
+            padding: 10,
+            borderRadius: 8,
+            background: "var(--om-bg)",
+            color: "var(--om-fg-bright)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {confirmRun?.statements.join(";\n")}
+        </pre>
+      </Modal>
     </div>
   );
 };

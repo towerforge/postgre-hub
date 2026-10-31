@@ -59,12 +59,12 @@ const AddUserModal = ({ open, onClose, onAdded }) => {
       size="sm"
       footer={
         <>
-          <div style={{ flex: 1 }} />
-          <Button variant={2} onClick={handleClose} disabled={saving}>
+          <Button variant={2} size="xl" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
           <Button
             variant={1}
+            size="xl"
             loading={saving}
             disabled={!username.trim() || password.length < 8}
             onClick={handleSubmit}
@@ -133,12 +133,12 @@ const ResetPasswordModal = ({ open, user, onClose, onDone }) => {
       size="sm"
       footer={
         <>
-          <div style={{ flex: 1 }} />
-          <Button variant={2} onClick={handleClose} disabled={saving}>
+          <Button variant={2} size="xl" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
           <Button
             variant={1}
+            size="xl"
             loading={saving}
             disabled={password.length < 8}
             onClick={handleSubmit}
