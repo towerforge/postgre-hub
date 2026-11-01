@@ -74,13 +74,21 @@ There are two workflows, following the same model as the other Towerforge repos:
 - **`.github/workflows/ci.yml`** runs on every push to `dev` and `main` and on pull requests. It builds the frontend (which also runs ESLint), runs `cargo clippy -D warnings` and `cargo test` for the backend against a PostgreSQL service container (so the SQL export test runs too), and runs `cargo fmt --check` and `cargo clippy -D warnings` for `desktop/`. It runs natively rather than through `make check`, which would rebuild the Docker images on every run.
 - **`.github/workflows/release.yml`** runs on `v*` tags (the ones `make release` pushes) and publishes the GitHub release with everything in it. Nothing is uploaded by hand.
 
-`release.yml` runs these jobs:
+`release.yml` only chains the parts. Each part lives in its own reusable workflow:
 
-1. `version`: fails right away if the tag does not match `backend/Cargo.toml` and `frontend/package.json`.
-2. `frontend`: builds `frontend/dist` once and shares it with the other jobs as an artifact.
-3. `binaries`: the ten browser binaries that `install.sh` and the README list. They use the same Makefile targets as a local build (`make _package-<family>-binaries <FAMILY>_TARGETS=<triple>`): `cross` for Linux and Windows, rustup on `macos-latest` for macOS.
-4. `desktop`: the Tauri bundles, each on a native runner: macOS aarch64 and x86_64 (both on `macos-latest`), `ubuntu-22.04`, `ubuntu-22.04-arm` (public repos only) and `windows-latest`. It runs `tauri build` and then `make package-desktop`.
-5. `publish`: runs `make checksums`, writes `latest.json` if there are updater signatures, and publishes the release (not a draft) with notes generated from the commits.
+| File | What it builds | How |
+|---|---|---|
+| `release.yml` | `version` check first, `publish` last | Fails right away if the tag does not match `backend/Cargo.toml` and `frontend/package.json`. `publish` runs `make checksums`, writes `latest.json` if there are updater signatures and publishes the release (not a draft) with notes generated from the commits |
+| `release-binaries-linux.yml` | 6 browser binaries (`.tar.gz`) | `cross` on `ubuntu-latest`: `make _package-linux-binaries LINUX_TARGETS=<triple>` |
+| `release-binaries-macos.yml` | 2 browser binaries (`.tar.gz`) | rustup on `macos-latest`: `make _package-macos-binaries MACOS_TARGETS=<triple>` |
+| `release-binaries-windows.yml` | 2 browser binaries (`.zip`) | `cargo` with the MinGW of `ubuntu-24.04`: `make _package-windows-binaries WINDOWS_TARGETS=<triple> WINDOWS_CARGO_CMD=cargo`. Not `cross`: its image ships an old MinGW without `GetHostNameW`, which recent Rust std needs |
+| `release-desktop-macos.yml` | `.dmg` for Apple Silicon and Intel | `tauri build --target` on `macos-latest`, Apple signing if configured |
+| `release-desktop-linux.yml` | `.AppImage`, `.deb`, `.rpm` for x86_64 and ARM64 | Native runners `ubuntu-22.04` and `ubuntu-22.04-arm` (public repos only) |
+| `release-desktop-windows.yml` | NSIS `.exe` and `.msi` for x86_64 | `windows-latest`, Azure signing if configured |
+
+The desktop parts run `tauri build` and then `make package-desktop`. Every part builds `frontend/dist` itself through the composite action `.github/actions/frontend` (`ci.yml` uses it too).
+
+Every part also has `workflow_dispatch`: run it alone from the Actions tab (*Run workflow*) to test one platform without creating a tag. A manual run only leaves the files as run artifacts and never publishes a release.
 
 Without secrets it still succeeds and produces unsigned bundles. macOS bundles are ad-hoc signed, so Gatekeeper offers "Open anyway" instead of "damaged". Each signing feature switches on by itself once its secrets exist.
 

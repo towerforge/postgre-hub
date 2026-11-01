@@ -1,0 +1,52 @@
+# Binarios de navegador para Windows (x86_64 e i686): los .zip de la release.
+#
+# Se compilan desde Linux con `cargo` y el MinGW de Ubuntu 24.04, no con
+# `cross`: la imagen de cross trae un MinGW antiguo sin `GetHostNameW`, que la
+# std de Rust reciente usa, y el enlazado falla. Mismo objetivo del Makefile
+# que en local, cambiando solo la herramienta (WINDOWS_CARGO_CMD=cargo).
+#
+# Lo llama release.yml con cada tag. Tambien se puede lanzar a mano desde la
+# pestana Actions para probarlo: deja los .zip como artefactos del run, sin
+# publicar nada.
+
+name: release · binaries windows
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    # Version fija: el MinGW depende de la version de Ubuntu.
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-pc-windows-gnu
+          - i686-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v7
+      - name: MinGW and zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mingw-w64 zip
+      - uses: ./.github/actions/frontend
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+          key: ${{ matrix.target }}
+      - name: Build and package
+        run: make _package-windows-binaries WINDOWS_TARGETS=${{ matrix.target }} WINDOWS_CARGO_CMD=cargo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
