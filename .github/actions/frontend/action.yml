@@ -1,0 +1,20 @@
+# Compila frontend/dist con `make build-frontend`. El backend lo embebe al
+# compilar (rust-embed), asi que cualquier job que compile Rust lo necesita
+# antes. Requiere haber hecho checkout del repo.
+
+name: frontend
+description: Instala pnpm y Node y compila frontend/dist
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+      with:
+        version: 10
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: pnpm
+        cache-dependency-path: frontend/pnpm-lock.yaml
+    - shell: bash
+      run: make build-frontend

@@ -32,21 +32,13 @@ jobs:
           --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: backend -> target
-      - run: make build-frontend
+      - uses: ./.github/actions/frontend
       - run: cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path backend/Cargo.toml
         env:
@@ -61,21 +53,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop -> target
-      - run: make build-frontend
+      - uses: ./.github/actions/frontend
       # Solo el crate desktop/: el backend no esta formateado con rustfmt.
       - run: cargo fmt --manifest-path desktop/Cargo.toml --check
       - run: cargo clippy --manifest-path desktop/Cargo.toml --all-targets -- -D warnings

@@ -1,0 +1,47 @@
+# Binarios de navegador para macOS (Apple Silicon e Intel): los .tar.gz que
+# descarga install.sh.
+#
+# Los dos se compilan en el mismo tipo de runner (macos-latest, ARM) con
+# rustup; el de Intel es una compilacion cruzada que macOS soporta de serie.
+# Mismo objetivo del Makefile que en local: `_package-macos-binaries`.
+#
+# Lo llama release.yml con cada tag. Tambien se puede lanzar a mano desde la
+# pestana Actions para probarlo: deja los .tar.gz como artefactos del run,
+# sin publicar nada.
+
+name: release · binaries macos
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/frontend
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+          key: ${{ matrix.target }}
+      - name: Build and package
+        run: make _package-macos-binaries MACOS_TARGETS=${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
