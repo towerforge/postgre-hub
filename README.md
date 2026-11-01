@@ -7,7 +7,6 @@
 
 <p align="center">
   <a href="https://github.com/towerforge/postgre-hub/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/towerforge/postgre-hub?style=flat-square" /></a>
-  <a href="https://hub.docker.com/r/towerforge/postgre-hub"><img alt="Docker image" src="https://img.shields.io/badge/docker-towerforge%2Fpostgre--hub-2496ed?style=flat-square&logo=docker&logoColor=white" /></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/towerforge/postgre-hub?style=flat-square" /></a>
 </p>
 
