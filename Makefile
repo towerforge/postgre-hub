@@ -213,9 +213,11 @@ set-version:
 	printf "\n  $(BOLD)bump$(RESET)  $(DIM)v$$old$(RESET)  →  $(GREEN)v$$new$(RESET)\n\n"; \
 	awk -v new="$$new" 'BEGIN{done=0} !done && /^version = "[^"]+"/ {sub(/"[^"]+"/, "\"" new "\""); done=1} {print}' $(BACKEND_DIR)/Cargo.toml > $(BACKEND_DIR)/Cargo.toml.tmp && mv $(BACKEND_DIR)/Cargo.toml.tmp $(BACKEND_DIR)/Cargo.toml; \
 	awk -v new="$$new" 'BEGIN{done=0} !done && /"version":[[:space:]]*"[^"]+"/ {sub(/"version":[[:space:]]*"[^"]+"/, "\"version\": \"" new "\""); done=1} {print}' $(FRONTEND_DIR)/package.json > $(FRONTEND_DIR)/package.json.tmp && mv $(FRONTEND_DIR)/package.json.tmp $(FRONTEND_DIR)/package.json; \
+	awk -v new="$$new" 'prev ~ /^name = "backend"$$/ && /^version = / {$$0 = "version = \"" new "\""} {print; prev = $$0}' $(DESKTOP_LOCK) > $(DESKTOP_LOCK).tmp && mv $(DESKTOP_LOCK).tmp $(DESKTOP_LOCK); \
 	printf "  $(DIM)updated:$(RESET)\n"; \
 	printf "    backend/Cargo.toml      → version = \"$$new\"\n"; \
 	printf "    frontend/package.json   → \"version\": \"$$new\"\n"; \
+	printf "    desktop/Cargo.lock      → backend $$new\n"; \
 	printf "\n  $(DIM)review with$(RESET)  git diff  $(DIM)then commit & tag$(RESET)  git tag v$$new\n\n"
 
 # ---------------------------------------------------------------------------
@@ -294,7 +296,11 @@ run:
 # ---------------------------------------------------------------------------
 
 # Archivos que llevan la version; el bump los actualiza a la vez.
-VERSION_FILES := $(BACKEND_DIR)/Cargo.toml $(FRONTEND_DIR)/package.json
+# desktop/Cargo.lock guarda la version del crate backend (dependencia por ruta):
+# si no entra en el commit del bump, cualquier cargo que se ejecute despues
+# (rust-analyzer incluido) lo reescribe y el checkout a la rama de destino falla.
+DESKTOP_LOCK  := desktop/Cargo.lock
+VERSION_FILES := $(BACKEND_DIR)/Cargo.toml $(FRONTEND_DIR)/package.json $(DESKTOP_LOCK)
 
 ## Publica una release siguiendo la cadena fija dev → beta → main: la rama de
 ## destino la determina la rama actual, sin preguntar.
