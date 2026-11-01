@@ -7,6 +7,9 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { useSidebars } from "@/contexts/sidebars-context";
+import { useSetToolbar } from "@/contexts/toolbar-context";
+import { Network, Download, Upload } from "lucide-react";
+import { Button } from "@/components/ui";
 import { avatarColor } from "@/components/connections-shell";
 import {
   apiGetProject,
@@ -69,6 +72,7 @@ const QueryEditor = () => {
           proj.name,
           `${proj.host}:${proj.port}/${proj.database}`,
           avatarColor(proj.id, proj.color),
+          proj.environment,
         );
       })
       .finally(() => setSidebarLoading(false));
@@ -83,6 +87,29 @@ const QueryEditor = () => {
       .then(setStructure)
       .catch(() => {});
   }, [id, setPageTitle]);
+
+  // Acciones de toda la conexión en la barra superior: siguen a mano aunque el
+  // panel izquierdo esté oculto. Importar escribe, así que no va en solo lectura.
+  const readOnly = project?.read_only ?? false;
+  useSetToolbar(
+    <>
+      <Button variant={7} onClick={() => setDiagramOpen(true)} title="Entity-relationship diagram">
+        <Network size={14} /> Diagram
+      </Button>
+      <Button variant={7} onClick={() => setTransfer("export")} title="Export schemas as SQL">
+        <Download size={14} /> Export
+      </Button>
+      <Button
+        variant={7}
+        onClick={() => setTransfer("import")}
+        disabled={readOnly}
+        title={readOnly ? "Read-only connection" : "Import a .sql file"}
+      >
+        <Upload size={14} /> Import
+      </Button>
+    </>,
+    [readOnly],
+  );
 
   const openTableTab = (table) => {
     const sql = `SELECT *\nFROM "${table.schema}"."${table.name}"\nLIMIT 100;`;
@@ -127,9 +154,6 @@ const QueryEditor = () => {
           onOpenType={openTypeTab}
           onOpenSequence={openSequenceTab}
           onOpenRoutine={openRoutineTab}
-          onExport={() => setTransfer("export")}
-          onImport={() => setTransfer("import")}
-          onShowDiagram={() => setDiagramOpen(true)}
         />
       )}
 

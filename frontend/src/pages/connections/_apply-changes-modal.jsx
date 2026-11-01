@@ -19,6 +19,16 @@ export const ApplyChangesModal = ({ open, sql, error, applying, onClose, onExecu
     title="Apply pending edits"
     width="80vw"
     height="80vh"
+    footer={
+      <>
+        <Button variant={2} size="xl" onClick={onClose} disabled={applying}>
+          Cancel
+        </Button>
+        <Button variant={1} size="xl" onClick={onExecute} loading={applying} disabled={!sql}>
+          Apply changes
+        </Button>
+      </>
+    }
   >
     <div
       style={{
@@ -71,14 +81,6 @@ export const ApplyChangesModal = ({ open, sql, error, applying, onClose, onExecu
         </div>
       )}
       {error && <Alert tone="error">{error}</Alert>}
-      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-        <Button variant={3} size="sm" onClick={onClose} disabled={applying}>
-          cancel
-        </Button>
-        <Button variant={1} size="sm" onClick={onExecute} loading={applying} disabled={!sql}>
-          execute
-        </Button>
-      </div>
     </div>
   </Modal>
 );

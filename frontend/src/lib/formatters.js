@@ -10,13 +10,14 @@ export const formatBytes = (bytes) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-/** Segundos unix → "23 min ago", "14:32" (mismo día) o "12 Apr" (más antiguo). */
+/** Segundos unix → "just now", "23 min ago", "14:32" (mismo día) o "12 Apr" (más antiguo). */
 export const formatRelativeTime = (unixSec) => {
   if (!unixSec) return "—";
   const date = new Date(unixSec * 1000);
   const now = new Date();
   const diffMin = Math.floor((now.getTime() - date.getTime()) / 60_000);
 
+  if (diffMin < 1) return "just now";
   if (diffMin < 60) return `${diffMin} min ago`;
 
   const sameDay =

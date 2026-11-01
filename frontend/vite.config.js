@@ -43,11 +43,13 @@ export default defineConfig({
         name: "Postgre Hub",
         short_name: "Postgre Hub",
         description: "PostgreSQL database manager",
-        theme_color: "#6965db",
-        background_color: "#0f0f0f",
+        // Azul de la marca (--om-primary) y fondo oscuro de la app (--om-bg)
+        theme_color: "#336791",
+        background_color: "#17191c",
         display: "standalone",
         start_url: "/",
         icons: [
+          { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
           { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
           { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
           {

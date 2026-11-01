@@ -19,24 +19,29 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding-bottom: 4px;
 }
 
 /* ── Pestaña individual (caja azulada con borde, estilo Islands) ── */
 .tab {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: var(--_h);
   margin: 6px 0;
-  padding: 0 12px;
-  font-size: 13px;
+  padding: 0 calc(var(--_px) + 2px);
+  font-family: var(--font-family);
+  font-size: var(--_fs);
   font-weight: 500;
   color: var(--text-2);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-2);
+  border-radius: var(--_radius);
   corner-shape: squircle;
   cursor: pointer;
   white-space: nowrap;
@@ -92,4 +97,20 @@
   height: 6px;
   border-radius: 50%;
   background: var(--om-green);
+}
+
+/* ── Tamaños de la escala --control-* (alto de la pestaña) ── */
+.lg {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
+}
+.xl {
+  --_h: var(--control-h-xl);
+  --_fs: var(--control-fs-xl);
+  --_px: var(--control-px-xl);
+  --_icon: var(--control-icon-xl);
+  --_radius: var(--control-radius-xl);
 }

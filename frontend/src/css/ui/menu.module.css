@@ -1,0 +1,119 @@
+/* Menú desplegable del kit: ancla, superficie flotante tipo panel y sus filas.
+   Las opciones miden un control lg (--control-h-lg) y usan los mismos tokens de
+   relleno, letra e icono que Button variant 7, para que una opción y un botón de
+   barra se lean como de la misma familia. */
+
+/* Ancla: el disparador marca la posición y la superficie cuelga de él */
+.anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Superficie: panel (--panel-radius, squircle, --om-bg-2) con sombra de popup.
+   Rejilla de una columna para que cada opción ocupe el ancho entero. */
+.surface {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 50;
+  display: grid;
+  gap: 1px;
+  padding: 6px;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border-focus);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
+  box-shadow: var(--shadow-pop);
+  font-size: var(--control-fs-lg);
+  line-height: 1;
+  color: var(--om-fg);
+  white-space: nowrap;
+}
+.alignStart {
+  left: 0;
+  transform-origin: top left;
+}
+.alignEnd {
+  right: 0;
+  transform-origin: top right;
+}
+
+/* Fila común de opción y rótulo: alto lg, icono y texto como Button 7 */
+.item,
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-h-lg);
+  padding: 0 var(--control-px-lg);
+  /* Radio concéntrico con la superficie: el de fuera menos el relleno */
+  border-radius: calc(var(--panel-radius) - 6px);
+  corner-shape: squircle;
+}
+
+.item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--om-fg-bright);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.item:hover:not(:disabled),
+.item:focus-visible {
+  background: var(--om-bg-4);
+  outline: none;
+}
+.item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Destructiva: roja siempre; el fondo al pasar también tira a rojo */
+.danger {
+  color: var(--om-red);
+}
+.danger:hover:not(:disabled),
+.danger:focus-visible {
+  background: color-mix(in srgb, var(--om-red) 14%, transparent);
+}
+
+/* Rótulo: informa, no actúa; atenuado y sin hover */
+.label {
+  color: var(--om-fg-muted);
+  cursor: default;
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--om-fg-muted);
+}
+.icon svg {
+  width: var(--control-icon-lg);
+  height: var(--control-icon-lg);
+}
+.danger .icon {
+  color: inherit;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dato a la derecha (versión, atajo): atenuado y con cifras tabulares */
+.meta {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--om-fg-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.separator {
+  height: 1px;
+  margin: 4px var(--control-px-lg);
+  background: var(--om-border);
+}

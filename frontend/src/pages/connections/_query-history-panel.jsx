@@ -2,22 +2,17 @@
 // y las consultas guardadas, ambos en el servidor por usuario y conexión. Un
 // clic carga la consulta en el editor. Es una pieza de /connections/:id.
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Bookmark, History, Trash2 } from "lucide-react";
 import CodeMirror from "@uiw/react-codemirror";
 import { sql as sqlLang, PostgreSQL } from "@codemirror/lang-sql";
 import { editorTheme } from "./_editor-theme";
-import { SegmentedControl, ToolButton } from "@/components/ui";
+import { Tab, TabBar, Tabs, Button } from "@/components/ui";
 import {
   apiListHistory,
   apiClearHistory,
   apiListSavedQueries,
   apiDeleteSavedQuery,
 } from "@/services/connections";
-
-const PANEL_TABS = [
-  { value: "history", label: "History" },
-  { value: "saved", label: "Saved" },
-];
 
 // Extensiones fijas: se crean una vez para no reconfigurar cada vista previa.
 const PREVIEW_EXTENSIONS = [sqlLang({ dialect: PostgreSQL })];
@@ -57,7 +52,7 @@ const metaStyle = {
   display: "flex",
   alignItems: "center",
   gap: 10,
-  padding: "0 8px 2px 4px",
+  padding: "0 8px 2px 8px",
   fontFamily: "var(--font-mono)",
   fontSize: 11,
   color: "var(--om-fg-muted)",
@@ -99,19 +94,40 @@ export const QueryHistoryPanel = ({ projectId, activeSql, version, onLoad, onOpe
 
   return (
     <>
-      <div className="header" style={{ gap: 8, height: 40, padding: "0 8px" }}>
-        <SegmentedControl options={PANEL_TABS} value={tab} onChange={setTab} />
-        <div style={{ flex: 1 }} />
-        {tab === "history" && history.length > 0 && (
-          <ToolButton
-            size="sm"
-            onClick={clearHistory}
-            title="Delete your history for this connection"
+      {/* Mismas pestañas que el editor; el cuerpo va fuera para conservar el
+          scroll de .body */}
+      <Tabs value={tab} onChange={setTab}>
+        <TabBar
+          className="hist-tabs"
+          actions={
+            tab === "history" &&
+            history.length > 0 && (
+              <Button
+                variant={7}
+                onClick={clearHistory}
+                title="Delete your history for this connection"
+              >
+                <Trash2 size={13} /> Clear
+              </Button>
+            )
+          }
+        >
+          <Tab
+            id="history"
+            icon={<History size={14} className="hist-ico" />}
+            badge={history.length || undefined}
           >
-            <Trash2 size={12} /> Clear
-          </ToolButton>
-        )}
-      </div>
+            History
+          </Tab>
+          <Tab
+            id="saved"
+            icon={<Bookmark size={14} className="hist-ico" />}
+            badge={saved.length || undefined}
+          >
+            Saved
+          </Tab>
+        </TabBar>
+      </Tabs>
       <div className="body">
         {tab === "history" ? (
           history.length === 0 ? (
@@ -170,14 +186,14 @@ export const QueryHistoryPanel = ({ projectId, activeSql, version, onLoad, onOpe
                   {fmtWhen(q.updated_at)}
                 </span>
                 <div style={{ flex: 1 }} />
-                <ToolButton
-                  size="sm"
+                <Button
+                  variant={7}
                   iconOnly
                   onClick={(e) => deleteSaved(q, e)}
                   title="Delete saved query"
                 >
-                  <Trash2 size={12} />
-                </ToolButton>
+                  <Trash2 size={13} />
+                </Button>
               </div>
               <SqlPreview sql={q.sql} />
             </div>

@@ -1,23 +1,38 @@
+/* Grupo de botones excluyentes. El alto exterior es el token --control-h-* del
+   tamaño (borde incluido) y los segmentos lo llenan. InlineSelect compone .root
+   y los tamaños para tener el mismo aspecto. */
 .root {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   display: inline-flex;
+  align-items: stretch;
   gap: 2px;
-  background: var(--fill-1);
-  border: 1px solid var(--stroke-1);
-  border-radius: var(--radius-1);
-  padding: 4px;
+  height: var(--_h);
+  padding: 2px;
+  /* Mismo fondo y borde que un campo (Input): se distingue igual sobre la
+     página que dentro de un modal o un panel (--om-bg-2) */
+  background: var(--om-bg);
+  border: 1px solid var(--om-border-focus);
+  border-radius: var(--_radius);
+  corner-shape: squircle;
 }
 
 .item {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 12px;
-  border-radius: calc(var(--radius-1) - 1px);
+  padding: 0 var(--_px);
+  border-radius: calc(var(--_radius) - 2px);
+  corner-shape: squircle;
   border: none;
   cursor: pointer;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   font-weight: 500;
+  line-height: 1;
   background: transparent;
   color: var(--text-3);
   transition:
@@ -32,8 +47,29 @@
   color: var(--text-1);
 }
 
+.item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--om-accent) 70%, transparent);
+  outline-offset: -1px;
+}
+
 .itemActive {
-  background: var(--layer-1);
+  background: var(--om-bg-4);
   color: var(--text-1);
   box-shadow: var(--shadow-1);
+}
+
+/* ── Tamaños de la escala --control-* ── */
+.lg {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
+}
+.xl {
+  --_h: var(--control-h-xl);
+  --_fs: var(--control-fs-xl);
+  --_px: var(--control-px-xl);
+  --_icon: var(--control-icon-xl);
+  --_radius: var(--control-radius-xl);
 }

@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Table2, ChevronDown } from "lucide-react";
-import { Splitter, ToolButton, useResizable } from "@/components/ui";
+import { Splitter, Button, useResizable } from "@/components/ui";
 import { excelCol, fmtRows, fmtSize } from "./_query-utils";
 
 const INSPECTOR_TABS = ["info", "attrs"];
@@ -81,10 +81,10 @@ export const QueryInspector = ({ data, project, tables }) => {
         <div className="tile-head">
           <span className="name">Inspector</span>
           <div ref={menuRef} style={{ marginLeft: "auto", position: "relative" }}>
-            <ToolButton active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+            <Button variant={7} active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
               {tab}
               <ChevronDown size={13} />
-            </ToolButton>
+            </Button>
             {menuOpen && (
               <div className="pos-menu">
                 {INSPECTOR_TABS.map((t) => (

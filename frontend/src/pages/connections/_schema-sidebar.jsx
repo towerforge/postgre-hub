@@ -1,7 +1,6 @@
 // Árbol del esquema de la conexión abierta: tablas y vistas, tipos,
-// secuencias y rutinas agrupados por esquema, más los botones de diagrama ER,
-// exportar e importar. Solo pinta y avisa: los datos y lo que
-// pasa al abrir un objeto los decide la pantalla /connections/:id.
+// secuencias y rutinas agrupados por esquema. Solo pinta y avisa: los datos y
+// lo que pasa al abrir un objeto los decide la pantalla /connections/:id.
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -12,11 +11,8 @@ import {
   Shapes,
   ListOrdered,
   SquareFunction,
-  Download,
-  Upload,
-  Network,
 } from "lucide-react";
-import { Spinner, Splitter, ToolButton, useResizable } from "@/components/ui";
+import { Spinner, Splitter, Button, useResizable } from "@/components/ui";
 import { fmtRows, fmtSize, groupBy } from "./_query-utils";
 
 // Color del icono de cada tipo de objeto en el árbol.
@@ -62,9 +58,6 @@ export const SchemaSidebar = ({
   onOpenType,
   onOpenSequence,
   onOpenRoutine,
-  onExport,
-  onImport,
-  onShowDiagram,
 }) => {
   const [sidebarTab, setSidebarTab] = useState("tables");
   const panel = useResizable({ key: "schema", initial: 280, min: 200, max: 600, axis: "x" });
@@ -186,10 +179,10 @@ export const SchemaSidebar = ({
           <span className="badge">{currentTotal}</span>
           <span style={{ marginLeft: "auto" }} />
           <div ref={menuRef} style={{ position: "relative" }}>
-            <ToolButton active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+            <Button variant={7} active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
               {currentTab.label}
               <ChevronDown size={13} />
-            </ToolButton>
+            </Button>
             {menuOpen && (
               <div className="pos-menu">
                 {SIDEBAR_TABS.map(({ id: tid, label }) => (
@@ -277,29 +270,6 @@ export const SchemaSidebar = ({
               ),
             )
           )}
-        </div>
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            gap: 4,
-            padding: 8,
-            borderTop: "1px solid var(--om-border)",
-          }}
-        >
-          <ToolButton
-            onClick={onShowDiagram}
-            title="Entity-relationship diagram"
-            style={{ flex: 1 }}
-          >
-            <Network size={13} /> Diagram
-          </ToolButton>
-          <ToolButton onClick={onExport} title="Export schemas as SQL" style={{ flex: 1 }}>
-            <Download size={13} /> Export
-          </ToolButton>
-          <ToolButton onClick={onImport} title="Import a .sql file" style={{ flex: 1 }}>
-            <Upload size={13} /> Import
-          </ToolButton>
         </div>
       </aside>
       <Splitter

@@ -8,6 +8,7 @@ import routes from "~react-pages";
 import { PageTitleProvider } from "@/contexts/page-title-context";
 import { SidebarsProvider } from "@/contexts/sidebars-context";
 import { StatusBarProvider } from "@/contexts/status-bar-context";
+import { ToolbarProvider } from "@/contexts/toolbar-context";
 import { HistoryBarProvider } from "@/contexts/history-bar-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { MainLayout } from "@/components/main-layout";
@@ -41,11 +42,13 @@ const App = () => (
     <PageTitleProvider>
       <SidebarsProvider>
         <StatusBarProvider>
-          <HistoryBarProvider>
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-          </HistoryBarProvider>
+          <ToolbarProvider>
+            <HistoryBarProvider>
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </HistoryBarProvider>
+          </ToolbarProvider>
         </StatusBarProvider>
       </SidebarsProvider>
     </PageTitleProvider>

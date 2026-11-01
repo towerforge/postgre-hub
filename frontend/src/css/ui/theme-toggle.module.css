@@ -1,5 +1,7 @@
+/* Mismo alto exterior que un control lg (--control-h-lg, borde incluido) */
 .root {
   display: inline-flex;
+  height: var(--control-h-lg);
   background: var(--fill-1);
   border: 1px solid var(--stroke-1);
   border-radius: var(--radius-1);
@@ -12,7 +14,7 @@
   align-items: center;
   justify-content: center;
   width: 30px;
-  height: 26px;
+  height: 100%;
   border: none;
   background: transparent;
   border-radius: calc(var(--radius-1) - 2px);

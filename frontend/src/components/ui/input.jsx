@@ -4,14 +4,19 @@
 import { AlertCircle } from "lucide-react";
 import styles from "@/css/ui/input.module.css";
 
-/** `error` sustituye a `hint` y pinta el borde en rojo; `size="lg"` lo pone a la altura del botón xl. */
+const SIZES = ["lg", "xl"];
+
+/**
+ * `error` sustituye a `hint` y pinta el borde en rojo. `size`: lg 32px
+ * (por defecto) o xl 38px; mide lo mismo que un Button del mismo tamaño.
+ */
 export const Input = ({
   label,
   hint,
   error,
   iconLeft,
   iconRight,
-  size = "md",
+  size = "lg",
   disabled,
   required,
   id,
@@ -20,6 +25,7 @@ export const Input = ({
 }) => {
   const wrapperClass = [
     styles.wrapper,
+    styles[SIZES.includes(size) ? size : "lg"],
     disabled ? styles.disabled : "",
     error ? styles.error : "",
   ].join(" ");
@@ -33,7 +39,7 @@ export const Input = ({
         </label>
       )}
 
-      <div className={`${styles.control} ${size === "lg" ? styles.lg : ""}`}>
+      <div className={styles.control}>
         {iconLeft && <span className={styles.iconLeft}>{iconLeft}</span>}
         <input
           id={id}

@@ -3,7 +3,7 @@
 // pegar celdas y aplicar cambios. Es una pieza de /connections/:id.
 import { useState } from "react";
 import { Keyboard } from "lucide-react";
-import { Modal, ToolButton } from "@/components/ui";
+import { Modal, Button } from "@/components/ui";
 
 const SHORTCUT_GROUPS = [
   {
@@ -61,10 +61,10 @@ export const ShortcutsButton = () => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <ToolButton iconOnly size="sm" onClick={() => setOpen(true)} title="Show keyboard shortcuts">
+      <Button variant={7} onClick={() => setOpen(true)} title="Show keyboard shortcuts">
         <Keyboard size={14} />
         Shortcuts
-      </ToolButton>
+      </Button>
       <Modal
         open={open}
         onClose={() => setOpen(false)}

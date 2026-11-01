@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="195 155 110 110">
-  <defs>
-    <clipPath id="rounded">
-      <rect width="500" height="510" rx="60" ry="60"/>
-    </clipPath>
-  </defs>
-  <rect width="500" height="510" rx="60" ry="60" fill="#0f0f14"/>
-  <!-- Iris -->
-  <circle cx="250" cy="210" r="42" fill="#1e1b2e" stroke="#c4b5fd" stroke-width="5"/>
-  <!-- Pupil -->
-  <circle cx="250" cy="210" r="18" fill="#c4b5fd" opacity="0.2"/>
-  <circle cx="250" cy="210" r="10" fill="#c4b5fd"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#336791" d="M12 0H36C46.91 0 48 1.09 48 12V36C48 46.91 46.91 48 36 48H12C1.09 48 0 46.91 0 36V12C0 1.09 1.09 0 12 0Z"/><path fill="none" stroke="#fff" stroke-width="4.88" d="M10.59 24H37.41M10.59 38.62V11.81H14.25A6.09 6.09 0 0 1 14.25 24H10.59M28.47 9.38V38.62M37.41 9.38V38.62"/></svg>

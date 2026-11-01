@@ -75,6 +75,7 @@ pub fn open(data_dir: &Path) -> Result<Connection> {
         "ALTER TABLE projects ADD COLUMN color           TEXT    NOT NULL DEFAULT ''",
         "ALTER TABLE projects ADD COLUMN read_only       INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE projects ADD COLUMN query_timeout   INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE projects ADD COLUMN environment     TEXT    NOT NULL DEFAULT ''",
     ] {
         let _ = conn.execute(sql, []);
     }

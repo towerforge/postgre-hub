@@ -1,0 +1,24 @@
+/* Avatar del kit: círculo con la inicial. El tamaño de cada escalón deja el avatar
+   dentro de un control de la escala con aire: lg 20px (en 32), xl 24px (en 38). */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--om-bg-4);
+  color: var(--om-fg-bright);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+.lg {
+  width: 20px;
+  height: 20px;
+  font-size: 10.5px;
+}
+.xl {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+}

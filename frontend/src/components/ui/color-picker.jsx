@@ -37,8 +37,14 @@ export const CONNECTION_COLORS = [
   "#7d7d7d",
 ];
 
-/** Selector controlado: `value` es el color ("" = automático) y `onChange` recibe el nuevo. */
-export const ColorPicker = ({ value, onChange, colors = CONNECTION_COLORS }) => {
+const SIZES = ["lg", "xl"];
+
+/**
+ * Selector controlado: `value` es el color ("" = automático) y `onChange` recibe el
+ * nuevo. `size`: lg 32px (por defecto) o xl 38px de disparador.
+ */
+export const ColorPicker = ({ value, onChange, size = "lg", colors = CONNECTION_COLORS }) => {
+  const s = SIZES.includes(size) ? size : "lg";
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const triggerRef = useRef(null);
@@ -142,8 +148,8 @@ export const ColorPicker = ({ value, onChange, colors = CONNECTION_COLORS }) => 
         style={{
           position: "relative",
           width: "100%",
-          height: 32,
-          padding: "0 28px 0 12px",
+          height: `var(--control-h-${s})`,
+          padding: `0 calc(var(--control-px-${s}) * 2 + var(--control-icon-${s})) 0 var(--control-px-${s})`,
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -152,7 +158,8 @@ export const ColorPicker = ({ value, onChange, colors = CONNECTION_COLORS }) => 
           color: "var(--om-fg-bright)",
           cursor: "pointer",
           fontFamily: "var(--font-mono)",
-          fontSize: 13,
+          fontSize: `var(--control-fs-${s})`,
+          borderRadius: `var(--control-radius-${s})`,
           textAlign: "left",
           transition: "border-color 0.15s",
           userSelect: "none",

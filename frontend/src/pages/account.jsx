@@ -108,11 +108,11 @@ const AccountPage = () => {
   return (
     <ConnectionsShell headerLeft="Account" headerRight={null}>
       <div style={{ padding: 24 }}>
-        <Card variant="panel" style={{ maxWidth: 480 }}>
+        <Card variant={2} style={{ maxWidth: 480 }}>
           <CardBody style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {/* La contraseña actual se pide siempre */}
             <PasswordInput
-              size="lg"
+              size="xl"
               label="Current password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -123,7 +123,7 @@ const AccountPage = () => {
             <hr style={{ border: "none", borderTop: "1px solid var(--om-border)", margin: 0 }} />
 
             <Input
-              size="lg"
+              size="xl"
               label="New username"
               type="text"
               value={newUsername}
@@ -134,7 +134,7 @@ const AccountPage = () => {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <PasswordInput
-                size="lg"
+                size="xl"
                 label="New password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -145,7 +145,7 @@ const AccountPage = () => {
                 <>
                   <PasswordStrength password={newPassword} />
                   <PasswordInput
-                    size="lg"
+                    size="xl"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"

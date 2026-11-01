@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "./input";
-import { IconButton } from "./icon-button";
+import { Button } from "./button";
 
 export const PasswordInput = (props) => {
   const [show, setShow] = useState(false);
@@ -12,13 +12,13 @@ export const PasswordInput = (props) => {
       {...props}
       type={show ? "text" : "password"}
       iconRight={
-        <IconButton
-          size="sm"
+        <Button
+          variant={8}
           label={show ? "Hide password" : "Show password"}
           onClick={() => setShow((s) => !s)}
         >
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
-        </IconButton>
+        </Button>
       }
     />
   );

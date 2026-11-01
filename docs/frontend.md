@@ -43,10 +43,10 @@ Routes come from the files in `src/pages` (`vite-plugin-pages`, imported in `app
 | `pages/connections/[id].jsx` | `/connections/:id` — the SQL editor of one connection |
 | `pages/ssh-tunnels.jsx` | `/ssh-tunnels` |
 | `pages/account.jsx`, `users.jsx`, `appearance.jsx` | `/account`, `/users`, `/appearance` |
-| `pages/dev.jsx` | `/dev` — the UI kit catalog. In production it redirects to `/connections` |
-| `pages/login.jsx`, `security.jsx`, `settings/*` | Old URLs kept as redirects so saved links keep working |
+| `pages/design-system/index.jsx` | `/design-system` — the UI kit catalog (design system). In production it redirects to `/connections` |
+| `pages/login.jsx`, `security.jsx`, `dev.jsx`, `settings/*` | Old URLs kept as redirects so saved links keep working |
 
-Files and folders that start with `_` are **not** routes: they are the code of the screen next to them (`pages/connections/_sql-editor.jsx`, `pages/_dev-forms.jsx`). If two screens need the same piece, it moves to `components/`.
+Files and folders that start with `_` are **not** routes: they are the code of the screen next to them (`pages/connections/_sql-editor.jsx`, `pages/design-system/_forms.jsx`). If two screens need the same piece, it moves to `components/`.
 
 Without a session, every URL shows the sign-in screen (or the first-user setup on a fresh install); there is no `/login` page.
 
