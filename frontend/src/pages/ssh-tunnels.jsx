@@ -51,6 +51,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
   const [testing, setTesting] = useState(false);
   const [testRes, setTestRes] = useState(null);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const fileRef = useRef(null);
 
   const str = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -88,16 +89,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
   const footer = (
     <>
       {isEdit && onDelete && (
-        <Button
-          variant={5}
-          size="xl"
-          onClick={() => {
-            if (
-              confirm(`Delete tunnel "${tunnel.name}"? Connections using it will lose SSH access.`)
-            )
-              onDelete();
-          }}
-        >
+        <Button variant={5} size="xl" onClick={() => setConfirmDelete(true)}>
           <Trash2 size={14} /> Delete
         </Button>
       )}
@@ -116,116 +108,164 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
     </>
   );
 
+  // Confirmación con el Modal del kit en lugar de `window.confirm`, que el
+  // webview de la app de escritorio no muestra igual en todas las plataformas.
+  // Se cierra antes de borrar, como en el modal de conexión, y sin más cambios
+  // de estado: re-renderizar mientras el padre retira este modal hace que las
+  // salidas animadas choquen y React avise de claves duplicadas. Si el borrado
+  // falla, el modal sigue abierto y el error sale en su Alert.
+  const handleConfirmDelete = async () => {
+    setConfirmDelete(false);
+    try {
+      await onDelete();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete.");
+    }
+  };
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={isEdit ? "Edit SSH tunnel" : "New SSH tunnel"}
-      bodyFlush
-      footer={footer}
-    >
-      <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
-        <FormRow label="Name">
-          <Input
-            size="xl"
-            value={form.name}
-            onChange={str("name")}
-            placeholder="Production bastion"
-            autoFocus
-          />
-        </FormRow>
-        <FormRow label="SSH host">
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <Input
-                size="xl"
-                value={form.host}
-                onChange={str("host")}
-                placeholder="bastion.example.com"
-              />
-            </div>
-            <div style={{ width: 96 }}>
-              <Input
-                size="xl"
-                value={String(form.port)}
-                onChange={(e) => setForm((f) => ({ ...f, port: Number(e.target.value) }))}
-                type="number"
-                placeholder="22"
-              />
-            </div>
-          </div>
-        </FormRow>
-        <FormRow label="SSH user">
-          <Input size="xl" value={form.username} onChange={str("username")} placeholder="ubuntu" />
-        </FormRow>
-        <FormRow label="Auth">
-          <SegmentedControl
-            size="xl"
-            options={AUTH_OPTIONS}
-            value={form.auth_type}
-            onChange={(v) => setForm((f) => ({ ...f, auth_type: v }))}
-          />
-        </FormRow>
-        {form.auth_type === "password" ? (
-          <FormRow label="Password">
-            <PasswordInput
+    <>
+      <Modal
+        open
+        onClose={onClose}
+        title={isEdit ? "Edit SSH tunnel" : "New SSH tunnel"}
+        bodyFlush
+        footer={footer}
+      >
+        <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <FormRow label="Name">
+            <Input
               size="xl"
-              value={form.password ?? ""}
-              onChange={str("password")}
-              placeholder={isEdit ? "(unchanged)" : "••••••••"}
+              value={form.name}
+              onChange={str("name")}
+              placeholder="Production bastion"
+              autoFocus
             />
           </FormRow>
-        ) : (
-          <>
-            <FormRow label="Private key">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Textarea
-                  mono
-                  value={form.private_key ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, private_key: e.target.value }))}
-                  placeholder={
-                    isEdit
-                      ? "(unchanged)"
-                      : "-----BEGIN OPENSSH PRIVATE KEY-----\n…\nor a path like ~/.ssh/id_rsa"
-                  }
+          <FormRow label="SSH host">
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <Input
+                  size="xl"
+                  value={form.host}
+                  onChange={str("host")}
+                  placeholder="bastion.example.com"
                 />
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Button variant={3} onClick={() => fileRef.current?.click()}>
-                    <FileKey size={13} /> Browse…
-                  </Button>
-                  <Text variant="hint">
-                    Load a key file, or paste its contents, or type a path.
-                  </Text>
-                  {/* Input de fichero oculto; lo abre el botón Browse */}
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    hidden
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const text = await file.text();
-                      setForm((f) => ({ ...f, private_key: text }));
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
               </div>
-            </FormRow>
-            <FormRow label="Passphrase">
+              <div style={{ width: 96 }}>
+                <Input
+                  size="xl"
+                  value={String(form.port)}
+                  onChange={(e) => setForm((f) => ({ ...f, port: Number(e.target.value) }))}
+                  type="number"
+                  placeholder="22"
+                />
+              </div>
+            </div>
+          </FormRow>
+          <FormRow label="SSH user">
+            <Input
+              size="xl"
+              value={form.username}
+              onChange={str("username")}
+              placeholder="ubuntu"
+            />
+          </FormRow>
+          <FormRow label="Auth">
+            <SegmentedControl
+              size="xl"
+              options={AUTH_OPTIONS}
+              value={form.auth_type}
+              onChange={(v) => setForm((f) => ({ ...f, auth_type: v }))}
+            />
+          </FormRow>
+          {form.auth_type === "password" ? (
+            <FormRow label="Password">
               <PasswordInput
                 size="xl"
                 value={form.password ?? ""}
                 onChange={str("password")}
-                placeholder={isEdit ? "(unchanged)" : "optional"}
+                placeholder={isEdit ? "(unchanged)" : "••••••••"}
               />
             </FormRow>
+          ) : (
+            <>
+              <FormRow label="Private key">
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Textarea
+                    mono
+                    value={form.private_key ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, private_key: e.target.value }))}
+                    placeholder={
+                      isEdit
+                        ? "(unchanged)"
+                        : "-----BEGIN OPENSSH PRIVATE KEY-----\n…\nor a path like ~/.ssh/id_rsa"
+                    }
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Button variant={3} onClick={() => fileRef.current?.click()}>
+                      <FileKey size={13} /> Browse…
+                    </Button>
+                    <Text variant="hint">
+                      Load a key file, or paste its contents, or type a path.
+                    </Text>
+                    {/* Input de fichero oculto; lo abre el botón Browse */}
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      hidden
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const text = await file.text();
+                        setForm((f) => ({ ...f, private_key: text }));
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+              </FormRow>
+              <FormRow label="Passphrase">
+                <PasswordInput
+                  size="xl"
+                  value={form.password ?? ""}
+                  onChange={str("password")}
+                  placeholder={isEdit ? "(unchanged)" : "optional"}
+                />
+              </FormRow>
+            </>
+          )}
+          {testRes && <Alert tone={testRes.ok ? "success" : "error"}>{testRes.msg}</Alert>}
+          {error && <Alert tone="error">{error}</Alert>}
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmDelete && isEdit && !!onDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete SSH tunnel"
+        size="sm"
+        zIndex={10001}
+        footer={
+          <>
+            <Button variant={2} size="xl" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button variant={6} size="xl" onClick={handleConfirmDelete}>
+              <Trash2 size={14} /> Delete
+            </Button>
           </>
-        )}
-        {testRes && <Alert tone={testRes.ok ? "success" : "error"}>{testRes.msg}</Alert>}
-        {error && <Alert tone="error">{error}</Alert>}
-      </div>
-    </Modal>
+        }
+      >
+        <div style={{ fontSize: 13, lineHeight: 1.55, color: "var(--om-fg)" }}>
+          Are you sure you want to delete{" "}
+          <span style={{ color: "var(--om-fg-bright)", fontWeight: 600 }}>"{tunnel?.name}"</span>?
+          <div style={{ marginTop: 6, fontSize: 11.5, color: "var(--om-fg-muted)" }}>
+            Connections using it will lose SSH access.
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 };
 

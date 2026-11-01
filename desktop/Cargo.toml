@@ -1,0 +1,27 @@
+[package]
+name = "postgre-hub-desktop"
+# La versión real del bundle sale de ../frontend/package.json (tauri.conf.json).
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "postgre-hub-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+backend = { path = "../backend" }
+tauri = { version = "2.12", features = [] }
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-window-state = "2.5"
+tauri-plugin-dialog = "2.8"
+tauri-plugin-opener = "2.7"
+tauri-plugin-updater = "2.14"
+tokio = { version = "1", features = ["net", "sync", "time"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+getrandom = "0.3"
+url = "2"

@@ -1,11 +1,12 @@
 // Modales de exportar e importar SQL de la conexión abierta. Exportar genera
 // en el servidor un volcado en SQL plano de los esquemas elegidos y lo
-// descarga; importar ejecuta un `.sql` subido en una sola transacción. Son
+// descarga (en la app de escritorio, lo guarda con el diálogo nativo); importar ejecuta un `.sql` subido en una sola transacción. Son
 // piezas del editor SQL (/connections/:id), que decide cuándo se abren.
 import { useEffect, useRef, useState } from "react";
 import { Download, Upload, FileText } from "lucide-react";
 import { Alert, Badge, Button, Checkbox, InfoBox, Modal, Spinner, Text } from "@/components/ui";
-import { apiListSchemas, apiExportDump, apiImportDump } from "@/services/connections";
+import { apiListSchemas, apiImportDump, saveExport } from "@/services/connections";
+import { useAuth } from "@/contexts/auth-context";
 
 const INCLUDE = [
   { key: "structure", label: "Structure", hint: "Types, sequences, tables, constraints, indexes" },
@@ -46,6 +47,7 @@ const fmtBytes = (n) =>
 
 /** Modal de exportación: elige esquemas y qué incluir, y descarga el `.sql`. */
 export const ExportModal = ({ projectId, open, onClose }) => {
+  const { desktop } = useAuth();
   const [schemas, setSchemas] = useState([]);
   const [database, setDatabase] = useState("");
   const [selected, setSelected] = useState(new Set());
@@ -97,14 +99,11 @@ export const ExportModal = ({ projectId, open, onClose }) => {
     setDone("");
     try {
       const options = { schemas: [...selected], ...include, drop: drop && include.structure };
-      const { blob, filename } = await apiExportDump(projectId, options);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      setDone(`${filename} · ${fmtBytes(blob.size)}`);
+      const r = await saveExport(projectId, options, { desktop });
+      // Cancelar el diálogo nativo no es un error: no se muestra nada
+      if (r.saved) {
+        setDone(r.path ? `Saved to ${r.path}` : `Downloaded ${r.filename} · ${fmtBytes(r.size)}`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed");
     } finally {
@@ -117,7 +116,7 @@ export const ExportModal = ({ projectId, open, onClose }) => {
       <Text variant="hint" style={{ flex: 1 }}>
         {plural(selected.size, "schema")} from <b>{database || "…"}</b> · plain SQL
       </Text>
-      <Button variant={2} size="xl" onClick={onClose}>
+      <Button variant={2} size="xl" onClick={onClose} disabled={exporting}>
         Cancel
       </Button>
       <Button
@@ -126,13 +125,14 @@ export const ExportModal = ({ projectId, open, onClose }) => {
         onClick={handleExport}
         disabled={exporting || selected.size === 0 || nothingIncluded}
       >
-        <Download size={14} /> {exporting ? "Exporting…" : "Export .sql"}
+        <Download size={14} /> {exporting ? (desktop ? "Saving…" : "Exporting…") : "Export .sql"}
       </Button>
     </>
   );
 
   return (
-    <Modal open={open} onClose={onClose} title="Export SQL" footer={footer}>
+    // Mientras se guarda no se cierra: en escritorio la petición espera al diálogo nativo
+    <Modal open={open} onClose={exporting ? () => {} : onClose} title="Export SQL" footer={footer}>
       {loading ? (
         <div style={{ padding: 24, display: "flex", justifyContent: "center" }}>
           <Spinner label="Loading schemas…" />
@@ -223,7 +223,7 @@ export const ExportModal = ({ projectId, open, onClose }) => {
           </section>
 
           {error && <Alert tone="error">{error}</Alert>}
-          {done && <Alert tone="success">Downloaded {done}</Alert>}
+          {done && <Alert tone="success">{done}</Alert>}
         </div>
       )}
     </Modal>

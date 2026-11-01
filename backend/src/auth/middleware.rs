@@ -14,10 +14,10 @@ pub async fn require_auth(
     request: Request,
     next: Next,
 ) -> Response {
-    if let Some(token) = extract_session_cookie(request.headers()) {
-        if auth.is_session_valid(&token).await {
-            return next.run(request).await;
-        }
+    if let Some(token) = extract_session_cookie(request.headers())
+        && auth.is_session_valid(&token).await
+    {
+        return next.run(request).await;
     }
 
     (

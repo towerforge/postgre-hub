@@ -28,10 +28,20 @@ sesión principal:
 
 ## Trampas
 
-- `make check` es `cargo check` + `cargo clippy` + ESLint. **No hay tests** en el repo.
+- `make check` es `cargo check` + `cargo clippy` + ESLint y **no ejecuta tests**. Los del backend
+  (modo escritorio y askpass) van aparte: `docker compose run --rm --no-deps -e PH_TEST_PG_HOST=sandbox app cargo test`.
+  No hay tests de frontend.
 - El backend no está formateado con rustfmt: `make fmt` lo reescribiría entero. Para el
   frontend, solo `docker compose run --rm --no-deps frontend pnpm fmt`.
 - No hay `make migrate`: las migraciones de SQLite se aplican en `db::open()` al arrancar.
 - Dev: frontend `localhost:4300`, API `localhost:4301` (modo `--dev`: sin middleware de auth, pero el frontend
   sigue enseñando el login porque `/api/auth/status` dice `authenticated:false`), PostgreSQL de
   pruebas en `localhost:4302` (desde la app: host `sandbox`, puerto 5432, `postgres`/`postgres`).
+- App de escritorio (crate `desktop/`, Tauri 2, sin workspace en la raíz): `make desktop-dev`,
+  `make desktop-build` y `make package-desktop` corren en el **host**, no en Docker (es una GUI;
+  necesita `cargo install tauri-cli --locked`). `desktop-build` compila antes el frontend porque
+  el backend embebe `frontend/dist`. Lint/formato solo con `--manifest-path desktop/Cargo.toml`
+  (`cargo clippy`, `cargo fmt`); nunca `make fmt`. Detalle en `docs/desktop.md`.
+- La versión del escritorio sale de `frontend/package.json` (`tauri.conf.json`); `make set-version`
+  ya la cubre. El updater y la firma solo se activan en CI con secrets: un `cargo tauri build`
+  local no firma ni genera artefactos de update.

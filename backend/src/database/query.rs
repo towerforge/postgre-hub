@@ -13,7 +13,7 @@ use crate::auth::AuthState;
 
 // ── SSH helpers ───────────────────────────────────────────────────────────────
 
-use crate::database::tunnels::materialize_key;
+use crate::database::tunnels::{materialize_key, ssh_command, Askpass, NULL_DEVICE};
 
 fn free_local_port() -> Result<u16, String> {
     std::net::TcpListener::bind("127.0.0.1:0")
@@ -41,24 +41,14 @@ fn start_ssh_tunnel(
         let (key_path, key_guard) = materialize_key(ssh_private_key)?;
         let local_port = free_local_port()?;
 
-        let askpass_script = if !ssh_password.is_empty() {
-            let path = std::env::temp_dir().join(format!("ph_askpass_{}.sh", uuid::Uuid::new_v4()));
-            let content = format!("#!/bin/sh\necho '{}'\n", ssh_password.replace('\'', "'\\''"));
-            std::fs::write(&path, content).ok();
-            #[cfg(unix)] {
-                use std::os::unix::fs::PermissionsExt;
-                let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700));
-            }
-            Some(path)
-        } else {
-            None
-        };
+        let askpass = Askpass::write(ssh_password)?;
 
-        let mut cmd = std::process::Command::new("ssh");
+        let known_hosts = format!("UserKnownHostsFile={NULL_DEVICE}");
+        let mut cmd = ssh_command();
         cmd.args([
                 "-N",
                 "-o", "StrictHostKeyChecking=no",
-                "-o", "UserKnownHostsFile=/dev/null",
+                "-o", &known_hosts,
                 "-o", "ExitOnForwardFailure=yes",
                 "-o", "ConnectTimeout=15",
                 "-o", "PasswordAuthentication=no",
@@ -70,10 +60,8 @@ fn start_ssh_tunnel(
             .stdin(std::process::Stdio::null())
             .stderr(std::process::Stdio::piped());
 
-        if let Some(ref script) = askpass_script {
-            cmd.env("SSH_ASKPASS", script)
-               .env("SSH_ASKPASS_REQUIRE", "force")
-               .env("DISPLAY", "");
+        if let Some(ref script) = askpass {
+            script.apply(&mut cmd);
         }
 
         let mut child = cmd.spawn()
@@ -91,21 +79,13 @@ fn start_ssh_tunnel(
                     if let Some(mut e) = child.stderr.take() {
                         let _ = e.read_to_string(&mut stderr);
                     }
-                    if let Some(script) = askpass_script {
-                        let _ = std::fs::remove_file(script);
-                    }
                     return Err(format!(
                         "SSH tunnel exited ({}): {}",
                         status.code().unwrap_or(-1),
                         stderr.lines().find(|l| !l.trim().is_empty()).unwrap_or("unknown error")
                     ));
                 }
-                Err(e) => {
-                    if let Some(script) = askpass_script {
-                        let _ = std::fs::remove_file(script);
-                    }
-                    return Err(format!("SSH process error: {e}"));
-                }
+                Err(e) => return Err(format!("SSH process error: {e}")),
                 Ok(None) => {}
             }
             if std::net::TcpStream::connect_timeout(
@@ -118,9 +98,8 @@ fn start_ssh_tunnel(
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
 
-        if let Some(script) = askpass_script {
-            let _ = std::fs::remove_file(script);
-        }
+        // La passphrase ya no hace falta: el script se borra al soltarlo.
+        drop(askpass);
 
         if !tunnel_ready {
             let _ = child.kill();
@@ -1091,13 +1070,13 @@ fn is_bool_type(t: &str) -> bool {
 
 fn q_lit(value: &str, ty: &str) -> String {
     let t = ty.to_lowercase();
-    if is_numeric_type(&t) {
-        if let Ok(n) = value.trim().parse::<f64>() {
-            if n.fract() == 0.0 && n.is_finite() && n.abs() < 1e18 {
-                return (n as i64).to_string();
-            }
-            return n.to_string();
+    if is_numeric_type(&t)
+        && let Ok(n) = value.trim().parse::<f64>()
+    {
+        if n.fract() == 0.0 && n.is_finite() && n.abs() < 1e18 {
+            return (n as i64).to_string();
         }
+        return n.to_string();
     }
     if is_bool_type(&t) {
         let lo = value.trim().to_lowercase();

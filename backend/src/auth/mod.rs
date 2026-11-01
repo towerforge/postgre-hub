@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, SystemTime};
@@ -19,34 +18,26 @@ pub struct AuthState {
     pub secure_cookies:   bool,
     /// Consultas en curso: query_id del cliente → (conexión, pid del backend)
     pub running_queries:  Arc<std::sync::Mutex<HashMap<String, (String, i32)>>>,
+    /// Solo `Some` en la app de escritorio.
+    pub desktop:          Option<Arc<crate::desktop::DesktopState>>,
 }
 
 impl AuthState {
-    pub fn new() -> Self {
-        let data_dir = std::env::var("DATA_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from("."));
-
-        let session_hours: u64 = std::env::var("SESSION_DURATION_HOURS")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(24);
-
-        let secure_cookies = std::env::var("SECURE_COOKIES")
-            .map(|v| v == "true" || v == "1")
-            .unwrap_or(false);
-
-        let conn       = crate::db::open(&data_dir).expect("Failed to open database");
+    /// Abre la SQLite de `cfg.data_dir`. Devuelve el error (ruta incluida) en
+    /// vez de hacer panic: el escritorio lo muestra y el binario sale con 1.
+    pub fn new(cfg: &crate::ServerConfig) -> Result<Self, String> {
+        let conn       = crate::db::open(&cfg.data_dir)?;
         let setup_done = Self::check_setup_done(&conn);
 
-        Self {
+        Ok(Self {
             sessions:         Arc::new(Mutex::new(HashMap::new())),
-            session_duration: Duration::from_secs(session_hours * 3600),
+            session_duration: Duration::from_secs(cfg.session_hours * 3600),
             db:               Arc::new(std::sync::Mutex::new(conn)),
             setup_done:       Arc::new(AtomicBool::new(setup_done)),
-            secure_cookies,
+            secure_cookies:   cfg.secure_cookies,
             running_queries:  Arc::new(std::sync::Mutex::new(HashMap::new())),
-        }
+            desktop:          cfg.desktop.as_ref().map(|d| Arc::new(crate::desktop::DesktopState::new(d))),
+        })
     }
 
     fn check_setup_done(conn: &rusqlite::Connection) -> bool {

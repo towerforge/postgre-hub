@@ -7,10 +7,11 @@
 // en sus piezas de al lado.
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Download, Lock, Plus } from "lucide-react";
-import { Button, Badge } from "@/components/ui";
+import { Alert, Button, Badge, Text } from "@/components/ui";
+import { useAuth } from "@/contexts/auth-context";
 import { apiRunQuery, apiBuildChanges } from "@/services/connections";
 import { excelCol, isNumericType } from "./_query-utils";
-import { downloadResult } from "./_result-export";
+import { saveResult } from "./_result-export";
 import { useGridKeyboard } from "./_use-grid-keyboard";
 import { CellPopover } from "./_cell-popover";
 import { ApplyChangesModal } from "./_apply-changes-modal";
@@ -51,6 +52,33 @@ export const QueryResultView = ({
   // sustituye el valor en vez de añadirse.
   const typingSelRef = useRef(null);
   const wrapRef = useRef(null);
+  // Guardado a CSV/JSON. En escritorio la petición espera al diálogo nativo:
+  // `saving` deshabilita los botones y `savedPath` avisa de dónde quedó.
+  const { desktop } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [savedPath, setSavedPath] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+
+  // El aviso de la ruta guardada se retira solo al cabo de unos segundos
+  useEffect(() => {
+    if (!savedPath) return;
+    const t = setTimeout(() => setSavedPath(null), 6000);
+    return () => clearTimeout(t);
+  }, [savedPath]);
+
+  const handleSave = async (format) => {
+    setSaving(true);
+    setSavedPath(null);
+    setSaveError(null);
+    try {
+      const r = await saveResult(result, format, tableName, { desktop });
+      if (r.saved && r.path) setSavedPath(r.path);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     setEdits(new Map());
@@ -517,9 +545,17 @@ export const QueryResultView = ({
           )}
           {result.columns.length > 0 && (
             <>
+              {saving && desktop && <Text variant="hint">Saving…</Text>}
+              {savedPath && (
+                <Text variant="hint" title={savedPath}>
+                  Saved to {savedPath.split(/[\\/]/).pop()}
+                </Text>
+              )}
+              {saveError && <Alert tone="error">{saveError}</Alert>}
               <Button
                 variant={7}
-                onClick={() => downloadResult(result, "csv", tableName)}
+                onClick={() => handleSave("csv")}
+                disabled={saving}
                 title="Download all rows as CSV"
               >
                 <Download size={13} />
@@ -527,7 +563,8 @@ export const QueryResultView = ({
               </Button>
               <Button
                 variant={7}
-                onClick={() => downloadResult(result, "json", tableName)}
+                onClick={() => handleSave("json")}
+                disabled={saving}
                 title="Download all rows as JSON"
               >
                 <Download size={13} />
