@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Sin permisos a proposito. La ventana carga http://127.0.0.1:<puerto> (contenido remoto para Tauri) y no se declara remote.urls, asi que la pagina no tiene acceso al IPC. Los plugins se usan solo desde Rust.",
+  "windows": ["main"],
+  "permissions": []
+}

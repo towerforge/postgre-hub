@@ -102,7 +102,8 @@ WINDOWS_TARGETS ?= \
         package package-one \
         package-all package-all-linux package-all-macos package-all-windows \
         _package-linux-binaries _package-macos-binaries _package-windows-binaries \
-        checksums rust-targets clean-target dist-clean
+        checksums rust-targets clean-target dist-clean \
+        desktop-dev desktop-build desktop-open package-desktop package-desktop-macos
 
 # ---------------------------------------------------------------------------
 # Help
@@ -135,8 +136,16 @@ help:
 	@echo "    make package                  Build and package for the host (or CARGO_TARGET)"
 	@echo "    make package-all              Package all Linux + macOS + Windows targets"
 	@echo "    make package-all-linux        Package all Linux targets (cross + Docker)"
-	@echo "    make package-all-macos        Package all macOS targets (rustup)"
+	@echo "    make package-all-macos        Package all macOS targets (rustup). Binario de navegador, no la app de escritorio"
 	@echo "    make package-all-windows      Package all Windows targets (cross + Docker)"
+	@echo ""
+	@echo "  Desktop (Tauri, en el host: es una GUI, excepcion a la regla de Docker)"
+	@echo "    make desktop-dev              Lanza la app de escritorio en modo debug (cargo tauri dev, con devtools)"
+	@echo "                                  Datos aparte: POSTGRE_HUB_DESKTOP_DATA_DIR=/tmp/ph-test make desktop-dev"
+	@echo "    make desktop-build            Compila el frontend y genera los bundles nativos (.app/.dmg, .msi/.exe, .deb/.rpm/.AppImage)"
+	@echo "    make desktop-open             Abre la .app de release para probarla (macOS; antes: make desktop-build)"
+	@echo "    make package-desktop          Copia los bundles a dist/postgre-hub-desktop-<os>-<arch>.<ext>"
+	@echo "    make package-desktop-macos    Genera y copia a dist/ los bundles de todas las arquitecturas macOS (MACOS_TARGETS)"
 	@echo ""
 	@echo "  Utilities"
 	@echo "    make version                  Show current version (flags drift between Cargo.toml and package.json)"
@@ -153,10 +162,12 @@ help:
 	@echo "    DIST_DIR=<dir>               Output directory for artifacts (default: dist)"
 	@echo "    CARGO_TARGET=<triple>        Rust target triple (e.g. aarch64-apple-darwin)"
 	@echo "    LINUX_TARGETS=\"...\"         Space-separated triples for package-all-linux"
-	@echo "    MACOS_TARGETS=\"...\"         Space-separated triples for package-all-macos"
+	@echo "    MACOS_TARGETS=\"...\"         Space-separated triples for package-all-macos / package-desktop-macos"
 	@echo "    WINDOWS_TARGETS=\"...\"       Space-separated triples for package-all-windows"
 	@echo "    ENABLE_LATEST_ASSET=1        Also write an unversioned copy of each artifact"
 	@echo "    ARTIFACT_BASENAME=<name>     Artifact filename prefix (default: postgre-hub)"
+	@echo "    DESKTOP_TARGET=<triple>      Rust triple for desktop-build / package-desktop (default: host)"
+	@echo "    DESKTOP_BUILD_ARGS=\"...\"     Extra args for cargo tauri build (e.g. --bundles dmg)"
 
 # ---------------------------------------------------------------------------
 # Version
@@ -576,13 +587,26 @@ _package-windows-binaries:
 # Utilities
 # ---------------------------------------------------------------------------
 
+## SHA256 de los artefactos de dist/: binarios de navegador (.tar.gz/.zip) y
+## bundles de escritorio. Las firmas del updater (.sig) van aparte, en
+## checksums-sig.txt, para no mezclarlas con los instaladores.
+CHECKSUM_PATTERNS := *.tar.gz *.zip *.dmg *.msi *.exe *.AppImage *.deb *.rpm
+
 checksums:
-	@if [ ! -d "$(DIST_DIR)" ] || [ -z "$$(ls $(DIST_DIR)/*.tar.gz $(DIST_DIR)/*.zip 2>/dev/null)" ]; then \
-		echo "ERROR: no .tar.gz or .zip files found in $(DIST_DIR)"; \
+	@cd "$(DIST_DIR)" 2>/dev/null && files=$$(ls $(CHECKSUM_PATTERNS) 2>/dev/null); \
+	if [ -z "$$files" ]; then \
+		echo "ERROR: no artifacts ($(CHECKSUM_PATTERNS)) found in $(DIST_DIR)"; \
 		exit 1; \
+	fi; \
+	sha256sum $$files > checksums.txt; \
+	echo "$(DIST_DIR)/checksums.txt"; \
+	sigs=$$(ls *.sig 2>/dev/null); \
+	if [ -n "$$sigs" ]; then \
+		sha256sum $$sigs > checksums-sig.txt; \
+		echo "$(DIST_DIR)/checksums-sig.txt"; \
+	else \
+		rm -f checksums-sig.txt; \
 	fi
-	cd "$(DIST_DIR)" && sha256sum $$(ls *.tar.gz *.zip 2>/dev/null) > checksums.txt
-	@echo "$(DIST_DIR)/checksums.txt"
 
 rust-targets:
 	@for target in $(LINUX_TARGETS); do echo $$target; done
@@ -598,3 +622,81 @@ dist-clean:
 		exit 1; \
 	fi
 	rm -rf "$(DIST_DIR)"
+
+# ---------------------------------------------------------------------------
+# Desktop (Tauri 2, crate desktop/)
+#   Corre en el host, no en Docker: es una app con ventana y necesita el
+#   webview del sistema (WKWebView, WebView2, WebKitGTK). Requiere
+#   `cargo install tauri-cli --version "^2" --locked`.
+#   El backend embebe frontend/dist al compilar, por eso desktop-build compila
+#   antes el frontend. No toca package-all ni los binarios de navegador.
+# ---------------------------------------------------------------------------
+
+DESKTOP_DIR        := desktop
+DESKTOP_TARGET     ?=
+DESKTOP_BUILD_ARGS ?=
+TAURI_CMD          ?= cargo tauri
+
+DESKTOP_BUNDLE_DIR := $(DESKTOP_DIR)/target/$(if $(DESKTOP_TARGET),$(DESKTOP_TARGET)/,)release/bundle
+
+DESKTOP_OS := $(strip $(if $(DESKTOP_TARGET),\
+	$(if $(findstring apple-darwin,$(DESKTOP_TARGET)),macos,\
+	$(if $(findstring windows,$(DESKTOP_TARGET)),windows,linux)),\
+	$(if $(filter darwin,$(HOST_OS)),macos,\
+	$(if $(findstring mingw,$(HOST_OS))$(findstring msys,$(HOST_OS)),windows,linux))))
+
+DESKTOP_ARCH := $(strip $(if $(DESKTOP_TARGET),$(word 1,$(subst -, ,$(DESKTOP_TARGET))),\
+	$(if $(filter arm64,$(HOST_ARCH)),aarch64,$(if $(filter amd64,$(HOST_ARCH)),x86_64,$(HOST_ARCH)))))
+
+## Ventana de escritorio en debug. Reutiliza frontend/dist si ya existe.
+desktop-dev:
+	@test -f $(FRONTEND_DIR)/dist/index.html || $(MAKE) --no-print-directory build-frontend
+	cd $(DESKTOP_DIR) && $(TAURI_CMD) dev
+
+## Bundles nativos del host (o de DESKTOP_TARGET) en $(DESKTOP_BUNDLE_DIR).
+## Sin claves: no firma ni genera artefactos del updater (ver docs/desktop.md).
+desktop-build: build-frontend
+	cd $(DESKTOP_DIR) && $(TAURI_CMD) build \
+		$(if $(DESKTOP_TARGET),--target $(DESKTOP_TARGET),) $(DESKTOP_BUILD_ARGS)
+
+## Abre la .app de release generada por desktop-build (solo macOS), para probarla
+## como la recibira un usuario. Usa la carpeta de datos real de la app.
+desktop-open:
+	@app="$(DESKTOP_BUNDLE_DIR)/macos/Postgre Hub.app"; \
+	if [ ! -d "$$app" ]; then \
+		echo "ERROR: no existe $$app (run: make desktop-build)"; exit 1; \
+	fi; \
+	open "$$app"
+
+## Bundles de escritorio de todas las arquitecturas de macOS (MACOS_TARGETS),
+## copiados a dist/. El frontend se compila una sola vez.
+package-desktop-macos: build-frontend
+	@set -e; \
+	for target in $(MACOS_TARGETS); do \
+		echo "==> [desktop macos] $$target"; \
+		rustup target add $$target >/dev/null; \
+		(cd $(DESKTOP_DIR) && $(TAURI_CMD) build --target $$target $(DESKTOP_BUILD_ARGS)); \
+		$(MAKE) --no-print-directory package-desktop DESKTOP_TARGET=$$target; \
+	done
+
+## Copia los bundles de la version actual a dist/ con nombre estable:
+## postgre-hub-desktop-<os>-<arch>.<ext> (y <fichero>.sig si existe).
+package-desktop:
+	@mkdir -p $(DIST_DIR)
+	@set -e; found=0; v="$(FRONT_VERSION)"; b="$(DESKTOP_BUNDLE_DIR)"; \
+	for f in "$$b"/dmg/*"$$v"*.dmg "$$b"/macos/*.app.tar.gz \
+	         "$$b"/msi/*"$$v"*.msi "$$b"/nsis/*"$$v"*.exe \
+	         "$$b"/appimage/*"$$v"*.AppImage "$$b"/deb/*"$$v"*.deb "$$b"/rpm/*"$$v"*.rpm; do \
+		[ -f "$$f" ] || continue; \
+		case "$$f" in \
+			*.app.tar.gz) ext=app.tar.gz ;; \
+			*)            ext="$${f##*.}" ;; \
+		esac; \
+		dest="$(DIST_DIR)/postgre-hub-desktop-$(DESKTOP_OS)-$(DESKTOP_ARCH).$$ext"; \
+		cp "$$f" "$$dest"; echo "$$dest"; found=1; \
+		if [ -f "$$f.sig" ]; then cp "$$f.sig" "$$dest.sig"; echo "$$dest.sig"; fi; \
+	done; \
+	if [ $$found -eq 0 ]; then \
+		echo "ERROR: no desktop bundles for v$$v in $$b (run: make desktop-build)"; \
+		exit 1; \
+	fi

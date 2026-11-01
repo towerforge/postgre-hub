@@ -109,25 +109,10 @@ pub async fn export_dump(
     Path(id): Path<String>,
     Json(req): Json<ExportRequest>,
 ) -> Response<Body> {
-    if req.schemas.is_empty() {
-        return json_error(StatusCode::BAD_REQUEST, "Select at least one schema.");
-    }
-    let client = match connect(&auth, &id).await {
-        Ok(c) => c,
+    let (sql, filename) = match generate_dump(&auth, &id, &req).await {
+        Ok(r)  => r,
         Err(e) => return json_error(StatusCode::BAD_REQUEST, e),
     };
-
-    let sql = match build_dump(&client, &req).await {
-        Ok(s) => s,
-        Err(e) => return json_error(StatusCode::BAD_REQUEST, db_error(&e)),
-    };
-
-    let db_name: String = client
-        .query_one("SELECT current_database()", &[])
-        .await
-        .map(|r| r.get(0))
-        .unwrap_or_else(|_| "dump".to_string());
-    let filename = format!("{db_name}_{}.sql", Utc::now().format("%Y%m%d_%H%M%S"));
 
     Response::builder()
         .status(StatusCode::OK)
@@ -135,6 +120,29 @@ pub async fn export_dump(
         .header(header::CONTENT_DISPOSITION, format!("attachment; filename=\"{filename}\""))
         .body(Body::from(sql))
         .unwrap()
+}
+
+/// Genera el dump y el nombre de fichero por defecto (`<base>_<fecha>.sql`).
+/// Lo comparten la descarga del navegador y el guardado nativo de escritorio.
+pub(crate) async fn generate_dump(
+    auth: &AuthState,
+    id:   &str,
+    req:  &ExportRequest,
+) -> Result<(String, String), String> {
+    if req.schemas.is_empty() {
+        return Err("Select at least one schema.".into());
+    }
+    let client = connect(auth, id).await?;
+
+    let sql = build_dump(&client, req).await.map_err(|e| db_error(&e))?;
+
+    let db_name: String = client
+        .query_one("SELECT current_database()", &[])
+        .await
+        .map(|r| r.get(0))
+        .unwrap_or_else(|_| "dump".to_string());
+    let filename = format!("{db_name}_{}.sql", Utc::now().format("%Y%m%d_%H%M%S"));
+    Ok((sql, filename))
 }
 
 /// Genera el SQL en un orden que se puede volver a ejecutar sin dependencias rotas:

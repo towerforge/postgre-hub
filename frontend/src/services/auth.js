@@ -3,7 +3,10 @@
 // sesión la pone y la borra el backend.
 import { apiGet, apiPost } from "./http";
 
-/** `{ setup_required, authenticated }`: decide qué pantalla de acceso se ve. */
+/**
+ * `{ setup_required, authenticated, desktop }`: decide qué pantalla de acceso
+ * se ve; `desktop` es `true` solo dentro de la app de escritorio.
+ */
 export const apiAuthStatus = () => apiGet("/auth/status");
 
 /** Crea el primer usuario en una instalación nueva. */

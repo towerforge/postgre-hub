@@ -142,12 +142,139 @@ pub async fn update_tunnel(
 }
 
 fn expand_tilde(path: &str) -> String {
-    if let Some(rest) = path.strip_prefix("~/") {
-        let home = std::env::var("HOME").unwrap_or_default();
-        format!("{home}/{rest}")
-    } else {
-        path.to_string()
+    let rest = path.strip_prefix("~/").or_else(|| path.strip_prefix("~\\"));
+    match (rest, home_dir()) {
+        (Some(rest), Some(home)) => home.join(rest).to_string_lossy().into_owned(),
+        _ => path.to_string(),
     }
+}
+
+/// Carpeta personal: HOME en Unix (y en Git Bash/MSYS), USERPROFILE en Windows.
+fn home_dir() -> Option<std::path::PathBuf> {
+    ["HOME", "USERPROFILE"]
+        .iter()
+        .filter_map(std::env::var_os)
+        .find(|v| !v.is_empty())
+        .map(std::path::PathBuf::from)
+}
+
+// ── Lanzamiento de `ssh` del sistema ─────────────────────────────────────────
+
+/// Fichero nulo para `UserKnownHostsFile` (`/dev/null` no existe en Windows).
+pub(super) const NULL_DEVICE: &str = if cfg!(windows) { "NUL" } else { "/dev/null" };
+
+/// `ssh` del sistema. En Windows se lanza sin consola: la app de escritorio no
+/// tiene una y cada proceso abriría su propia ventana negra.
+pub(super) fn ssh_command() -> std::process::Command {
+    #[allow(unused_mut)]
+    let mut cmd = std::process::Command::new("ssh");
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
+/// SSH_ASKPASS temporal para la passphrase de la clave. La passphrase va en un
+/// fichero de datos aparte y el script solo lo vuelca, así que el secreto nunca
+/// forma parte del código que interpreta el shell (con un `echo` incrustado,
+/// un salto de línea o un metacarácter en la passphrase se ejecutaría como
+/// comando). Los dos ficheros viven en un directorio temporal propio con
+/// nombres aleatorios, y el guard borra el directorio entero al soltarse.
+/// En Unix el script es un `.sh`; en Windows un `.cmd`, que Win32-OpenSSH
+/// puede ejecutar como askpass (sin verificar en Windows real).
+pub(super) struct Askpass {
+    dir:    std::path::PathBuf,
+    script: std::path::PathBuf,
+}
+
+impl Drop for Askpass {
+    fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.dir); }
+}
+
+impl Askpass {
+    /// `Ok(None)` si no hay passphrase. Falla si la passphrase no es válida o si
+    /// no se pueden crear los ficheros; lo ya creado se borra igualmente.
+    pub(super) fn write(secret: &str) -> Result<Option<Self>, String> {
+        if secret.is_empty() { return Ok(None); }
+        validate_passphrase(secret)?;
+
+        let dir = std::env::temp_dir().join(format!("ph_askpass_{}", uuid::Uuid::new_v4()));
+        #[allow(unused_mut)]
+        let mut builder = std::fs::DirBuilder::new();
+        #[cfg(unix)] {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        // `create` falla si ya existe: nadie puede habernos preparado el directorio.
+        builder.create(&dir).map_err(|e| format!("Cannot create askpass directory: {e}"))?;
+
+        let ext         = if cfg!(windows) { "cmd" } else { "sh" };
+        let secret_name = format!("{}.secret", uuid::Uuid::new_v4());
+        let script      = dir.join(format!("{}.{ext}", uuid::Uuid::new_v4()));
+        // A partir de aquí el guard existe: cualquier `?` borra lo que haya.
+        let guard       = Self { dir, script };
+        let secret_path = guard.dir.join(&secret_name);
+
+        // Sin salto de línea final: el script imprime exactamente la passphrase.
+        write_new_file(&secret_path, secret.as_bytes(), 0o600)
+            .map_err(|e| format!("Cannot write askpass secret: {e}"))?;
+
+        #[cfg(not(windows))]
+        let content = unix_askpass_script(&secret_path);
+        #[cfg(windows)]
+        let content = windows_askpass_script(&secret_name);
+        write_new_file(&guard.script, content.as_bytes(), 0o700)
+            .map_err(|e| format!("Cannot write askpass script: {e}"))?;
+
+        Ok(Some(guard))
+    }
+
+    pub(super) fn apply(&self, cmd: &mut std::process::Command) {
+        cmd.env("SSH_ASKPASS", &self.script)
+           .env("SSH_ASKPASS_REQUIRE", "force")
+           .env("DISPLAY", "");
+    }
+}
+
+/// ssh solo lee una línea del askpass: una passphrase con saltos de línea o NUL
+/// no se podría introducir de todos modos.
+fn validate_passphrase(secret: &str) -> Result<(), String> {
+    if secret.contains(['\r', '\n', '\0']) {
+        return Err("SSH key passphrase cannot contain line breaks or NUL characters".to_string());
+    }
+    Ok(())
+}
+
+/// Crea el fichero (falla si ya existe) con los permisos indicados desde el
+/// primer momento en Unix, sin ventana en la que otro usuario pueda leerlo.
+fn write_new_file(path: &std::path::Path, data: &[u8], #[allow(unused_variables)] mode: u32) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)] {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(mode);
+    }
+    opts.open(path)?.write_all(data)
+}
+
+/// Script de Unix: `cat` del fichero de secreto. La ruta (que no es secreta) va
+/// entre comillas simples, escapando las que pudiera contener `TMPDIR`.
+#[cfg(any(not(windows), test))]
+fn unix_askpass_script(secret_path: &std::path::Path) -> String {
+    let quoted = secret_path.to_string_lossy().replace('\'', "'\\''");
+    format!("#!/bin/sh\nexec cat -- '{quoted}'\n")
+}
+
+/// Script de Windows: `type` del fichero de secreto, que está junto al script
+/// (`%~dp0` incluye la barra final). El nombre es un uuid: sin caracteres
+/// especiales para cmd, y la ruta del directorio no se incrusta.
+#[cfg(any(windows, test))]
+fn windows_askpass_script(secret_name: &str) -> String {
+    format!("@echo off\r\ntype \"%~dp0{secret_name}\"\r\n")
 }
 
 pub struct TempKeyFile(pub std::path::PathBuf);
@@ -209,24 +336,14 @@ pub async fn test_tunnel(
             let target   = format!("{}@{}", params.username, params.host);
 
             // Build command, optionally injecting passphrase via SSH_ASKPASS
-            let askpass_script = if !params.password.is_empty() {
-                let path = std::env::temp_dir().join(format!("ph_askpass_{}.sh", uuid::Uuid::new_v4()));
-                let content = format!("#!/bin/sh\necho '{}'\n", params.password.replace('\'', "'\\''"));
-                std::fs::write(&path, content).ok();
-                #[cfg(unix)] {
-                    use std::os::unix::fs::PermissionsExt;
-                    let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700));
-                }
-                Some(path)
-            } else {
-                None
-            };
+            let askpass = Askpass::write(&params.password)?;
 
-            let mut cmd = std::process::Command::new("ssh");
+            let known_hosts = format!("UserKnownHostsFile={NULL_DEVICE}");
+            let mut cmd = ssh_command();
             cmd.args([
                     "-o", "ConnectTimeout=15",
                     "-o", "StrictHostKeyChecking=no",
-                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", &known_hosts,
                     "-o", "PasswordAuthentication=no",
                     "-o", "IdentitiesOnly=yes",
                     "-i", &key_path,
@@ -235,18 +352,13 @@ pub async fn test_tunnel(
                     "true",
                 ]);
 
-            if let Some(ref script) = askpass_script {
-                cmd.env("SSH_ASKPASS", script)
-                   .env("SSH_ASKPASS_REQUIRE", "force")
-                   .env("DISPLAY", "")
-                   .stdin(std::process::Stdio::null());
+            if let Some(ref script) = askpass {
+                script.apply(&mut cmd);
+                cmd.stdin(std::process::Stdio::null());
             }
 
             let output = cmd.output().map_err(|e| format!("Cannot run ssh: {e}"))?;
-
-            if let Some(script) = askpass_script {
-                let _ = std::fs::remove_file(script);
-            }
+            drop(askpass);
 
             if output.status.success() {
                 Ok(format!("Connected to {target}"))
@@ -331,4 +443,60 @@ pub fn get_tunnel_params(conn: &rusqlite::Connection, tunnel_id: &str) -> Option
             private_key: r.get(4)?,
         }),
     ).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_control_characters() {
+        for bad in ["a\nb", "a\rb", "a\0b", "pass\n", "\r\n"] {
+            let err = Askpass::write(bad).err().expect("passphrase should be rejected");
+            assert!(err.contains("line breaks or NUL"), "{err}");
+        }
+    }
+
+    #[test]
+    fn empty_passphrase_needs_no_askpass() {
+        assert!(Askpass::write("").unwrap().is_none());
+    }
+
+    #[test]
+    fn scripts_do_not_embed_the_secret() {
+        let unix = unix_askpass_script(std::path::Path::new("/tmp/ph_askpass_x/it's.secret"));
+        assert_eq!(unix, "#!/bin/sh\nexec cat -- '/tmp/ph_askpass_x/it'\\''s.secret'\n");
+
+        let win = windows_askpass_script("0b6e.secret");
+        assert_eq!(win, "@echo off\r\ntype \"%~dp00b6e.secret\"\r\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn script_prints_exact_passphrase_and_is_cleaned_up() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let secret = "p'a\"s$s `x` %PATH% ^&|<> !! \\ ñ";
+        let guard  = Askpass::write(secret).unwrap().unwrap();
+        let dir    = guard.dir.clone();
+
+        let script = std::fs::read_to_string(&guard.script).unwrap();
+        assert!(!script.contains(secret));
+
+        let mode = |p: &std::path::Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(&dir), 0o700);
+        assert_eq!(mode(&guard.script), 0o700);
+        let secret_file = std::fs::read_dir(&dir).unwrap()
+            .map(|e| e.unwrap().path())
+            .find(|p| p.extension().is_some_and(|e| e == "secret"))
+            .unwrap();
+        assert_eq!(mode(&secret_file), 0o600);
+
+        let out = std::process::Command::new(&guard.script).output().unwrap();
+        assert!(out.status.success());
+        assert_eq!(out.stdout, secret.as_bytes());
+
+        drop(guard);
+        assert!(!dir.exists());
+    }
 }

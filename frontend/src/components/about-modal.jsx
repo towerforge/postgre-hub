@@ -1,11 +1,13 @@
 // Diálogo "About": versión instalada, enlace al repositorio y aviso si en GitHub
 // hay una release más nueva. Se abre desde el botón de versión de la barra
 // superior; existe para que quien autoaloja la app sepa cuándo le toca actualizar
-// sin tener que ir a mirarlo.
+// sin tener que ir a mirarlo. En la app de escritorio no se consulta GitHub ni
+// se muestra el aviso: allí las actualizaciones serán cosa del updater nativo.
 import { useState, useEffect } from "react";
 import { Tag, RefreshCw, ExternalLink } from "lucide-react";
 import { Modal, Alert, BrandMark } from "@/components/ui";
 import { getLatestRelease } from "@/services/releases";
+import { useAuth } from "@/contexts/auth-context";
 
 const GITHUB_REPO = "towerforge/postgre-hub";
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
@@ -21,18 +23,21 @@ const rowStyle = {
 };
 
 export const AboutModal = ({ open, onClose }) => {
+  const { desktop } = useAuth();
   const [latestVersion, setLatestVersion] = useState(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    if (desktop) return;
     getLatestRelease()
       .then((d) => setLatestVersion(d.tag_name?.replace(/^v/, "") ?? null))
       .catch(() => null)
       .finally(() => setChecking(false));
-  }, []);
+  }, [desktop]);
 
   // `__APP_VERSION__` lo inyecta Vite en el build a partir de package.json.
-  const hasUpdate = __APP_VERSION__ && latestVersion && __APP_VERSION__ !== latestVersion;
+  const hasUpdate =
+    !desktop && __APP_VERSION__ && latestVersion && __APP_VERSION__ !== latestVersion;
 
   return (
     <Modal open={open} onClose={onClose} title="About">

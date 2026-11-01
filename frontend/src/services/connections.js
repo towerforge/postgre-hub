@@ -3,6 +3,7 @@
 // (consultas, estructura, historial, exportar e importar). En la API se llaman
 // "projects" por historia; en la interfaz y en el código, "connections".
 import { apiDelete, apiDownload, apiGet, apiPost, apiPut, apiUpload } from "./http";
+import { apiDesktopSave, downloadBlob } from "./save-file";
 
 // ── Conexiones ───────────────────────────────────────────────────────────────
 
@@ -84,6 +85,22 @@ export const apiListSchemas = (id) => apiGet(`/projects/${id}/schemas`);
 /** Genera el volcado `.sql`; devuelve `{ blob, filename }`. */
 export const apiExportDump = (id, options) =>
   apiDownload(`/projects/${id}/export`, options, "dump.sql");
+
+/**
+ * Exporta el volcado SQL y lo guarda. En navegador lo descarga; en escritorio
+ * el servidor lo regenera y lo escribe tras el diálogo nativo (modo `export`
+ * de `/api/desktop/save`, con los mismos campos que `/export`). Devuelve
+ * `{ saved, path?, filename?, size? }`; `saved: false` si se cancela el diálogo.
+ */
+export const saveExport = async (id, options, { desktop = false } = {}) => {
+  if (desktop) {
+    const r = await apiDesktopSave({ export: { project_id: id, ...options } });
+    return { saved: r.saved === true, path: r.path };
+  }
+  const { blob, filename } = await apiExportDump(id, options);
+  downloadBlob(blob, filename);
+  return { saved: true, filename, size: blob.size };
+};
 
 /** Ejecuta un `.sql` en una sola transacción: `{ ok, statements }`. */
 export const apiImportDump = (id, file) => apiUpload(`/projects/${id}/import`, file);

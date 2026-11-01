@@ -3,9 +3,13 @@ name = "backend"
 version = "1.4.1"
 edition = "2024"
 
-[toolchain]
-channel = "stable"
-components = ["rustfmt", "clippy"]
+[lib]
+name = "backend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "backend"
+path = "src/main.rs"
 
 [dependencies]
 axum = { version = "0.8.6", features = ["multipart"] }

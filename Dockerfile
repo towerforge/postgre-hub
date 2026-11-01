@@ -14,7 +14,14 @@ COPY frontend/ frontend/
 RUN cd frontend && pnpm build
 
 # ─── Stage 2: Build backend ─────────────────────────────────────────────────
-FROM rust:1-slim AS backend
+# Builder y runtime fijados a la misma Debian (trixie): el binario enlaza la
+# glibc del builder y no arrancaria en una runtime mas antigua (bookworm).
+FROM rust:1-slim-trixie AS backend
+
+# ssh2 compila OpenSSL vendorizado: necesita perl, make y pkg-config.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends perl make pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -24,7 +31,7 @@ COPY --from=frontend /app/frontend/dist frontend/dist
 RUN cargo build --manifest-path backend/Cargo.toml --release
 
 # ─── Stage 3: Runtime ───────────────────────────────────────────────────────
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 WORKDIR /app
 

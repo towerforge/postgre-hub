@@ -10,8 +10,9 @@ use axum::{
 use tower_http::cors::{CorsLayer, Any};
 use axum::http::HeaderValue;
 use serde_json::json;
-use mime_guess;
 
+use crate::ServerConfig;
+use crate::desktop;
 use crate::auth::{AuthState, middleware::require_auth, routes as auth_routes};
 use crate::users::{list_users, create_user, delete_user, update_user};
 use crate::database::{
@@ -25,10 +26,13 @@ use crate::database::{
     list_tunnels, create_tunnel, update_tunnel, delete_tunnel, test_tunnel,
 };
 
-pub fn create_router(dev_mode: bool, port: u16) -> Router {
+/// `port` es el puerto real del listener: con él se construye el CORS, así
+/// también vale cuando el escritorio escucha en un puerto elegido por el SO.
+pub fn create_router(cfg: &ServerConfig, port: u16) -> Result<Router, String> {
     use axum::http::Method;
 
-    let auth_state = AuthState::new();
+    let dev_mode   = cfg.dev;
+    let auth_state = AuthState::new(cfg)?;
 
     let cors = if dev_mode {
         CorsLayer::new()
@@ -55,8 +59,14 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/auth/status", get(auth_routes::status))
         .route("/api/auth/setup",  post(auth_routes::setup))
         .route("/api/auth/login",  post(auth_routes::login))
-        .route("/api/auth/logout", post(auth_routes::logout))
-        .with_state(auth_state.clone());
+        .route("/api/auth/logout", post(auth_routes::logout));
+    // El canje del token de arranque solo existe en escritorio.
+    let auth_router = if cfg.desktop.is_some() {
+        auth_router.route("/api/auth/desktop", get(desktop::desktop_login))
+    } else {
+        auth_router
+    }
+    .with_state(auth_state.clone());
 
     // Protected API routes
     let api_routes = Router::new()
@@ -96,6 +106,8 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
         .route("/api/tunnels/{id}/test",  post(test_tunnel))
         // Version
         .route("/api/version", get(version))
+        // Guardado con diálogo nativo (responde 404 fuera de escritorio)
+        .route("/api/desktop/save", post(desktop::desktop_save).layer(DefaultBodyLimit::max(512 * 1024 * 1024)))
         .with_state(auth_state.clone());
 
     let api_router = if dev_mode {
@@ -118,7 +130,15 @@ pub fn create_router(dev_mode: bool, port: u16) -> Router {
             .route("/{*path}", get(static_handler));
     }
 
-    router
+    // En escritorio, el filtro de Host envuelve todo (API y SPA).
+    if cfg.desktop.is_some() {
+        router = router.layer(axum::middleware::from_fn_with_state(
+            auth_state.clone(),
+            desktop::require_local_host,
+        ));
+    }
+
+    Ok(router)
 }
 
 async fn version() -> impl IntoResponse {
@@ -137,7 +157,7 @@ pub async fn static_handler(Path(path): Path<String>) -> impl IntoResponse {
         lookup_path = "index.html".to_string();
     }
 
-    match super::Assets::get(&lookup_path) {
+    match crate::Assets::get(&lookup_path) {
         Some(content) => {
             let mime  = mime_guess::from_path(&lookup_path).first_or_octet_stream();
             let bytes = content.data.into_owned();

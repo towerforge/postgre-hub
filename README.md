@@ -14,6 +14,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="#features">Features</a> ·
   <a href="#installation">Installation</a> ·
+  <a href="#desktop-app">Desktop app</a> ·
   <a href="#configuration">Configuration</a>
 </p>
 
@@ -173,6 +174,36 @@ All assets are on the [releases page](https://github.com/towerforge/postgre-hub/
 | Windows | i686 | `postgre-hub-windows-i686.zip` |
 
 </details>
+
+## Desktop app
+
+Postgre Hub also ships as a native desktop application for macOS, Windows and Linux. It is the same server and the same UI as the browser version, wrapped in a window that uses the system webview (WebKit on macOS and Linux, WebView2 on Windows). There is no browser tab, no port to choose and nothing to keep running in a terminal.
+
+**Install** — download the bundle for your system from the [releases page](https://github.com/towerforge/postgre-hub/releases/latest):
+
+| OS | Asset |
+|---|---|
+| macOS (Apple Silicon / Intel) | `.dmg` (drag *Postgre Hub* to Applications) |
+| Windows x86_64 | `-setup.exe` (per-user install) or `.msi` |
+| Linux x86_64 / ARM64 | `.AppImage`, `.deb` or `.rpm` (needs WebKitGTK 4.1: Ubuntu 22.04+, Debian 12+) |
+
+Until signed builds are published, macOS asks you to confirm the first launch in *System Settings → Privacy & Security*, and Windows SmartScreen shows a warning. To build it yourself, run `make desktop-build` (see [docs/desktop.md](docs/desktop.md)).
+
+**Where your data lives** — the desktop app keeps its own `postgre-hub.db`, separate from any browser install:
+
+| OS | Data directory |
+|---|---|
+| macOS | `~/Library/Application Support/com.towerforge.postgrehub/` |
+| Windows | `%APPDATA%\com.towerforge.postgrehub\` |
+| Linux | `~/.local/share/com.towerforge.postgrehub/` |
+
+**Differences from the browser binary**
+
+- The server listens on `127.0.0.1` only, on a port picked once and reused on later launches. It is never reachable from other machines, and requests with any other `Host` header are rejected.
+- On first launch you create a user with a password, as usual. After that the app signs you in automatically when it starts; the password is only needed after signing out or when the session expires.
+- Downloads (CSV, JSON, SQL exports) open the native *Save as* dialog.
+- Only one window runs at a time: opening the app again focuses the existing window.
+- `--port`, `--host`, `DATA_DIR` and the other environment variables do not apply. Use the browser binary or Docker for a shared, multi-user server.
 
 ## Configuration
 
