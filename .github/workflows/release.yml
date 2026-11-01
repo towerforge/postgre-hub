@@ -1,22 +1,17 @@
-# Lo dispara `make release`, que crea el tag vX.Y.Z y lo sube.
+# Release: lo dispara `make release`, que crea el tag vX.Y.Z y lo sube.
 #
-# Compila todo lo que se publica y crea la release de GitHub con ello:
-#   - binarios de navegador (los que descarga install.sh): mismos objetivos del
-#     Makefile que en local, `cross` para Linux y Windows y rustup para macOS
-#   - app de escritorio (Tauri 2, crate desktop/): bundles nativos de cada
-#     plataforma, cada uno en su runner (necesitan el webview del sistema)
-#   - checksums.txt y, si el updater esta configurado, latest.json
+#   version ──┬── binaries-linux     6 binarios de navegador (.tar.gz)
+#             ├── binaries-macos     2 binarios de navegador (.tar.gz)
+#             ├── binaries-windows   2 binarios de navegador (.zip)
+#             ├── desktop-macos      app .dmg (Apple Silicon e Intel)
+#             ├── desktop-linux      app .AppImage/.deb/.rpm (x86_64 y ARM64)
+#             └── desktop-windows    app .exe/.msi (x86_64)
+#                         │
+#                      publish       checksums, latest.json y release de GitHub
 #
-# El frontend se compila una sola vez: el backend lo embebe al compilar.
-#
-# Firma y updater son opcionales y se activan solo si existen los secrets:
-#   - macOS:   APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY
-#              y, para notarizar, APPLE_API_ISSUER, APPLE_API_KEY, APPLE_API_PRIVATE_KEY
-#   - Windows: AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID (secrets) y
-#              AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE (variables)
-#   - Updater: TAURI_SIGNING_PRIVATE_KEY (+ TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
-# Sin ellos se generan bundles sin firmar y el workflow no falla.
-# Detalle en docs/desktop.md.
+# Cada parte esta en su propio fichero (release-<parte>.yml) y se puede lanzar
+# sola desde la pestana Actions para probarla sin crear un tag. Aqui solo se
+# encadenan: si cualquiera falla, no se publica nada.
 
 name: release
 
@@ -24,9 +19,9 @@ on:
   push:
     tags: ["v*"]
 
-# Solo lectura por defecto: unicamente `publish` puede escribir en el repo
-# (crear la release). Los jobs que compilan ejecutan acciones de terceros y
-# dependencias de build, y no necesitan el token con escritura.
+# Solo lectura por defecto: unicamente `publish` escribe en el repo (crea la
+# release). Las partes ejecutan acciones de terceros y dependencias de build,
+# y no necesitan el token con escritura.
 permissions:
   contents: read
 
@@ -47,240 +42,43 @@ jobs:
           test "v$v" = "$GITHUB_REF_NAME"
           grep -q "\"version\": \"$v\"" frontend/package.json
 
-  frontend:
+  binaries-linux:
     needs: version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-      - run: make build-frontend
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-          if-no-files-found: error
+    uses: ./.github/workflows/release-binaries-linux.yml
 
-  binaries:
-    name: binary ${{ matrix.target }}
-    needs: frontend
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { target: x86_64-unknown-linux-gnu,      os: ubuntu-latest, family: linux }
-          - { target: x86_64-unknown-linux-musl,     os: ubuntu-latest, family: linux }
-          - { target: aarch64-unknown-linux-gnu,     os: ubuntu-latest, family: linux }
-          - { target: aarch64-unknown-linux-musl,    os: ubuntu-latest, family: linux }
-          - { target: armv7-unknown-linux-gnueabihf, os: ubuntu-latest, family: linux }
-          - { target: i686-unknown-linux-gnu,        os: ubuntu-latest, family: linux }
-          - { target: x86_64-apple-darwin,           os: macos-latest,  family: macos }
-          - { target: aarch64-apple-darwin,          os: macos-latest,  family: macos }
-          - { target: x86_64-pc-windows-gnu,         os: ubuntu-latest, family: windows }
-          - { target: i686-pc-windows-gnu,           os: ubuntu-latest, family: windows }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.family == 'macos' && matrix.target || '' }}
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: backend -> target
-          key: ${{ matrix.target }}
-      - if: matrix.family != 'macos'
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cross
-      # _package-<familia>-binaries compila y empaqueta con el nombre que espera
-      # install.sh (p. ej. postgre-hub-linux-x86_64-musl.tar.gz).
-      - name: Package
-        run: |
-          family=${{ matrix.family }}
-          make _package-${family}-binaries "$(echo "$family" | tr '[:lower:]' '[:upper:]')_TARGETS=${{ matrix.target }}"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: binary-${{ matrix.target }}
-          path: dist/*
-          if-no-files-found: error
+  binaries-macos:
+    needs: version
+    uses: ./.github/workflows/release-binaries-macos.yml
 
-  desktop:
-    name: desktop ${{ matrix.name }}
-    needs: frontend
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { name: macos-aarch64,  runner: macos-latest,     rust_target: aarch64-apple-darwin }
-          - { name: macos-x86_64,   runner: macos-latest,     rust_target: x86_64-apple-darwin }
-          - { name: linux-x86_64,   runner: ubuntu-22.04,     rust_target: "" }
-          # El runner ARM de GitHub solo esta disponible en repos publicos.
-          - { name: linux-aarch64,  runner: ubuntu-22.04-arm, rust_target: "" }
-          - { name: windows-x86_64, runner: windows-latest,   rust_target: "" }
-    defaults:
-      run:
-        shell: bash
+  binaries-windows:
+    needs: version
+    uses: ./.github/workflows/release-binaries-windows.yml
 
-    steps:
-      - uses: actions/checkout@v7
+  # Las apps reciben los secrets de firma y del updater.
+  desktop-macos:
+    needs: version
+    uses: ./.github/workflows/release-desktop-macos.yml
+    secrets: inherit
 
-      - name: Linux system dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils \
-            perl make pkg-config
+  desktop-linux:
+    needs: version
+    uses: ./.github/workflows/release-desktop-linux.yml
+    secrets: inherit
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_target }}
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: desktop -> target
-          key: ${{ matrix.name }}
-
-      # Exporta solo los secrets que existen (un secret ausente llega como
-      # cadena vacia y Tauri lo trataria como configurado) y compone los
-      # --config extra para tauri build.
-      - name: Signing and updater setup
-        id: signing
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          export_env() {
-            local name="$1" value="$2" delim
-            delim="EOF_$(openssl rand -hex 8)"
-            { echo "${name}<<${delim}"; printf '%s\n' "$value"; echo "$delim"; } >> "$GITHUB_ENV"
-          }
-          extra=""
-
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
-              echo "macOS: signing with Developer ID"
-              export_env APPLE_CERTIFICATE "$APPLE_CERTIFICATE"
-              export_env APPLE_CERTIFICATE_PASSWORD "$APPLE_CERTIFICATE_PASSWORD"
-              export_env APPLE_SIGNING_IDENTITY "$APPLE_SIGNING_IDENTITY"
-              if [ -n "$APPLE_API_ISSUER" ] && [ -n "$APPLE_API_KEY" ] && [ -n "$APPLE_API_PRIVATE_KEY" ]; then
-                echo "macOS: notarization enabled"
-                key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
-                printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$key_path"
-                export_env APPLE_API_ISSUER "$APPLE_API_ISSUER"
-                export_env APPLE_API_KEY "$APPLE_API_KEY"
-                export_env APPLE_API_KEY_PATH "$key_path"
-              else
-                echo "::warning::macOS: signed but not notarized (APPLE_API_* secrets missing)"
-              fi
-            else
-              # Firma ad hoc: sin identidad de Apple, pero con el bundle sellado,
-              # para que Gatekeeper ofrezca "Abrir igualmente" en vez de "danado".
-              echo "::warning::macOS: no Apple certificate, building ad-hoc signed bundles"
-              printf '{"bundle":{"macOS":{"signingIdentity":"-"}}}\n' > "$RUNNER_TEMP/tauri.adhoc.conf.json"
-              extra="$extra --config $RUNNER_TEMP/tauri.adhoc.conf.json"
-            fi
-          fi
-
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_CLIENT_SECRET" ] && [ -n "$AZURE_TENANT_ID" ] \
-               && [ -n "$AZURE_SIGNING_ENDPOINT" ] && [ -n "$AZURE_SIGNING_ACCOUNT" ] && [ -n "$AZURE_SIGNING_PROFILE" ]; then
-              echo "Windows: signing with Azure Artifact Signing"
-              export_env AZURE_CLIENT_ID "$AZURE_CLIENT_ID"
-              export_env AZURE_CLIENT_SECRET "$AZURE_CLIENT_SECRET"
-              export_env AZURE_TENANT_ID "$AZURE_TENANT_ID"
-              cmd="artifact-signing-cli -e ${AZURE_SIGNING_ENDPOINT} -a ${AZURE_SIGNING_ACCOUNT} -c ${AZURE_SIGNING_PROFILE} -d Postgre-Hub %1"
-              printf '{"bundle":{"windows":{"signCommand":"%s"}}}\n' "$cmd" > "$RUNNER_TEMP/tauri.winsign.conf.json"
-              extra="$extra --config $RUNNER_TEMP/tauri.winsign.conf.json"
-              echo "install_signer=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "::warning::Windows: Azure Artifact Signing not configured, building unsigned installers"
-            fi
-          fi
-
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            if grep -q '"pubkey": ""' desktop/tauri.updater.conf.json; then
-              echo "::error::TAURI_SIGNING_PRIVATE_KEY is set but desktop/tauri.updater.conf.json has an empty pubkey"
-              exit 1
-            fi
-            echo "Updater: signed update artifacts enabled"
-            export_env TAURI_SIGNING_PRIVATE_KEY "$TAURI_SIGNING_PRIVATE_KEY"
-            if [ -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
-              export_env TAURI_SIGNING_PRIVATE_KEY_PASSWORD "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
-            fi
-            extra="$extra --config tauri.updater.conf.json"
-          else
-            echo "::warning::Updater: TAURI_SIGNING_PRIVATE_KEY not set, no update artifacts"
-          fi
-
-          echo "args=${extra# }" >> "$GITHUB_OUTPUT"
-
-      - name: Install Azure Artifact Signing CLI
-        if: steps.signing.outputs.install_signer == 'true'
-        run: cargo install artifact-signing-cli --locked
-
-      - name: Build bundles
-        working-directory: desktop
-        run: |
-          npx --yes @tauri-apps/cli@2.12.4 build \
-            ${{ matrix.rust_target && format('--target {0}', matrix.rust_target) || '' }} \
-            ${{ steps.signing.outputs.args }}
-
-      # Copia los bundles a dist/ como postgre-hub-desktop-<os>-<arch>.<ext>
-      # (y su .sig si existe). SHELL=bash: en Windows /bin/bash no es una ruta
-      # que make.exe pueda abrir; asi busca bash en el PATH.
-      - name: Package
-        run: |
-          command -v make >/dev/null || choco install make -y --no-progress
-          make package-desktop SHELL=bash DESKTOP_TARGET=${{ matrix.rust_target }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-${{ matrix.name }}
-          path: dist/*
-          if-no-files-found: error
+  desktop-windows:
+    needs: version
+    uses: ./.github/workflows/release-desktop-windows.yml
+    secrets: inherit
 
   publish:
-    needs: [binaries, desktop]
+    needs: [binaries-linux, binaries-macos, binaries-windows, desktop-macos, desktop-linux, desktop-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
 
+      # Todos los artefactos de las partes del mismo run, juntos en dist/.
       - uses: actions/download-artifact@v4
         with:
           path: dist

@@ -1,0 +1,51 @@
+# Binarios de navegador para Linux: los .tar.gz que descarga install.sh.
+#
+# Se compilan con `cross` (Docker) desde un runner x86_64, con los mismos
+# objetivos del Makefile que en local. El nombre del artefacto sale de
+# `_package-linux-binaries` (p. ej. postgre-hub-linux-x86_64-musl.tar.gz).
+#
+# Lo llama release.yml con cada tag. Tambien se puede lanzar a mano desde la
+# pestana Actions para probarlo: deja los .tar.gz como artefactos del run,
+# sin publicar nada.
+
+name: release · binaries linux
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-gnueabihf
+          - i686-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/frontend
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: backend -> target
+          key: ${{ matrix.target }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build and package
+        run: make _package-linux-binaries LINUX_TARGETS=${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error

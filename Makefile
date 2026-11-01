@@ -92,6 +92,12 @@ WINDOWS_TARGETS ?= \
 	x86_64-pc-windows-gnu \
 	i686-pc-windows-gnu
 
+# Herramienta para los targets de Windows. `cross` por defecto (en local no
+# hace falta MinGW). CI usa `cargo` con el MinGW de Ubuntu 24.04: la imagen de
+# cross trae un MinGW antiguo sin `GetHostNameW`, que la std de Rust reciente
+# necesita, y el enlazado falla.
+WINDOWS_CARGO_CMD ?= cross
+
 # ---------------------------------------------------------------------------
 # Phony targets
 # ---------------------------------------------------------------------------
@@ -164,6 +170,7 @@ help:
 	@echo "    LINUX_TARGETS=\"...\"         Space-separated triples for package-all-linux"
 	@echo "    MACOS_TARGETS=\"...\"         Space-separated triples for package-all-macos / package-desktop-macos"
 	@echo "    WINDOWS_TARGETS=\"...\"       Space-separated triples for package-all-windows"
+	@echo "    WINDOWS_CARGO_CMD=<cmd>      cross (default) or cargo with a local MinGW, for package-all-windows"
 	@echo "    ENABLE_LATEST_ASSET=1        Also write an unversioned copy of each artifact"
 	@echo "    ARTIFACT_BASENAME=<name>     Artifact filename prefix (default: postgre-hub)"
 	@echo "    DESKTOP_TARGET=<triple>      Rust triple for desktop-build / package-desktop (default: host)"
@@ -582,8 +589,8 @@ _package-macos-binaries:
 _package-windows-binaries:
 	@set -e; \
 	for target in $(WINDOWS_TARGETS); do \
-		echo "==> [windows] $$target (cross + Docker)"; \
-		$(MAKE) --no-print-directory build-backend CARGO_TARGET=$$target CARGO_CMD=cross; \
+		echo "==> [windows] $$target ($(WINDOWS_CARGO_CMD))"; \
+		$(MAKE) --no-print-directory build-backend CARGO_TARGET=$$target CARGO_CMD=$(WINDOWS_CARGO_CMD); \
 		$(MAKE) --no-print-directory package-one \
 			CARGO_TARGET=$$target \
 			PLATFORM=windows \
