@@ -6,7 +6,7 @@ import { createContext, useContext, useState } from "react";
 
 const SidebarsContext = createContext({
   leftVisible: true,
-  rightVisible: true,
+  rightVisible: false,
   bottomVisible: false,
   toggleLeft: () => {},
   toggleRight: () => {},
@@ -15,7 +15,8 @@ const SidebarsContext = createContext({
 
 export const SidebarsProvider = ({ children }) => {
   const [leftVisible, setLeft] = useState(true);
-  const [rightVisible, setRight] = useState(true);
+  // El inspector arranca cerrado: duración y filas ya salen en la barra de estado
+  const [rightVisible, setRight] = useState(false);
   const [bottomVisible, setBottom] = useState(false);
 
   return (

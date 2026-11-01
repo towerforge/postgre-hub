@@ -6,14 +6,26 @@ import styles from "@/css/ui/tabs.module.css";
 
 const Ctx = createContext(null);
 
+const SIZES = ["lg", "xl"];
+
 const useTabsCtx = () => {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("Tabs subcomponents must be used inside <Tabs>");
   return ctx;
 };
 
-/** Raíz de las pestañas; `onChange` recibe el `id` de la pestaña elegida. */
-export const Tabs = ({ defaultTab = "", value, onChange, className = "", children }) => {
+/**
+ * Raíz de las pestañas; `onChange` recibe el `id` de la pestaña elegida. `size`
+ * (lg 32px por defecto, xl 38px) es el alto de todas sus pestañas.
+ */
+export const Tabs = ({
+  defaultTab = "",
+  value,
+  onChange,
+  size = "lg",
+  className = "",
+  children,
+}) => {
   const [internal, setInternal] = useState(defaultTab);
   const active = value !== undefined ? value : internal;
   const setActive = (id) => {
@@ -22,7 +34,7 @@ export const Tabs = ({ defaultTab = "", value, onChange, className = "", childre
   };
 
   return (
-    <Ctx.Provider value={{ active, setActive }}>
+    <Ctx.Provider value={{ active, setActive, size }}>
       <div className={`${styles.root} ${className}`}>{children}</div>
     </Ctx.Provider>
   );
@@ -38,9 +50,11 @@ export const TabBar = ({ actions, className = "", children }) => {
   );
 };
 
-/** Pestaña. `badge` muestra un contador y `dot` un punto de estado. */
-export const Tab = ({ id, icon, badge, dot, disabled = false, className = "", children }) => {
-  const { active, setActive } = useTabsCtx();
+/** Pestaña. `badge` muestra un contador y `dot` un punto de estado; `size` sustituye al de Tabs. */
+export const Tab = ({ id, icon, badge, dot, size, disabled = false, className = "", children }) => {
+  const { active, setActive, size: ctxSize } = useTabsCtx();
+  const s = size ?? ctxSize;
+  const sizeClass = styles[SIZES.includes(s) ? s : "lg"];
   const isActive = active === id;
 
   return (
@@ -50,7 +64,7 @@ export const Tab = ({ id, icon, badge, dot, disabled = false, className = "", ch
       aria-selected={isActive}
       disabled={disabled}
       onClick={() => !disabled && setActive(id)}
-      className={`${styles.tab} ${isActive ? styles.active : ""} ${className}`}
+      className={`${styles.tab} ${sizeClass} ${isActive ? styles.active : ""} ${className}`}
     >
       {icon}
       {children}

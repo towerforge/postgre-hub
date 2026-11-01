@@ -3,16 +3,7 @@
 // no puede borrarse a sí mismo.
 import { useState, useEffect, useCallback } from "react";
 import { KeyRound, Plus, Trash2, User } from "lucide-react";
-import {
-  Button,
-  Modal,
-  Input,
-  PasswordInput,
-  Table,
-  Alert,
-  ToolButton,
-  IconButton,
-} from "@/components/ui";
+import { Button, Modal, Input, PasswordInput, Table, Alert } from "@/components/ui";
 import { ConnectionsShell } from "@/components/connections-shell";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { apiListUsers, apiCreateUser, apiDeleteUser, apiUpdateUser } from "@/services/users";
@@ -59,12 +50,12 @@ const AddUserModal = ({ open, onClose, onAdded }) => {
       size="sm"
       footer={
         <>
-          <div style={{ flex: 1 }} />
-          <Button variant={2} onClick={handleClose} disabled={saving}>
+          <Button variant={2} size="xl" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
           <Button
             variant={1}
+            size="xl"
             loading={saving}
             disabled={!username.trim() || password.length < 8}
             onClick={handleSubmit}
@@ -76,7 +67,7 @@ const AddUserModal = ({ open, onClose, onAdded }) => {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <Input
-          size="lg"
+          size="xl"
           label="Username"
           required
           placeholder="username"
@@ -84,7 +75,7 @@ const AddUserModal = ({ open, onClose, onAdded }) => {
           onChange={(e) => setUsername(e.target.value)}
         />
         <PasswordInput
-          size="lg"
+          size="xl"
           label="Password"
           required
           placeholder="Min. 8 characters"
@@ -133,12 +124,12 @@ const ResetPasswordModal = ({ open, user, onClose, onDone }) => {
       size="sm"
       footer={
         <>
-          <div style={{ flex: 1 }} />
-          <Button variant={2} onClick={handleClose} disabled={saving}>
+          <Button variant={2} size="xl" onClick={handleClose} disabled={saving}>
             Cancel
           </Button>
           <Button
             variant={1}
+            size="xl"
             loading={saving}
             disabled={password.length < 8}
             onClick={handleSubmit}
@@ -150,7 +141,7 @@ const ResetPasswordModal = ({ open, user, onClose, onDone }) => {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <PasswordInput
-          size="lg"
+          size="xl"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="New password (min. 8 characters)"
@@ -236,7 +227,8 @@ const UsersPage = () => {
       shrink: true,
       render: (u) => (
         <div style={{ display: "flex", gap: 4 }}>
-          <ToolButton
+          <Button
+            variant={7}
             onClick={(e) => {
               e.stopPropagation();
               setResetUser(u);
@@ -244,9 +236,10 @@ const UsersPage = () => {
             title="Reset password"
           >
             <KeyRound size={13} /> Reset pw
-          </ToolButton>
+          </Button>
           {u.id !== myId && (
-            <IconButton
+            <Button
+              variant={8}
               label="Delete user"
               disabled={deleting === u.id}
               onClick={(e) => {
@@ -255,7 +248,7 @@ const UsersPage = () => {
               }}
             >
               <Trash2 size={13} />
-            </IconButton>
+            </Button>
           )}
         </div>
       ),

@@ -1,10 +1,10 @@
 // Diálogo "About": versión instalada, enlace al repositorio y aviso si en GitHub
-// hay una release más nueva. Se abre desde el pie del menú y desde la barra de
-// estado; existe para que quien autoaloja la app sepa cuándo le toca actualizar
+// hay una release más nueva. Se abre desde el botón de versión de la barra
+// superior; existe para que quien autoaloja la app sepa cuándo le toca actualizar
 // sin tener que ir a mirarlo.
 import { useState, useEffect } from "react";
 import { Tag, RefreshCw, ExternalLink } from "lucide-react";
-import { Modal, Alert } from "@/components/ui";
+import { Modal, Alert, BrandMark } from "@/components/ui";
 import { getLatestRelease } from "@/services/releases";
 
 const GITHUB_REPO = "towerforge/postgre-hub";
@@ -37,7 +37,7 @@ export const AboutModal = ({ open, onClose }) => {
   return (
     <Modal open={open} onClose={onClose} title="About">
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <img src="/logo.svg" alt="Postgre Hub" style={{ width: 48, height: 48 }} />
+        <BrandMark tile size={48} />
         <div>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--text-1)" }}>
             Postgre Hub

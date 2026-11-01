@@ -20,12 +20,15 @@ import {
 } from "@/components/ui";
 import { apiCreateProject, apiUpdateProject } from "@/services/connections";
 import { apiListTunnels } from "@/services/ssh-tunnels";
+import { ENVIRONMENTS } from "@/lib/environments";
 
 const SSL_OPTIONS = [
   { value: "disable", label: "Disable" },
   { value: "prefer", label: "Prefer" },
   { value: "require", label: "Require" },
 ];
+
+const ENVIRONMENT_OPTIONS = [{ value: "", label: "None" }, ...ENVIRONMENTS];
 
 /**
  * Alta o edición de una conexión: con `project` edita, sin él crea. `onDelete`
@@ -58,6 +61,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
     color: project?.color ?? "",
     read_only: project?.read_only ?? false,
     query_timeout: project?.query_timeout ?? 0,
+    environment: project?.environment ?? "",
   });
 
   useEffect(() => {
@@ -94,15 +98,15 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
   const footer = (
     <>
       {isEdit && onDelete && (
-        <Button variant={5} onClick={() => setConfirmDelete(true)}>
-          <Trash2 size={13} /> Delete
+        <Button variant={5} size="xl" onClick={() => setConfirmDelete(true)}>
+          <Trash2 size={14} /> Delete
         </Button>
       )}
       <div style={{ flex: 1 }} />
-      <Button variant={2} onClick={onClose}>
+      <Button variant={2} size="xl" onClick={onClose}>
         Cancel
       </Button>
-      <Button variant={1} onClick={handleSave} disabled={loading}>
+      <Button variant={1} size="xl" onClick={handleSave} disabled={loading}>
         {loading ? "Saving…" : isEdit ? "Save changes" : "Connect"}
       </Button>
     </>
@@ -145,7 +149,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
             <>
               <FormRow label="Name">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.name}
                   onChange={str("name")}
                   placeholder="My database"
@@ -156,7 +160,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <Input
-                      size="lg"
+                      size="xl"
                       value={form.host}
                       onChange={str("host")}
                       placeholder="localhost"
@@ -164,7 +168,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
                   </div>
                   <div style={{ width: 96 }}>
                     <Input
-                      size="lg"
+                      size="xl"
                       value={String(form.port)}
                       onChange={(e) => setForm((f) => ({ ...f, port: Number(e.target.value) }))}
                       type="number"
@@ -175,7 +179,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Database">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.database}
                   onChange={str("database")}
                   placeholder="mydb"
@@ -183,7 +187,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Username">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.username}
                   onChange={str("username")}
                   placeholder="postgres"
@@ -191,7 +195,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Password">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.password ?? ""}
                   onChange={str("password")}
                   type="password"
@@ -200,9 +204,19 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="SSL">
                 <Select
+                  size="xl"
                   value={form.ssl_mode}
                   options={SSL_OPTIONS}
                   onChange={(e) => setForm((f) => ({ ...f, ssl_mode: e.target.value }))}
+                />
+              </FormRow>
+              <FormRow label="Environment">
+                <Select
+                  size="xl"
+                  value={form.environment}
+                  options={ENVIRONMENT_OPTIONS}
+                  onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
+                  hint="Production asks before running UPDATE or DELETE without WHERE, TRUNCATE or DROP"
                 />
               </FormRow>
               <FormRow label="Read-only">
@@ -214,7 +228,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Query timeout">
                 <Input
-                  size="lg"
+                  size="xl"
                   type="number"
                   min={0}
                   value={String(form.query_timeout ?? 0)}
@@ -229,6 +243,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Color">
                 <ColorPicker
+                  size="xl"
                   value={form.color ?? ""}
                   onChange={(c) => setForm((f) => ({ ...f, color: c }))}
                 />
@@ -241,6 +256,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
             <>
               <FormRow label="SSH Tunnel">
                 <Select
+                  size="xl"
                   value={form.ssh_tunnel_id ?? ""}
                   options={[
                     { value: "", label: "None (direct connection)" },
@@ -286,18 +302,18 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
         zIndex={10001}
         footer={
           <>
-            <div style={{ flex: 1 }} />
-            <Button variant={2} onClick={() => setConfirmDelete(false)}>
+            <Button variant={2} size="xl" onClick={() => setConfirmDelete(false)}>
               Cancel
             </Button>
             <Button
               variant={6}
+              size="xl"
               onClick={() => {
                 setConfirmDelete(false);
                 onDelete?.();
               }}
             >
-              <Trash2 size={13} /> Delete
+              <Trash2 size={14} /> Delete
             </Button>
           </>
         }

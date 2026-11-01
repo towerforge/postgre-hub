@@ -1,18 +1,23 @@
 .root {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   display: inline-flex;
   align-items: center;
-  height: 30px;
+  height: var(--_h);
   gap: 8px;
-  padding: 0 10px;
+  padding: 0 var(--_px);
   background: var(--om-bg);
   border: 1px solid var(--om-border-focus);
-  border-radius: var(--radius-2);
+  border-radius: var(--_radius);
   corner-shape: squircle;
   transition:
     border-color 0.12s,
     box-shadow 0.12s;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   color: var(--om-fg);
   min-width: 240px;
 }
@@ -27,6 +32,10 @@
   flex-shrink: 0;
   display: inline-flex;
 }
+.prompt svg {
+  width: var(--_icon);
+  height: var(--_icon);
+}
 .label {
   color: var(--om-fg-dim);
   flex-shrink: 0;
@@ -40,7 +49,7 @@
   outline: 0;
   padding: 0;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   color: var(--om-fg-bright);
   caret-color: var(--om-accent);
 }
@@ -62,11 +71,27 @@
   transition: color 0.1s;
 }
 
+.clear svg {
+  width: calc(var(--_icon) - 1px);
+  height: calc(var(--_icon) - 1px);
+}
+
 .clear:hover {
   color: var(--om-fg-bright);
 }
 
+/* ── Tamaños de la escala --control-* ── */
 .lg {
-  height: 38px;
-  border-radius: 12px;
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
+}
+.xl {
+  --_h: var(--control-h-xl);
+  --_fs: var(--control-fs-xl);
+  --_px: var(--control-px-xl);
+  --_icon: var(--control-icon-xl);
+  --_radius: var(--control-radius-xl);
 }

@@ -4,10 +4,11 @@
 // en una tabla abre una pestaña con su consulta. Es una pieza del editor SQL
 // (/connections/:id).
 import { useMemo, useState } from "react";
-import { KeyRound, Link2 } from "lucide-react";
+import { KeyRound, Link2, Map as MapIcon } from "lucide-react";
 import {
   ReactFlow,
   Background,
+  ControlButton,
   Controls,
   MiniMap,
   Handle,
@@ -24,6 +25,23 @@ const HEADER_H = 34;
 const ROW_H = 22;
 const GRID_GAP = 40;
 const ALL_SCHEMAS = "*";
+
+// Nombres cortos de los tipos largos de Postgres, para que no se corten en el nodo
+const SHORT_TYPES = [
+  [/^timestamp with time zone/, "timestamptz"],
+  [/^timestamp without time zone/, "timestamp"],
+  [/^time with time zone/, "timetz"],
+  [/^time without time zone/, "time"],
+  [/^character varying/, "varchar"],
+  [/^character\b/, "char"],
+  [/^double precision/, "float8"],
+  [/^bit varying/, "varbit"],
+];
+
+const shortType = (type) => {
+  for (const [re, short] of SHORT_TYPES) if (re.test(type)) return type.replace(re, short);
+  return type;
+};
 
 const nodeHeight = (t) => HEADER_H + t.columns.length * ROW_H + 6;
 const nodeId = (schema, name) => `${schema}.${name}`;
@@ -54,7 +72,9 @@ const TableNodeView = ({ data }) => {
             ) : null}
           </span>
           <span className={c.pk ? styles.colPk : styles.col}>{c.name}</span>
-          <span className={styles.type}>{c.type}</span>
+          <span className={styles.type} title={c.type}>
+            {shortType(c.type)}
+          </span>
           <Handle
             type="source"
             position={Position.Right}
@@ -120,6 +140,8 @@ export const ErDiagramModal = ({ open, onClose, structure, onOpenTable }) => {
     [structure],
   );
   const [picked, setPicked] = useState(null);
+  // El minimapa tapa tablas en esquemas pequeños: oculto hasta que se pide
+  const [showMinimap, setShowMinimap] = useState(false);
   const schema = picked ?? (schemas.includes("public") ? "public" : (schemas[0] ?? ALL_SCHEMAS));
 
   const { nodes, edges } = useMemo(() => {
@@ -219,8 +241,16 @@ export const ErDiagramModal = ({ open, onClose, structure, onOpenTable }) => {
             proOptions={{ hideAttribution: true }}
           >
             <Background gap={20} size={1} />
-            <Controls showInteractive={false} />
-            <MiniMap pannable zoomable className={styles.minimap} />
+            <Controls showInteractive={false}>
+              <ControlButton
+                onClick={() => setShowMinimap((v) => !v)}
+                title={showMinimap ? "Hide minimap" : "Show minimap"}
+                aria-pressed={showMinimap}
+              >
+                <MapIcon size={12} />
+              </ControlButton>
+            </Controls>
+            {showMinimap && <MiniMap pannable zoomable className={styles.minimap} />}
           </ReactFlow>
         )}
       </div>

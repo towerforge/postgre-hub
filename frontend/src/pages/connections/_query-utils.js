@@ -57,6 +57,27 @@ export const excelCol = (n) => {
   return s;
 };
 
+// Tipos de Postgres que se alinean a la derecha y con cifras de ancho fijo
+const NUMERIC_TYPES = new Set([
+  "int2",
+  "int4",
+  "int8",
+  "smallint",
+  "integer",
+  "bigint",
+  "numeric",
+  "decimal",
+  "float4",
+  "float8",
+  "real",
+  "double precision",
+  "money",
+  "oid",
+]);
+
+/** Indica si una columna de resultado es numérica según su tipo de Postgres. */
+export const isNumericType = (type) => NUMERIC_TYPES.has((type ?? "").toLowerCase());
+
 /**
  * Id para poder cancelar una consulta. `crypto.randomUUID` solo existe en
  * contextos seguros (HTTPS o localhost); fuera de ellos se genera a mano.

@@ -21,9 +21,9 @@
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 30%,
-    #8fb4ff 0%,
-    #3574f0 38%,
-    #1b3fa8 70%,
+    #8db5dc 0%,
+    #336791 38%,
+    #1d3d58 70%,
     transparent 100%
   );
   filter: blur(70px);
@@ -46,15 +46,18 @@
   animation: pulse-b 8s ease-in-out infinite;
 }
 
-/* Rejilla tenue que se desvanece hacia los bordes */
+/* Puntos tenues que se desvanecen hacia los bordes */
 .grid {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--om-fg) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--om-fg) 7%, transparent) 1px, transparent 1px);
-  background-size: 44px 44px;
+  /* Puntos como el fondo del diagrama ER, en lugar de cuadrícula */
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--om-fg) 22%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 20px 20px;
   mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
   -webkit-mask-image: radial-gradient(circle at center, #000 0%, transparent 70%);
 }
@@ -79,42 +82,204 @@
   }
 }
 
-.card {
-  width: 400px;
+/* Columna centrada sin tarjeta, como el login de taskflow */
+.column {
+  width: 340px;
   max-width: 100%;
 }
 
-.form {
+/* Salida tras autenticar: la columna se funde antes de abrir la app */
+.exit {
+  animation: auth-out 0.4s ease forwards;
+}
+
+@keyframes auth-out {
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+}
+
+/* Entrada en cascada: cada pieza con su retardo */
+.in {
+  opacity: 0;
+  animation: auth-in 0.55s cubic-bezier(0.16, 0.84, 0.34, 1) forwards;
+}
+
+@keyframes auth-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.delay05 {
+  animation-delay: 0.05s;
+}
+.delay08 {
+  animation-delay: 0.08s;
+}
+.delay10 {
+  animation-delay: 0.1s;
+}
+.delay15 {
+  animation-delay: 0.15s;
+}
+.delay16 {
+  animation-delay: 0.16s;
+}
+.delay20 {
+  animation-delay: 0.2s;
+}
+.delay25 {
+  animation-delay: 0.25s;
+}
+
+/* Marca: monograma PH (BrandMark) en su tile y nombre en fila */
+.brand {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 34px;
 }
 
 .logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #5b92ff, #2a5fd6);
+  background: linear-gradient(145deg, #4a86b8, #2a5679);
   box-shadow:
-    0 10px 32px color-mix(in srgb, #3574f0 75%, transparent),
-    0 0 0 4px color-mix(in srgb, #5b92ff 18%, transparent),
+    0 8px 26px color-mix(in srgb, #336791 75%, transparent),
+    0 0 0 4px color-mix(in srgb, #4a86b8 18%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.title {
-  font-size: 22px;
+.wordmark {
+  font-size: 19px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--om-fg-bright);
 }
 
+.title {
+  margin: 0 0 26px;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--om-fg-bright);
+}
+
+/* Con subtítulo, el título se acerca a él */
+.title:has(+ .intro) {
+  margin-bottom: 10px;
+}
+
+.intro {
+  margin: 0 0 26px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--om-fg-muted);
+}
+
+.spaced {
+  margin-top: 10px;
+}
+
+/* Requisitos de la contraseña del alta inicial */
+.rules {
+  margin: 12px 0 0;
+  padding: 0 2px;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--om-fg-muted);
+}
+
+.rules li {
+  display: flex;
+  gap: 6px;
+  transition: color 0.2s ease;
+}
+
+.ruleMark {
+  width: 10px;
+  text-align: center;
+}
+
+.ruleOk {
+  color: var(--om-green);
+}
+
+.action {
+  margin-top: 16px;
+}
+
+/* Éxito: el botón pasa a verde y dibuja el check */
+.buttonSuccess,
+.buttonSuccess:disabled {
+  background: var(--om-green);
+  border-color: var(--om-green);
+  color: #fff;
+  opacity: 1;
+}
+
+.check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: auth-check 0.35s ease forwards;
+}
+
+@keyframes auth-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--om-fg-muted);
+}
+
+.divider {
+  display: block;
+  width: 120px;
+  height: 1px;
+  margin: 0 auto 18px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--om-fg) 22%, transparent),
+    transparent
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .orb,
-  .orbSmall {
+  .orbSmall,
+  .check {
     animation: none;
+  }
+  .check {
+    stroke-dashoffset: 0;
+  }
+  .in {
+    animation: none;
+    opacity: 1;
   }
 }

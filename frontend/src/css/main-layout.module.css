@@ -15,6 +15,10 @@
   gap: 10px;
   padding: 2px 10px 0;
 }
+/* Sin barra de estado (fuera de una conexión): margen inferior igual al lateral */
+.middleFull {
+  padding-bottom: 10px;
+}
 
 .bottomGap {
   flex-shrink: 0;
@@ -56,75 +60,38 @@
   overflow: hidden;
 }
 
-/* User dropdown */
-.userMenuRoot {
-  position: relative;
+/* Chip de la cuenta en la barra superior (Button 7 con avatar, nombre y chevron).
+   El avatar ya lleva aire propio, así que el chip arranca más pegado al borde. */
+:global(.waybar) .accountChip {
+  padding-left: 6px;
+  gap: 7px;
 }
-.userAvatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  background: var(--acc-blue);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  flex-shrink: 0;
+.accountChip svg {
+  color: var(--om-fg-muted);
 }
-.userAvatar:hover {
-  opacity: 0.85;
+/* Con el menú abierto el chip toma --om-bg-4, el fondo del avatar: el avatar pasa
+   a --om-bg-2 para no fundirse con él */
+.accountChip[aria-expanded="true"] .accountAvatar {
+  background: var(--om-bg-2);
 }
-
-.userDropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  min-width: 200px;
-  background: var(--vsc-bg-side);
-  border: 1px solid var(--vsc-border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 100;
+.accountName {
+  max-width: 140px;
   overflow: hidden;
-  border-radius: 2px;
-  padding: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Nombre dentro del rótulo «Signed in as»: identidad, más claro que el resto */
+.accountWho {
+  color: var(--om-fg-bright);
+  font-weight: 500;
 }
 
-.userDropdownHeader {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--vsc-border);
-}
-.userDropdownName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--vsc-fg-strong);
-}
-
-.userDropdownItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 12px;
-  color: var(--vsc-fg);
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  text-align: left;
-  text-decoration: none;
-}
-.userDropdownItem:hover {
-  background: var(--vsc-bg-hover);
-  color: var(--vsc-fg-strong);
-}
-
-.userDropdownDivider {
-  height: 1px;
-  background: var(--vsc-border);
-  margin: 4px 0;
+/* Raya vertical que separa las acciones de la conexión del botón del panel
+   derecho en la barra superior */
+.divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 6px;
+  flex-shrink: 0;
+  background: var(--om-border-focus);
 }

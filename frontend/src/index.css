@@ -1,6 +1,6 @@
-/* Postgre Hub — piel inspirada en JetBrains New UI (tema Islands)
-   Paneles redondeados que flotan sobre el fondo, Inter para la interfaz y
-   JetBrains Mono solo para código y datos. Acento azul, sintaxis tipo Darcula.
+/* Postgre Hub — paneles redondeados que flotan sobre el fondo, Inter para la
+   interfaz y JetBrains Mono solo para código y datos. La marca es el azul
+   pizarra de PostgreSQL; dentro de una conexión manda su propio color.
    Los alias --vsc-* y legacy se mantienen para que los estilos inline hereden la paleta. */
 
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap");
@@ -45,11 +45,11 @@ a:hover {
   color-scheme: dark;
 
   /* Superficies */
-  --om-bg: #191a1c; /* islas y editor */
-  --om-bg-2: #2a2a2c; /* cabecera de rejilla, popups, modales */
-  --om-bg-3: #2b2d30; /* hover */
-  --om-bg-4: #393b40; /* pulsado / chips */
-  --om-gap: #26282b; /* fondo entre islas y barras (más claro que las islas) */
+  --om-bg: #17191c; /* islas y editor */
+  --om-bg-2: #282c32; /* cabecera de rejilla, popups, modales */
+  --om-bg-3: #2a2e34; /* hover */
+  --om-bg-4: #383d45; /* pulsado / chips */
+  --om-gap: #21252b; /* fondo entre islas y barras (más claro que las islas) */
 
   /* Panel flotante: card de login, menú lateral y filas de listado */
   --panel-radius: var(--r-window);
@@ -61,21 +61,21 @@ a:hover {
   --om-fg-bright: #dfe1e5;
 
   /* Acentos */
-  --om-accent: #548af7; /* foco, enlaces */
-  --om-primary: #3574f0; /* botón principal */
-  --om-primary-hover: #4682fa;
+  --om-accent: #6a9fd4; /* foco, enlaces: azul de PostgreSQL aclarado para leerse sobre oscuro */
+  --om-primary: #336791; /* botón principal: azul pizarra de PostgreSQL */
+  --om-primary-hover: #3d77a8;
   --om-magenta: #c77dbb;
   --om-cyan: #2aacb8;
   --om-green: #5fb865;
   --om-yellow: #f2c55c;
   --om-orange: #cf8e6d;
-  --om-red: #e55765;
+  --om-red: #e5484d;
 
-  --om-border: #2b2d30;
-  --om-border-focus: #43454a;
-  --om-selection: #393b40; /* fila seleccionada (gris, como el árbol de DataGrip) */
-  --om-tab-active: #25324d;
-  --om-tab-active-border: #43454a;
+  --om-border: #2b2f35;
+  --om-border-focus: #444a52;
+  --om-selection: #383d45; /* fila seleccionada */
+  --om-tab-active: #1f2f42;
+  --om-tab-active-border: #444a52;
   --om-glow: 16%; /* intensidad del brillo del color de la conexión */
   --om-on-primary: #ffffff;
 
@@ -88,8 +88,8 @@ a:hover {
   --tok-type: #c77dbb;
   --tok-var: #bcbec4;
   --tok-op: #bcbec4;
-  --tok-sel: rgba(33, 66, 131, 0.85);
-  --tok-line: #1f2023;
+  --tok-sel: rgba(51, 103, 145, 0.6);
+  --tok-line: #1d2024;
 
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
 
@@ -112,7 +112,9 @@ a:hover {
   --om-fg-muted: #6e6e6e;
   --om-fg-bright: #000000;
 
-  --om-accent: #3574f0;
+  --om-accent: #336791;
+  --om-primary: #336791;
+  --om-primary-hover: #2b5a80;
   --om-green: #208a3c;
   --om-yellow: #c27d04;
   --om-orange: #c45a1c;
@@ -123,8 +125,8 @@ a:hover {
   --om-border: #e6e6e6;
   --om-border-focus: #cfcfcf;
   --om-selection: #dfe1e5;
-  --om-tab-active: #e6edfd;
-  --om-tab-active-border: #c2d3f5;
+  --om-tab-active: #e4edf5;
+  --om-tab-active-border: #b9cfe2;
   --om-glow: 14%;
 
   --tok-kw: #0033b3;
@@ -159,7 +161,9 @@ a:hover {
     --om-fg-muted: #6e6e6e;
     --om-fg-bright: #000000;
 
-    --om-accent: #3574f0;
+    --om-accent: #336791;
+    --om-primary: #336791;
+    --om-primary-hover: #2b5a80;
     --om-green: #208a3c;
     --om-yellow: #c27d04;
     --om-orange: #c45a1c;
@@ -170,8 +174,8 @@ a:hover {
     --om-border: #e6e6e6;
     --om-border-focus: #cfcfcf;
     --om-selection: #dfe1e5;
-    --om-tab-active: #e6edfd;
-    --om-tab-active-border: #c2d3f5;
+    --om-tab-active: #e4edf5;
+    --om-tab-active-border: #b9cfe2;
     --om-glow: 14%;
 
     --tok-kw: #0033b3;
@@ -264,6 +268,26 @@ a:hover {
   --radius-3: 20px;
   --radius-pop: 12px;
   --radius-modal: 18px;
+
+  /* Escala única de controles (botones, campos, selectores, pestañas). No
+     depende del tema. El alto incluye el borde (box-sizing global). */
+  --control-h-lg: 32px;
+  --control-h-xl: 38px;
+  /* Tamaño de fuente */
+  --control-fs-lg: 13px;
+  --control-fs-xl: 13.5px;
+  /* Padding horizontal de campos y botones ligeros (tool) */
+  --control-px-lg: 10px;
+  --control-px-xl: 12px;
+  /* Padding horizontal de botones con texto */
+  --button-px-lg: 14px;
+  --button-px-xl: 16px;
+  /* Iconos internos de los controles (flecha, lupa, borrar) */
+  --control-icon-lg: 14px;
+  --control-icon-xl: 16px;
+  /* Radio */
+  --control-radius-lg: 8px;
+  --control-radius-xl: 12px;
 
   --tab-active-bg: var(--om-bg);
   --tab-border: var(--om-border);
@@ -377,10 +401,11 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--om-bg-2);
-  border-bottom: 1px solid var(--om-border);
-  border-right: 1px solid var(--om-border);
-  padding: 8px 14px;
+  /* Mismo fondo opaco que la isla: sin franja, y no se transparenta al hacer scroll */
+  background: var(--om-bg);
+  border-bottom: 1px solid var(--om-border-focus);
+  border-right: 1px solid transparent;
+  padding: 7px 14px 6px;
   text-align: left;
   font-family: var(--font-family);
   font-size: 12px;
@@ -390,13 +415,32 @@ a:hover {
   user-select: none;
 }
 .dt thead th.row-num {
-  width: 44px;
+  width: 38px;
   text-align: right;
-  padding: 8px 10px;
+  padding: 7px 10px 6px;
+  color: var(--vsc-fg-disabled);
+  font-family: var(--font-mono);
+  font-weight: 400;
 }
 .dt thead th .col-name {
   color: var(--om-fg-bright);
   font-weight: 600;
+}
+/* Letra de columna (A, B, C…): etiqueta mono discreta que se enciende con la selección */
+.dt thead th .col-letter {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--vsc-fg-disabled);
+  letter-spacing: 0.02em;
+}
+.dt thead th.col-sel .col-letter {
+  color: var(--om-accent);
+  font-weight: 600;
+}
+.dt thead th.col-sel .col-name {
+  color: var(--om-fg-bright);
 }
 .dt thead th .col-type {
   margin-left: 6px;
@@ -420,15 +464,22 @@ a:hover {
 .dt tbody td.row-num {
   text-align: right;
   color: var(--om-fg-muted);
-  width: 44px;
+  width: 38px;
   background: var(--om-bg);
   user-select: none;
   font-size: 11px;
   padding: 5px 10px;
 }
 .dt tbody td.null-cell {
-  color: var(--om-fg-muted);
+  color: var(--vsc-fg-disabled);
   font-style: italic;
+  font-size: 11px;
+}
+/* Columnas numéricas: a la derecha y con cifras del mismo ancho para comparar */
+.dt thead th.num,
+.dt tbody td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .dt tbody tr {
   cursor: default;
@@ -517,7 +568,7 @@ a:hover {
   align-items: center;
   gap: 8px;
   padding: 0 8px 0 12px;
-  height: 30px;
+  height: var(--control-h-lg);
   border: 1px solid transparent;
   border-radius: var(--radius-2);
   corner-shape: squircle;
@@ -582,7 +633,8 @@ a:hover {
 .tile-head {
   display: flex;
   align-items: center;
-  height: 46px;
+  /* Mismo alto que .vsc-tabs, que queda al lado: los bordes inferiores coinciden */
+  height: 48px;
   flex-shrink: 0;
   padding: 0 12px 0 18px;
   font-size: 13px;
@@ -706,6 +758,29 @@ a:hover {
   display: block;
 }
 
+/* Entorno de la conexión, a la derecha de la barra superior */
+.env-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  margin-right: 6px;
+  border-radius: var(--r-capsule);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--om-border-focus);
+  color: var(--om-fg-dim);
+}
+.env-pill.production {
+  background: var(--om-red);
+  border-color: var(--om-red);
+  color: #fff;
+}
+.env-pill.staging {
+  border-color: color-mix(in srgb, var(--om-yellow) 60%, transparent);
+  color: var(--om-yellow);
+}
+
 /* Widget de proyecto: icono de color + nombre + detalle */
 .waybar .title {
   display: inline-flex;
@@ -757,12 +832,17 @@ a:hover {
   gap: 2px;
   align-items: center;
 }
+/* Separa las acciones de la pantalla de la pastilla de entorno */
+.waybar .right > .env-pill {
+  margin-left: 8px;
+}
 
 /* ── Barra de estado ────────────────────────────────── */
 .statusbar {
   display: flex;
   align-items: center;
-  height: 34px;
+  /* Controles lg (32px) con 4px arriba y abajo: el mismo alto que el pie de resultados */
+  height: 40px;
   flex-shrink: 0;
   padding: 0 12px;
   gap: 2px;
@@ -790,8 +870,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 8px;
+  height: var(--control-h-lg);
+  padding: 0 var(--control-px-lg);
   border-radius: var(--radius-1);
   color: var(--om-fg-dim);
   font-size: 12px;
@@ -827,8 +907,8 @@ a:hover {
 .bottombar .header {
   display: flex;
   align-items: center;
-  height: 44px;
-  padding: 0 16px;
+  height: 48px;
+  padding: 0 12px;
   background: transparent;
   color: var(--om-fg-bright);
   font-size: 13px;
@@ -838,12 +918,13 @@ a:hover {
 .bottombar .body {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 6px;
+  padding: 0 12px 8px;
 }
 .bottombar .item {
   cursor: pointer;
   position: relative;
-  padding: 4px 0 4px 4px;
+  padding: 4px 0;
+  border: 1px solid transparent;
   border-radius: var(--radius-2);
 }
 .bottombar .item + .item {
@@ -852,8 +933,10 @@ a:hover {
 .bottombar .item:hover {
   background: var(--om-bg-3);
 }
+/* Activo con la misma píldora azulada que .vsc-tab.active */
 .bottombar .item.active {
-  background: var(--om-selection);
+  background: var(--om-tab-active);
+  border-color: var(--om-tab-active-border);
 }
 .bottombar .item .cm-editor {
   pointer-events: none;
@@ -866,6 +949,16 @@ a:hover {
 .bottombar .empty {
   padding: 14px;
   color: var(--om-fg-muted);
+}
+/* Barra de pestañas alineada con .vsc-tabs (48px, padding 0 12px) */
+.bottombar .hist-tabs {
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 0;
+  flex-shrink: 0;
+}
+.bottombar .hist-ico {
+  color: var(--om-accent);
 }
 
 /* ── CodeMirror ─────────────────────────────────────── */

@@ -1,7 +1,162 @@
-/* Estilos del dominio connections. Por ahora solo los usa el diagrama ER del
-   editor SQL (`pages/connections/_er-diagram-modal.jsx`): React Flow trae su
-   propio aspecto y aquí se pasa a los tokens del tema con sus variables
-   `--xy-*`, para que siga el modo claro u oscuro. */
+/* Estilos del dominio connections: la lista de conexiones (grupos por entorno,
+   datos de cada fila y estado vacío) y el diagrama ER del editor SQL
+   (`pages/connections/_er-diagram-modal.jsx`). React Flow trae su propio
+   aspecto y aquí se pasa a los tokens del tema con sus variables `--xy-*`,
+   para que siga el modo claro u oscuro. */
+
+/* ── Lista de conexiones ───────────────────────────── */
+/* Contador junto al título de la página */
+.titleCount {
+  margin-left: 8px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--om-fg-muted);
+}
+
+/* La cabecera del grupo ya separa: el bloque de filas no necesita su margen.
+   Sin margen lateral, las filas arrancan en la misma guía que título y buscador */
+.envGroup > div {
+  padding: 8px 0;
+}
+
+.envHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 18px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--om-fg-bright);
+}
+
+.envHeading .count {
+  font-weight: 400;
+  color: var(--om-fg-muted);
+}
+
+/* Punto de color: rojo en producción, amarillo en staging */
+.envDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--om-fg-muted);
+}
+
+.envDot.production {
+  background: var(--om-red);
+}
+
+.envDot.staging {
+  background: var(--om-yellow);
+}
+
+.envDot.development {
+  background: var(--om-green);
+}
+
+/* Destino de la fila (host:puerto / base de datos), en su propia columna */
+.target {
+  flex: 0 1 38%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--om-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Datos de la fila: túnel, solo lectura y última consulta */
+.meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 220px;
+  font-size: 12px;
+  color: var(--om-fg-muted);
+}
+
+/* Ranura fija de Test y Edit: reserva su ancho y solo se ve con hover o foco */
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 132px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+/* `.connRow` es la fila de la lista; `.row` es la columna del diagrama ER */
+.connRow:hover .rowActions,
+.connRow:focus-within .rowActions,
+.rowActions.pinned {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .target {
+    display: none;
+  }
+}
+
+/* Sin ratón no hay hover: las acciones se ven siempre */
+@media (hover: none) {
+  .rowActions {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowActions {
+    transition: none;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--om-bg-4);
+  color: var(--om-fg-dim);
+}
+
+.lastUsed {
+  min-width: 96px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 380px;
+  margin: 72px auto 0;
+  text-align: center;
+  color: var(--om-fg-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.emptyState h2 {
+  margin: 6px 0 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--om-fg-bright);
+}
+
+.emptyState p {
+  margin: 0 0 8px;
+}
 
 .canvas {
   width: 100%;

@@ -5,7 +5,9 @@
   -webkit-backdrop-filter: blur(20px);
 }
 
-/* Menú lateral como tarjeta flotante (Card panel), separada del contenido */
+/* Menú lateral como tarjeta flotante (Card panel), separada del contenido. Ocupa
+   todo el alto de la caja con las entradas arriba; si no caben, la lista hace
+   scroll dentro. */
 .floatingNav {
   width: 208px;
   flex-shrink: 0;

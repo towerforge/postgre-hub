@@ -41,16 +41,20 @@ export const AuthProvider = ({ children }) => {
     refresh();
   }, []);
 
-  const setup = async (u, password, confirmPassword) => {
+  // `beforeEnter` (opcional) se espera tras autenticar y antes de cambiar el
+  // estado: deja a la pantalla de acceso terminar su animación de salida.
+  const setup = async (u, password, confirmPassword, beforeEnter) => {
     await apiAuthSetup(u, password, confirmPassword);
+    await beforeEnter?.();
     setStatus({ setup_required: false, authenticated: true });
     apiAuthMe()
       .then((me) => setUsername(me.username))
       .catch(() => {});
   };
 
-  const login = async (u, password) => {
+  const login = async (u, password, beforeEnter) => {
     await apiAuthLogin(u, password);
+    await beforeEnter?.();
     setStatus({ setup_required: false, authenticated: true });
     apiAuthMe()
       .then((me) => setUsername(me.username))

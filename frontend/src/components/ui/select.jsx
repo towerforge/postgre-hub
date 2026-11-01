@@ -8,10 +8,13 @@ import { createPortal } from "react-dom";
 import { AlertCircle, ChevronDown } from "lucide-react";
 import styles from "@/css/ui/select.module.css";
 
+const SIZES = ["lg", "xl"];
+
 /**
  * `options` es una lista de `{ value, label }`. `onChange` recibe un evento
  * imitado (`{ target: { name, value } }`) para poder compartir manejador con los
- * inputs nativos de un formulario.
+ * inputs nativos de un formulario. `size`: lg 32px (por defecto)
+ * o xl 38px; el campo de búsqueda del desplegable usa el mismo alto que el disparador.
  */
 export const Select = ({
   id,
@@ -26,9 +29,11 @@ export const Select = ({
   disabled = false,
   required = false,
   searchable = false,
+  size = "lg",
   className = "",
   onChange,
 }) => {
+  const sizeClass = styles[SIZES.includes(size) ? size : "lg"];
   const isControlled = controlledValue !== undefined;
   const [internalValue, setInternalValue] = useState(defaultValue ?? "");
   const value = isControlled ? controlledValue : internalValue;
@@ -116,6 +121,7 @@ export const Select = ({
 
   const wrapperClass = [
     styles.wrapper,
+    sizeClass,
     disabled ? styles.disabled : "",
     error ? styles.error : "",
     className,
@@ -130,7 +136,7 @@ export const Select = ({
       ? createPortal(
           <div
             ref={dropdownRef}
-            className={styles.dropdown}
+            className={`${styles.dropdown} ${sizeClass}`}
             style={{
               position: "absolute",
               top: dropdownPos.top,

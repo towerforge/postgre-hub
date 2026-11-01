@@ -1,4 +1,9 @@
 .wrapper {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -21,10 +26,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  height: 30px;
+  height: var(--_h);
   background: var(--om-bg);
   border: 1px solid var(--om-border-focus);
-  border-radius: var(--radius-1);
+  border-radius: var(--_radius);
   corner-shape: squircle;
   transition:
     border-color 0.12s,
@@ -42,12 +47,12 @@
   min-width: 0;
   width: 100%;
   height: 100%;
-  padding: 0 10px;
+  padding: 0 var(--_px);
   background: transparent;
   border: none;
   outline: none;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   line-height: 1;
   color: var(--om-fg-bright);
   caret-color: var(--om-accent);
@@ -60,7 +65,7 @@
 .iconLeft {
   display: flex;
   align-items: center;
-  padding-left: 10px;
+  padding-left: var(--_px);
   color: var(--om-fg-muted);
   flex-shrink: 0;
 }
@@ -71,9 +76,19 @@
 .iconRight {
   display: flex;
   align-items: center;
-  padding-right: 10px;
+  height: 100%;
+  padding-right: var(--_px);
   color: var(--om-fg-muted);
   flex-shrink: 0;
+}
+
+/* Un botón dentro del campo (mostrar contraseña) es un accesorio: cuadrado y
+   4px más bajo por arriba y por abajo que el campo, así nunca toca el borde */
+.iconRight > button {
+  width: calc(var(--_h) - 8px);
+  min-width: calc(var(--_h) - 8px);
+  height: calc(var(--_h) - 8px);
+  margin-right: calc(var(--_px) / -2);
 }
 
 .wrapper.disabled .control {
@@ -112,12 +127,18 @@
   flex-shrink: 0;
 }
 
-/* Tamaño grande, a la altura del botón xl */
+/* ── Tamaños de la escala --control-* ── */
 .lg {
-  height: 38px;
-  border-radius: 12px;
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
 }
-.lg .input {
-  padding: 0 12px;
-  font-size: 13.5px;
+.xl {
+  --_h: var(--control-h-xl);
+  --_fs: var(--control-fs-xl);
+  --_px: var(--control-px-xl);
+  --_icon: var(--control-icon-xl);
+  --_radius: var(--control-radius-xl);
 }

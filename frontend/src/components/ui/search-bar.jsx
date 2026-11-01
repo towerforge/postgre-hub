@@ -5,14 +5,19 @@ import { useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import styles from "@/css/ui/search-bar.module.css";
 
-/** Campo controlado: `onChange` recibe el texto, no el evento. `size="lg"` es la versión grande. */
+const SIZES = ["lg", "xl"];
+
+/**
+ * Campo controlado: `onChange` recibe el texto, no el evento. `size`: lg 32px
+ * (por defecto) o xl 38px.
+ */
 export const SearchBar = ({
   value,
   onChange,
   placeholder = "Search…",
   label,
   autoFocus,
-  size = "md",
+  size = "lg",
   style,
   className = "",
 }) => {
@@ -27,7 +32,10 @@ export const SearchBar = ({
   }, []);
 
   return (
-    <div className={`${styles.root} ${size === "lg" ? styles.lg : ""} ${className}`} style={style}>
+    <div
+      className={`${styles.root} ${styles[SIZES.includes(size) ? size : "lg"]} ${className}`}
+      style={style}
+    >
       <span className={styles.prompt}>
         <Search size={14} />
       </span>
@@ -44,7 +52,12 @@ export const SearchBar = ({
         autoFocus={autoFocus}
       />
       {value && (
-        <button className={styles.clear} onClick={() => onChange("")} aria-label="Clear">
+        <button
+          type="button"
+          className={styles.clear}
+          onClick={() => onChange("")}
+          aria-label="Clear"
+        >
           <X size={13} />
         </button>
       )}

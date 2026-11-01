@@ -1,4 +1,9 @@
 .wrapper {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -22,10 +27,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  height: 30px;
+  height: var(--_h);
   background: var(--om-bg);
   border: 1px solid var(--om-border-focus);
-  border-radius: var(--radius-1);
+  border-radius: var(--_radius);
   corner-shape: squircle;
   transition:
     border-color 0.12s,
@@ -42,9 +47,9 @@
 
 .value {
   flex: 1;
-  padding: 0 28px 0 10px;
+  padding: 0 calc(var(--_px) * 2 + var(--_icon)) 0 var(--_px);
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   color: var(--om-fg-bright);
   white-space: nowrap;
   overflow: hidden;
@@ -57,12 +62,17 @@
 
 .arrow {
   position: absolute;
-  right: 10px;
+  right: var(--_px);
   pointer-events: none;
   color: var(--om-fg-muted);
   display: flex;
   align-items: center;
   transition: transform 0.15s;
+}
+
+.arrow svg {
+  width: var(--_icon);
+  height: var(--_icon);
 }
 
 .arrowOpen {
@@ -71,6 +81,11 @@
 }
 
 .dropdown {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
   z-index: 10000;
   background: var(--om-bg-2);
   border: 1px solid var(--om-border-focus);
@@ -88,10 +103,10 @@
 .searchControl {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: var(--_h);
   background: var(--om-bg);
   border: 1px solid var(--om-border-focus);
-  border-radius: var(--radius-1);
+  border-radius: var(--_radius);
   corner-shape: squircle;
   transition: border-color 0.12s;
 }
@@ -103,12 +118,12 @@
 .searchInput {
   flex: 1;
   height: 100%;
-  padding: 0 10px;
+  padding: 0 var(--_px);
   background: transparent;
   border: none;
   outline: none;
   font-family: var(--font-family);
-  font-size: 12px;
+  font-size: var(--_fs);
   color: var(--om-fg-bright);
   caret-color: var(--om-accent);
 }
@@ -130,7 +145,7 @@
   border-radius: var(--radius-1);
   corner-shape: squircle;
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   color: var(--om-fg);
   cursor: pointer;
 }
@@ -181,4 +196,20 @@
 }
 .hint {
   color: var(--om-fg-muted);
+}
+
+/* ── Tamaños de la escala --control-* ── */
+.lg {
+  --_h: var(--control-h-lg);
+  --_fs: var(--control-fs-lg);
+  --_px: var(--control-px-lg);
+  --_icon: var(--control-icon-lg);
+  --_radius: var(--control-radius-lg);
+}
+.xl {
+  --_h: var(--control-h-xl);
+  --_fs: var(--control-fs-xl);
+  --_px: var(--control-px-xl);
+  --_icon: var(--control-icon-xl);
+  --_radius: var(--control-radius-xl);
 }

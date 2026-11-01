@@ -1,10 +1,12 @@
+/* Disparador: llena el alto del contenedor (el token del tamaño) */
 .root {
   position: relative;
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px;
-  border-radius: calc(var(--radius-1) - 1px);
+  padding: 0 calc(var(--_px) - 4px);
+  border-radius: calc(var(--_radius) - 2px);
+  corner-shape: squircle;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -17,14 +19,14 @@
 
 .label {
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   font-weight: 500;
   color: var(--text-3);
 }
 
 .value {
   font-family: var(--font-family);
-  font-size: 13px;
+  font-size: var(--_fs);
   font-weight: 500;
   color: var(--text-1);
   white-space: nowrap;
@@ -34,13 +36,28 @@
 }
 
 .arrow {
+  width: calc(var(--_icon) - 2px);
+  height: calc(var(--_icon) - 2px);
   color: var(--text-3);
   flex-shrink: 0;
+}
+
+.root:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--om-accent) 70%, transparent);
+  outline-offset: -1px;
 }
 
 /* Contenedor con el aspecto de SegmentedControl */
 .wrapper {
   composes: root from "./segmented-control.module.css";
+}
+
+/* Tamaños: los mismos que SegmentedControl */
+.lg {
+  composes: lg from "./segmented-control.module.css";
+}
+.xl {
+  composes: xl from "./segmented-control.module.css";
 }
 
 /* La lista desplegable es la misma que la de Select */
