@@ -52,7 +52,9 @@ These targets run on the host, not in Docker. This is an exception to the Docker
 |---|---|
 | `make desktop-dev` | `cargo tauri dev`: debug window with devtools. Builds `frontend/dist` first if it is missing (rust-embed reads it from disk in debug builds, so after a `pnpm build` a reload is enough) |
 | `make desktop-build` | `make build-frontend` + `cargo tauri build`: bundles in `desktop/target/release/bundle/` (`.app` + `.dmg` on macOS, `.msi` + NSIS `.exe` on Windows, `.deb`/`.rpm`/`.AppImage` on Linux). Needs no keys and does not sign |
+| `make desktop-open` | Opens the release `.app` built by `desktop-build` (macOS only). It uses the app's real data directory |
 | `make package-desktop` | Copies the bundles for the current version to `dist/postgre-hub-desktop-<os>-<arch>.<ext>`, plus `.sig` files if present |
+| `make package-desktop-macos` | Builds and copies the bundles for every triple in `MACOS_TARGETS` (Apple Silicon and Intel). The frontend is built once |
 | `make checksums` | `dist/checksums.txt` with tarballs, zips and desktop bundles. Updater `.sig` files go to `dist/checksums-sig.txt` |
 
 Use `DESKTOP_TARGET=x86_64-apple-darwin` to build another macOS architecture, and `DESKTOP_BUILD_ARGS="--bundles dmg"` to pass extra flags. Windows and Linux bundles need native runners: use CI.
@@ -65,9 +67,20 @@ Lint and format only the desktop crate: `cargo clippy --manifest-path desktop/Ca
 
 **Icons:** generated with `cargo tauri icon frontend/public/favicon.svg -o desktop/icons` (the mobile folders are deleted afterwards). Re-run it when the logo changes.
 
-## CI: `.github/workflows/desktop.yml`
+## CI
 
-The workflow runs on `v*` tags (the ones `make release` pushes) and on `workflow_dispatch`. The matrix covers macOS aarch64 and x86_64 (both on `macos-latest`), `ubuntu-22.04`, `ubuntu-22.04-arm` (public repos only) and `windows-latest`. It uses `tauri-apps/tauri-action@v1` with `projectPath: desktop` and creates a **draft** release with every bundle.
+There are two workflows, following the same model as the other Towerforge repos:
+
+- **`.github/workflows/ci.yml`** runs on every push to `dev` and `main` and on pull requests. It builds the frontend (which also runs ESLint), runs `cargo clippy -D warnings` and `cargo test` for the backend against a PostgreSQL service container (so the SQL export test runs too), and runs `cargo fmt --check` and `cargo clippy -D warnings` for `desktop/`. It runs natively rather than through `make check`, which would rebuild the Docker images on every run.
+- **`.github/workflows/release.yml`** runs on `v*` tags (the ones `make release` pushes) and publishes the GitHub release with everything in it. Nothing is uploaded by hand.
+
+`release.yml` runs these jobs:
+
+1. `version`: fails right away if the tag does not match `backend/Cargo.toml` and `frontend/package.json`.
+2. `frontend`: builds `frontend/dist` once and shares it with the other jobs as an artifact.
+3. `binaries`: the ten browser binaries that `install.sh` and the README list. They use the same Makefile targets as a local build (`make _package-<family>-binaries <FAMILY>_TARGETS=<triple>`): `cross` for Linux and Windows, rustup on `macos-latest` for macOS.
+4. `desktop`: the Tauri bundles, each on a native runner: macOS aarch64 and x86_64 (both on `macos-latest`), `ubuntu-22.04`, `ubuntu-22.04-arm` (public repos only) and `windows-latest`. It runs `tauri build` and then `make package-desktop`.
+5. `publish`: runs `make checksums`, writes `latest.json` if there are updater signatures, and publishes the release (not a draft) with notes generated from the commits.
 
 Without secrets it still succeeds and produces unsigned bundles. macOS bundles are ad-hoc signed, so Gatekeeper offers "Open anyway" instead of "damaged". Each signing feature switches on by itself once its secrets exist.
 
@@ -94,7 +107,7 @@ gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/postgre-hub.key
 gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD   # prompts; skip if the key has no password
 ```
 
-The endpoint only resolves for **published** releases, not drafts. Publish the draft once every platform has finished, because Tauri validates the whole `latest.json`.
+The `publish` job writes `latest.json` from the `.sig` files: `.app.tar.gz` on macOS, `.AppImage` on Linux and the NSIS `.exe` on Windows. The release is published only after every platform has finished, so the endpoint never serves a partial manifest.
 
 ### macOS signing and notarization
 

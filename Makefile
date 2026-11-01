@@ -359,10 +359,7 @@ release:
 			exit 1; \
 		fi; \
 	fi; \
-	case "$$TARGET" in \
-		main) CI_MSG="sin CI en el repo: los binarios se publican a mano (make package-all checksums)" ;; \
-		*)    CI_MSG="sin CI en el repo para '$$TARGET'" ;; \
-	esac; \
+	CI_MSG="el tag nuevo dispara release.yml: binarios, app de escritorio y release de GitHub"; \
 	if [ "$$MODE" = "promo" ]; then \
 		printf "\n  $(BOLD)Release · promocion$(RESET)  $(DIM)$$ORIG → $$TARGET · version $$V$(RESET)\n\n"; \
 		if git rev-parse -q --verify "refs/tags/v$$V" >/dev/null; then \
@@ -380,7 +377,11 @@ release:
 			printf "    Tag      v$$V  $(DIM)ya existe$(RESET)\n"; \
 			printf "    Push     origin $$TARGET\n"; \
 		fi; \
-		printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+		if [ $$TAG_NEW -eq 1 ]; then \
+			printf "    CI       $(DIM)$$CI_MSG$(RESET)\n"; \
+		else \
+			printf "    CI       $(DIM)sin release nueva: la de v$$V ya la publico su tag$(RESET)\n"; \
+		fi; \
 		printf "\n  ¿Continuar? [y/N]: "; read ANS; echo ""; \
 		if [ "$$ANS" != "y" ]; then \
 			printf "  $(DIM)Cancelado — no se ha tocado nada.$(RESET)\n\n"; exit 0; \

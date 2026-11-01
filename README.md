@@ -52,7 +52,7 @@ Open [http://localhost:8080](http://localhost:8080) and create the first user. M
 
 ### SQL editor and results
 
-CodeMirror editor with multiple tabs and autocompletion of schemas, tables and columns (aliases included: `o.` after `FROM orders o` lists the columns of `orders`). Run with `⌘⏎` / `Ctrl+⏎`, cancel a running query with **Stop**, inspect plans with `EXPLAIN` and watch live sessions.
+CodeMirror editor with multiple tabs, kept per connection across page reloads, and autocompletion of schemas, tables and columns (aliases included: `o.` after `FROM orders o` lists the columns of `orders`). Run with `⌘⏎` / `Ctrl+⏎`, cancel a running query with **Stop**, inspect plans with `EXPLAIN` and watch live sessions.
 
 Results open in a spreadsheet-style grid with inline editing — changes are shown as SQL before they run — and download as **CSV** or **JSON**. The inspector shows duration, rows and the tables a query touched.
 
@@ -187,7 +187,7 @@ Postgre Hub also ships as a native desktop application for macOS, Windows and Li
 | Windows x86_64 | `-setup.exe` (per-user install) or `.msi` |
 | Linux x86_64 / ARM64 | `.AppImage`, `.deb` or `.rpm` (needs WebKitGTK 4.1: Ubuntu 22.04+, Debian 12+) |
 
-Until signed builds are published, macOS asks you to confirm the first launch in *System Settings → Privacy & Security*, and Windows SmartScreen shows a warning. To build it yourself, run `make desktop-build` (see [docs/desktop.md](docs/desktop.md)).
+Until signed builds are published, macOS asks you to confirm the first launch in *System Settings → Privacy & Security*, and Windows SmartScreen shows a warning.
 
 **Where your data lives** — the desktop app keeps its own `postgre-hub.db`, separate from any browser install:
 
