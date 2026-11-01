@@ -36,6 +36,7 @@ import { QueryResultView } from "./_query-result-view";
 import { QueryHistoryPanel } from "./_query-history-panel";
 import { ShortcutsButton } from "./_keyboard-shortcuts";
 import { newTabId, newQueryId, parseTablesFromSQL, completionSchema } from "./_query-utils";
+import { loadTabs, saveTabs } from "./_sql-tabs-storage";
 
 // Si la cancelación en el servidor no responde en este tiempo, se corta la petición.
 const CANCEL_ABORT_MS = 3000;
@@ -66,11 +67,20 @@ export const SqlEditor = ({
   structure,
   showInspector = true,
 }) => {
-  const [tabs, setTabs] = useState(() => {
-    const id = newTabId();
-    return [{ id, label: "Query 1", sql: "" }];
-  });
-  const [activeTabId, setActiveTabId] = useState(() => tabs[0].id);
+  // Las pestañas se recuperan de localStorage por conexión para que recargar no
+  // pierda el trabajo (ver `_sql-tabs-storage`).
+  const [initialTabs] = useState(() => loadTabs(projectId));
+  const [tabs, setTabs] = useState(initialTabs.tabs);
+  const [activeTabId, setActiveTabId] = useState(initialTabs.activeId);
+  // El router reutiliza este componente al pasar de una conexión a otra: al
+  // cambiar `projectId` se cargan las pestañas de la nueva en el mismo render.
+  const [tabsConnectionId, setTabsConnectionId] = useState(projectId);
+  if (tabsConnectionId !== projectId) {
+    const restored = loadTabs(projectId);
+    setTabsConnectionId(projectId);
+    setTabs(restored.tabs);
+    setActiveTabId(restored.activeId);
+  }
   const [renamingTabId, setRenamingTabId] = useState(null);
   const [tabResults, setTabResults] = useState({});
   const [tabErrors, setTabErrors] = useState({});
@@ -107,6 +117,10 @@ export const SqlEditor = ({
       setTimeout(() => runQueryRef.current?.(newTabReq.sql, id), 0);
     }
   }, [newTabReq?.key]); // eslint-disable-line react-hooks/exhaustive-deps -- solo una pestaña por petición
+
+  useEffect(() => {
+    if (tabsConnectionId === projectId) saveTabs(projectId, tabs, activeTabId);
+  }, [projectId, tabsConnectionId, tabs, activeTabId]);
 
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
   const activeSql = activeTab?.sql ?? "";

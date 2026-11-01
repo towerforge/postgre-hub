@@ -1,6 +1,8 @@
 // Descarga del resultado de una consulta en CSV o JSON, generado en el
 // navegador a partir de lo que ya se tiene en pantalla, sin volver a pedirlo
-// a la API.
+// a la API. El guardado en sí (descarga o diálogo nativo) es de services/save-file.
+import { saveFile } from "@/services/save-file";
+
 // Los valores llegan como texto desde el backend (simple_query); en JSON se
 // convierten los tipos que tienen representación nativa sin perder precisión.
 const INT_TYPES = new Set(["int2", "int4", "oid"]);
@@ -50,19 +52,20 @@ export const resultToJson = (result) => {
   return JSON.stringify(objects, null, 2);
 };
 
-/** Descarga el resultado como `<baseName>-<fecha>.csv|json`. */
-export const downloadResult = (result, format, baseName = "query") => {
+/**
+ * Guarda el resultado como `<baseName>-<fecha>.csv|json`: descarga en navegador
+ * y diálogo nativo en escritorio (`desktop`). Devuelve lo mismo que `saveFile`.
+ */
+export const saveResult = (result, format, baseName = "query", { desktop = false } = {}) => {
   const content = format === "csv" ? resultToCsv(result) : resultToJson(result);
-  // BOM en CSV para que Excel detecte UTF-8.
-  const blob =
-    format === "csv"
-      ? new Blob(["﻿", content], { type: "text/csv;charset=utf-8" })
-      : new Blob([content], { type: "application/json" });
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${baseName}-${stamp}.${format}`;
-  a.click();
-  URL.revokeObjectURL(url);
+  // BOM en CSV para que Excel detecte UTF-8; también en el fichero del escritorio.
+  return saveFile(
+    format === "csv" ? `\uFEFF${content}` : content,
+    `${baseName}-${stamp}.${format}`,
+    {
+      desktop,
+      type: format === "csv" ? "text/csv;charset=utf-8" : "application/json",
+    },
+  );
 };

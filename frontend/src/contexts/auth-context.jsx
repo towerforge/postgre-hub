@@ -2,6 +2,9 @@
 // administrador (`setup_required`), si hay sesión y con qué usuario. Existe para
 // que `app.jsx` decida entre la pantalla de acceso y la app sin que cada página
 // vuelva a preguntar a la API; las llamadas en sí están en services/auth.
+// También expone `desktop`: si la SPA corre dentro de la app de escritorio
+// (Tauri), según el mismo `/api/auth/status`. Va aparte de `status` porque
+// entrar y salir reescriben `status` y el modo no cambia en toda la sesión.
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   apiAuthStatus,
@@ -10,12 +13,14 @@ import {
   apiAuthLogout,
   apiAuthMe,
 } from "@/services/auth";
+import { setupServiceWorker } from "@/services/service-worker";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [status, setStatus] = useState(null);
   const [username, setUsername] = useState("");
+  const [desktop, setDesktop] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // El nombre de usuario se pide aparte y sin bloquear: si falla, la sesión
@@ -24,6 +29,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await apiAuthStatus();
       setStatus(data);
+      setDesktop(data.desktop === true);
+      setupServiceWorker(data.desktop === true).catch(() => {});
       if (data.authenticated) {
         apiAuthMe()
           .then((me) => setUsername(me.username))
@@ -68,7 +75,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ status, username, loading, setup, login, logout, refresh }}>
+    <AuthContext.Provider
+      value={{ status, username, loading, desktop, setup, login, logout, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

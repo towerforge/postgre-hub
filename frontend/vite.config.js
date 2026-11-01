@@ -34,6 +34,9 @@ export default defineConfig({
     }),
     VitePWA({
       registerType: "autoUpdate",
+      // El registro lo hace services/service-worker.js, solo en navegador: en la
+      // app de escritorio no debe haber service worker.
+      injectRegister: false,
       workbox: {
         navigateFallback: "index.html",
         // La API no es navegación de la SPA: el service worker no la intercepta

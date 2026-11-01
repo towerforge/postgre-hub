@@ -1,5 +1,7 @@
 # Artefactos y dependencias locales: no entran en el contexto de build
 backend/target
+# App de escritorio (Tauri): no entra en la imagen y su target/ pesa GB
+desktop
 frontend/node_modules
 frontend/dist
 dist

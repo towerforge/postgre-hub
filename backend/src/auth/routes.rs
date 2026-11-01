@@ -43,6 +43,7 @@ pub async fn status(
     Json(json!({
         "setup_required": setup_required,
         "authenticated":  authenticated,
+        "desktop":        auth.desktop.is_some(),
     }))
 }
 
