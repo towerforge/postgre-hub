@@ -1,35 +1,80 @@
-/* Catálogo del kit (/dev): maquetación de secciones y filas de ejemplo. Solo
-   lo usan las piezas `pages/_dev-*.jsx`. */
+/* Catálogo del kit (/design-system): índice, secciones, filas de ejemplo, la pista de
+   la escala de alturas, la matriz de Button y las muestras de tokens. Solo lo usan
+   `pages/design-system/index.jsx` y sus piezas `pages/design-system/_*.jsx`. */
+
+/* ── Índice de secciones ───────────────────────────────────────── */
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 28px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--om-border);
+}
 
 /* ── Sección por familia ───────────────────────────────────────── */
 .section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: 18px;
+  margin-bottom: 44px;
+  scroll-margin-top: 16px;
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 72ch;
 }
 
 .heading {
   margin: 0;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--om-fg-bright);
 }
 
 .description {
-  display: block;
-  margin-top: -12px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* ── Fila rotulada ─────────────────────────────────────────────── */
 .row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .rowLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   color: var(--om-fg-muted);
+}
+
+/* Rótulo de tamaño ("xl 38px"): el mismo en filas xl y en cabeceras de comparación */
+.sizeTag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 7px;
+  border: 1px solid var(--om-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--om-fg-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sizeTag code {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--om-fg-bright);
 }
 
 .rowBody {
@@ -146,4 +191,402 @@
 
 .mutedCell {
   color: var(--om-fg-muted);
+}
+
+/* ── Escala de alturas (Sizes) ─────────────────────────────────── */
+.sizeTable {
+  display: flex;
+  flex-direction: column;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
+  overflow: hidden;
+}
+
+.sizeRow {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  align-items: center;
+}
+
+.sizeRow + .sizeRow {
+  border-top: 1px solid var(--om-border);
+}
+
+/* Rótulo: nombre del tamaño grande, alto leído del token y el nombre del token */
+.sizeLabel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-self: stretch;
+  align-content: center;
+  padding: 0 16px;
+  border-right: 1px solid var(--om-border);
+}
+
+.sizeName {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--om-fg-bright);
+}
+
+.sizePx {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--om-accent);
+}
+
+.sizeToken {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--om-fg-muted);
+}
+
+/* El relleno deja ver un control que se saliera de las guías */
+.railScroll {
+  padding: 18px 16px;
+}
+
+/* Pista de controles: cuando no caben se reparten en varias líneas, y cada línea
+   mide exactamente --_h. Las guías son un degradado que se repite cada línea
+   (alto + hueco), así que marcan la primera y la última fila de píxeles de todas. */
+.rail {
+  --_h: var(--control-h-lg);
+  --_gap: 14px;
+  --_guide: color-mix(in srgb, var(--om-accent) 70%, transparent);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  column-gap: 10px;
+  row-gap: var(--_gap);
+  margin: 0 -16px;
+  padding: 0 16px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--_guide) 0 1px,
+    transparent 1px calc(var(--_h) - 1px),
+    var(--_guide) calc(var(--_h) - 1px) var(--_h),
+    transparent var(--_h) calc(var(--_h) + var(--_gap))
+  );
+}
+
+.rail_lg {
+  --_h: var(--control-h-lg);
+}
+.rail_xl {
+  --_h: var(--control-h-xl);
+}
+
+/* Envoltorio de medida: sin caja propia, mide lo que el control */
+.probe {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.probeField {
+  width: 128px;
+}
+
+.probeField > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* La pestaña lleva margen vertical para su barra; aquí se mide sin él */
+.flushTab {
+  margin: 0;
+}
+
+/* ── Matriz de Button (variante × tamaño) ──────────────────────── */
+.matrixScroll {
+  overflow-x: auto;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
+}
+
+.matrix {
+  display: grid;
+  /* Tres columnas fijas: nombre del control, lg y xl (SIZES en _section.jsx) */
+  grid-template-columns: minmax(180px, 1.3fr) repeat(2, minmax(232px, 1fr));
+  min-width: 660px;
+}
+
+.matrixRow {
+  display: contents;
+}
+
+.matrixRow > * {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 16px;
+  border-top: 1px solid var(--om-border);
+}
+
+.matrixRow:first-child > * {
+  min-height: 36px;
+  border-top: none;
+}
+
+.matrixCorner,
+.matrixHead {
+  font-size: 12px;
+  color: var(--om-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.matrixCell {
+  gap: 8px;
+}
+
+/* Ancho fijo para que los campos de la comparación no se estiren a toda la celda */
+.compareField {
+  display: flex;
+  width: 200px;
+  max-width: 100%;
+}
+
+.compareField > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.matrixName {
+  gap: 12px;
+}
+
+.matrixName > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* El número de la variante es lo que se escribe en el código: va destacado */
+.variantNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  corner-shape: squircle;
+  background: var(--om-bg);
+  border: 1px solid var(--om-border-focus);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--om-fg-bright);
+}
+
+.variantName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--om-fg-bright);
+}
+
+.variantUse {
+  font-size: 11.5px;
+  color: var(--om-fg-muted);
+}
+
+/* ── Tokens de color ───────────────────────────────────────────── */
+.swatches {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  gap: 8px;
+}
+
+.swatch {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 8px;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border);
+  border-radius: 10px;
+  corner-shape: squircle;
+}
+
+.swatchChip {
+  grid-row: 1 / 3;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  corner-shape: squircle;
+  box-shadow: inset 0 0 0 1px var(--om-border-focus);
+}
+
+.swatchName {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--om-fg-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swatchValue {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--om-fg-muted);
+}
+
+/* ── Tabla de la escala de controles ───────────────────────────── */
+.scaleName {
+  font-family: var(--font-mono);
+  color: var(--om-fg-bright);
+}
+
+.scaleSample {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scaleBar {
+  width: 56px;
+  background: var(--om-tab-active);
+  border: 1px solid var(--om-tab-active-border);
+  corner-shape: squircle;
+}
+
+/* ── Pestañas en los cuatro tamaños ────────────────────────────── */
+.tabSizes {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 640px;
+}
+
+/* Fila de conexión de ejemplo: copia el aspecto de la lista de conexiones
+   sin importar su módulo CSS. Mantener en sintonía con `connections.module.css` */
+.connTarget {
+  flex: 0 1 38%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--om-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connMeta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 220px;
+  font-size: 12px;
+  color: var(--om-fg-muted);
+}
+
+.connLastUsed {
+  min-width: 96px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ranura fija de Test y Edit: solo se ve con hover o foco en la fila */
+.connActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 132px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.connRow:hover .connActions,
+.connRow:focus-within .connActions {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .connTarget {
+    display: none;
+  }
+}
+
+@media (hover: none) {
+  .connActions {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .connActions {
+    transition: none;
+  }
+}
+
+/* Pie de modal de ejemplo, con el mismo relleno que el pie real del kit */
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 17px 24px;
+  flex-shrink: 0;
+}
+
+/* ── Brand: muestras del monograma PH ──────────────────────────── */
+/* Pozo con la superficie de panel donde se alinean las muestras por la base */
+.brandWell {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 28px;
+  padding: 20px 24px;
+  background: var(--om-bg-2);
+  border: 1px solid var(--om-border);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
+  color: var(--om-fg-bright);
+}
+
+/* Una muestra: la marca y su tamaño en px debajo */
+.brandSample {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.brandSample code {
+  font-size: 11px;
+  color: var(--om-fg-muted);
+}
+
+/* Barra superior de ejemplo: el gap de la app con el brillo azul de la marca */
+.brandBar {
+  flex-basis: 100%;
+  max-width: 520px;
+  background: var(--om-gap)
+    radial-gradient(
+      ellipse 1100px 560px at 0% 0%,
+      color-mix(in srgb, var(--om-primary) 55%, transparent),
+      transparent 72%
+    );
+  border: 1px solid var(--om-border);
+  border-radius: var(--panel-radius);
+  corner-shape: squircle;
 }

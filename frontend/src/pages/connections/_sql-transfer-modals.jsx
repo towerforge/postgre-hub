@@ -4,17 +4,7 @@
 // piezas del editor SQL (/connections/:id), que decide cuándo se abren.
 import { useEffect, useRef, useState } from "react";
 import { Download, Upload, FileText } from "lucide-react";
-import {
-  Alert,
-  Badge,
-  Button,
-  Checkbox,
-  InfoBox,
-  Modal,
-  Spinner,
-  Text,
-  ToolButton,
-} from "@/components/ui";
+import { Alert, Badge, Button, Checkbox, InfoBox, Modal, Spinner, Text } from "@/components/ui";
 import { apiListSchemas, apiExportDump, apiImportDump } from "@/services/connections";
 
 const INCLUDE = [
@@ -152,13 +142,14 @@ export const ExportModal = ({ projectId, open, onClose }) => {
           <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <SectionLabel
               aside={
-                <ToolButton
+                <Button
+                  variant={7}
                   onClick={() =>
                     setSelected(allSelected ? new Set() : new Set(schemas.map((s) => s.name)))
                   }
                 >
                   {allSelected ? "Select none" : "Select all"}
-                </ToolButton>
+                </Button>
               }
             >
               Schemas · {selected.size} of {schemas.length}

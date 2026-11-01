@@ -1,0 +1,34 @@
+/* Marca de Postgre Hub (BrandMark): símbolo, icono de app en squircle y lockup.
+   El símbolo pinta con currentColor; el travesaño toma --brand-mark-accent, que por
+   defecto es --om-accent (#6a9fd4 en oscuro, #336791 en claro, como la propuesta). */
+.glyph {
+  display: block;
+  flex-shrink: 0;
+}
+.accent .crossbar {
+  stroke: var(--brand-mark-accent, var(--om-accent));
+}
+
+/* Icono de app: squircle con el azul de la marca y el símbolo en blanco. */
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 30%;
+  corner-shape: squircle;
+  background: var(--om-primary);
+  color: var(--om-on-primary);
+}
+
+/* Lockup: símbolo y nombre en fila. El tamaño del texto y el hueco los fija el
+   componente en proporción al símbolo (40 / 28 / 14 en la propuesta). */
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--om-fg-bright);
+  white-space: nowrap;
+}

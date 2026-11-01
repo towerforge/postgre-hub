@@ -6,7 +6,7 @@ import { Bookmark, History, Trash2 } from "lucide-react";
 import CodeMirror from "@uiw/react-codemirror";
 import { sql as sqlLang, PostgreSQL } from "@codemirror/lang-sql";
 import { editorTheme } from "./_editor-theme";
-import { Tab, TabBar, Tabs, ToolButton } from "@/components/ui";
+import { Tab, TabBar, Tabs, Button } from "@/components/ui";
 import {
   apiListHistory,
   apiClearHistory,
@@ -102,13 +102,13 @@ export const QueryHistoryPanel = ({ projectId, activeSql, version, onLoad, onOpe
           actions={
             tab === "history" &&
             history.length > 0 && (
-              <ToolButton
-                size="sm"
+              <Button
+                variant={7}
                 onClick={clearHistory}
                 title="Delete your history for this connection"
               >
-                <Trash2 size={12} /> Clear
-              </ToolButton>
+                <Trash2 size={13} /> Clear
+              </Button>
             )
           }
         >
@@ -186,14 +186,14 @@ export const QueryHistoryPanel = ({ projectId, activeSql, version, onLoad, onOpe
                   {fmtWhen(q.updated_at)}
                 </span>
                 <div style={{ flex: 1 }} />
-                <ToolButton
-                  size="sm"
+                <Button
+                  variant={7}
                   iconOnly
                   onClick={(e) => deleteSaved(q, e)}
                   title="Delete saved query"
                 >
-                  <Trash2 size={12} />
-                </ToolButton>
+                  <Trash2 size={13} />
+                </Button>
               </div>
               <SqlPreview sql={q.sql} />
             </div>

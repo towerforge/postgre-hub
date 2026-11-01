@@ -22,16 +22,7 @@ import { keymap } from "@codemirror/view";
 import { editorTheme } from "./_editor-theme";
 import { useSetStatusBar } from "@/contexts/status-bar-context";
 import { useSetHistoryBar } from "@/contexts/history-bar-context";
-import {
-  Alert,
-  Button,
-  Modal,
-  Spinner,
-  Splitter,
-  ToolButton,
-  useResizable,
-  useSpinner,
-} from "@/components/ui";
+import { Alert, Button, Modal, Spinner, Splitter, useResizable, useSpinner } from "@/components/ui";
 import { avatarColor } from "@/components/connections-shell";
 import { destructiveStatements, readableOn } from "@/lib/environments";
 import {
@@ -413,27 +404,30 @@ export const SqlEditor = ({
           </div>
         );
       })}
-      <ToolButton iconOnly onClick={addTab} title="New tab">
+      <Button variant={7} iconOnly onClick={addTab} title="New tab">
         <Plus size={15} />
-      </ToolButton>
+      </Button>
       <div style={{ flex: 1 }} />
-      <ToolButton
+      <Button
+        variant={7}
         iconOnly
         onClick={saveActiveTab}
         disabled={!activeSql.trim() || saving}
         title={activeTab?.savedId ? "Update saved query" : "Save query (uses the tab name)"}
       >
         <Save size={14} />
-      </ToolButton>
-      <ToolButton
+      </Button>
+      <Button
+        variant={7}
         iconOnly
         onClick={() => setExpanded((e) => !e)}
         title={expanded ? "Collapse editor" : "Expand editor"}
       >
         {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-      </ToolButton>
+      </Button>
       {loading ? (
-        <ToolButton
+        <Button
+          variant={7}
           onClick={cancelQuery}
           title="Cancel the running query"
           style={{ margin: "0 4px", color: "var(--om-fg-bright)" }}
@@ -450,9 +444,10 @@ export const SqlEditor = ({
           </span>
           <Square size={11} fill="var(--om-red)" color="var(--om-red)" />
           Stop
-        </ToolButton>
+        </Button>
       ) : (
-        <ToolButton
+        <Button
+          variant={7}
           onClick={() => requestRun()}
           title="Run (⌘⏎)"
           style={
@@ -463,7 +458,7 @@ export const SqlEditor = ({
         >
           <Play size={13} fill="currentColor" />
           Run
-        </ToolButton>
+        </Button>
       )}
     </div>
   );

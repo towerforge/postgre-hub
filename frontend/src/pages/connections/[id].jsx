@@ -9,7 +9,7 @@ import { usePageTitle } from "@/contexts/page-title-context";
 import { useSidebars } from "@/contexts/sidebars-context";
 import { useSetToolbar } from "@/contexts/toolbar-context";
 import { Network, Download, Upload } from "lucide-react";
-import { ToolButton } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { avatarColor } from "@/components/connections-shell";
 import {
   apiGetProject,
@@ -93,19 +93,20 @@ const QueryEditor = () => {
   const readOnly = project?.read_only ?? false;
   useSetToolbar(
     <>
-      <ToolButton onClick={() => setDiagramOpen(true)} title="Entity-relationship diagram">
+      <Button variant={7} onClick={() => setDiagramOpen(true)} title="Entity-relationship diagram">
         <Network size={14} /> Diagram
-      </ToolButton>
-      <ToolButton onClick={() => setTransfer("export")} title="Export schemas as SQL">
+      </Button>
+      <Button variant={7} onClick={() => setTransfer("export")} title="Export schemas as SQL">
         <Download size={14} /> Export
-      </ToolButton>
-      <ToolButton
+      </Button>
+      <Button
+        variant={7}
         onClick={() => setTransfer("import")}
         disabled={readOnly}
         title={readOnly ? "Read-only connection" : "Import a .sql file"}
       >
         <Upload size={14} /> Import
-      </ToolButton>
+      </Button>
     </>,
     [readOnly],
   );

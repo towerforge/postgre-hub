@@ -7,7 +7,7 @@
 // en sus piezas de al lado.
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Download, Lock, Plus } from "lucide-react";
-import { ToolButton, Badge } from "@/components/ui";
+import { Button, Badge } from "@/components/ui";
 import { apiRunQuery, apiBuildChanges } from "@/services/connections";
 import { excelCol, isNumericType } from "./_query-utils";
 import { downloadResult } from "./_result-export";
@@ -517,22 +517,22 @@ export const QueryResultView = ({
           )}
           {result.columns.length > 0 && (
             <>
-              <ToolButton
-                size="sm"
+              <Button
+                variant={7}
                 onClick={() => downloadResult(result, "csv", tableName)}
                 title="Download all rows as CSV"
               >
                 <Download size={13} />
                 CSV
-              </ToolButton>
-              <ToolButton
-                size="sm"
+              </Button>
+              <Button
+                variant={7}
                 onClick={() => downloadResult(result, "json", tableName)}
                 title="Download all rows as JSON"
               >
                 <Download size={13} />
                 JSON
-              </ToolButton>
+              </Button>
             </>
           )}
           {/* Editar solo tiene sentido en la pestaña de una tabla y fuera de solo lectura */}
@@ -560,13 +560,13 @@ export const QueryResultView = ({
                   margin: "0 4px",
                 }}
               />
-              <ToolButton size="sm" onClick={addInsertRow} title="Add a new empty row">
+              <Button variant={7} onClick={addInsertRow} title="Add a new empty row">
                 <Plus size={13} />
                 Add row
-              </ToolButton>
+              </Button>
               {/* Apply solo destaca (azul + contador) cuando hay cambios pendientes */}
-              <ToolButton
-                size="sm"
+              <Button
+                variant={7}
                 disabled={pendingCount === 0}
                 onClick={openApplyModal}
                 title="Preview and apply pending changes"
@@ -577,7 +577,7 @@ export const QueryResultView = ({
                 <ArrowUp size={13} />
                 Apply
                 {pendingCount > 0 && <Badge>{pendingCount}</Badge>}
-              </ToolButton>
+              </Button>
             </>
           )}
         </div>

@@ -10,7 +10,7 @@
   box-sizing: border-box;
 }
 
-/* Misma superficie que Card variant="panel" */
+/* Misma superficie que Card variant={2} (panel) */
 .panel {
   background: var(--om-bg-2);
   border: 1px solid var(--om-border);
@@ -44,7 +44,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 12px 24px;
+  /* Aire simétrico: el título, los controles y la X quedan en el mismo eje */
+  padding: 14px 16px 14px 24px;
   background: transparent;
   flex-shrink: 0;
 }
@@ -55,25 +56,6 @@
   font-weight: 600;
   color: var(--om-fg-bright);
   letter-spacing: 0;
-}
-
-.close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: var(--om-fg-muted);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-2);
-  corner-shape: squircle;
-}
-
-.close:hover {
-  background: var(--om-bg-3);
-  color: var(--om-fg-bright);
 }
 
 .body {
@@ -94,6 +76,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 14px 24px 20px;
+  /* Aire simétrico alrededor de los botones (38px): 17 + 38 + 17 */
+  padding: 17px 24px;
   flex-shrink: 0;
 }

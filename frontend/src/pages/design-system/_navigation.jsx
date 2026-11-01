@@ -1,20 +1,20 @@
-// Catálogo del kit (/dev), sección de navegación: Tabs como en el modal de
-// conexión y en el panel History / Saved, SegmentedControl, InlineSelect y el
-// desplegable ToolButton + `pos-menu` de la barra lateral del esquema. Lleva
-// su propio estado para que cada control se pueda probar.
+// Catálogo del kit (/design-system), sección de navegación: Tabs como en el modal de
+// conexión y en el panel History / Saved, SegmentedControl, InlineSelect y el desplegable
+// Button variant 7 + `pos-menu` de la barra lateral del esquema, todo en lg; al final, la
+// tabla que compara lg y xl. Lleva su propio estado para que cada control se pueda probar.
 import { useEffect, useRef, useState } from "react";
 import { Bookmark, ChevronDown, History, Trash2 } from "lucide-react";
 import {
+  Button,
   InlineSelect,
   SegmentedControl,
   Tab,
   TabBar,
   TabPanel,
   Tabs,
-  ToolButton,
 } from "@/components/ui";
-import css from "@/css/dev.module.css";
-import { DevRow, DevSection } from "./_dev-section";
+import css from "@/css/design-system.module.css";
+import { CatalogRow, CatalogSection, SizeCompare } from "./_section";
 
 const AUTH_OPTIONS = [
   { value: "password", label: "Password" },
@@ -26,6 +26,8 @@ const SCHEMA_OPTIONS = [
   { value: "auth", label: "auth" },
 ];
 
+const ICON = { lg: 14, xl: 16 };
+
 const OBJECT_TABS = [
   { id: "tables", label: "Tables" },
   { id: "views", label: "Views" },
@@ -34,12 +36,13 @@ const OBJECT_TABS = [
 ];
 
 /** Sección Navigation del catálogo. */
-export const DevNavigation = () => {
+export const CatalogNavigation = () => {
   const [connTab, setConnTab] = useState("general");
   const [histTab, setHistTab] = useState("history");
   const [auth, setAuth] = useState("password");
   const [schema, setSchema] = useState("public");
   const [objectTab, setObjectTab] = useState("tables");
+  const [sizeTab, setSizeTab] = useState("results");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -56,8 +59,12 @@ export const DevNavigation = () => {
   const currentObject = OBJECT_TABS.find((t) => t.id === objectTab);
 
   return (
-    <DevSection title="Navigation">
-      <DevRow label="Tabs · connection modal (General / SSH Tunnel)">
+    <CatalogSection
+      id="navigation"
+      title="Navigation"
+      description="Tabs, segmented controls and inline selects follow the same scale. Every example is lg, the default for toolbars and dense rows; the table at the end puts both sizes side by side."
+    >
+      <CatalogRow label="Tabs in the connection modal (General, SSH Tunnel)">
         <div className={css.frame}>
           <Tabs value={connTab} onChange={setConnTab}>
             <TabBar>
@@ -74,17 +81,17 @@ export const DevNavigation = () => {
             </TabPanel>
           </Tabs>
         </div>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="Tabs with badge and actions · History / Saved panel">
+      <CatalogRow label="Tabs with badge and actions, as in the History and Saved panel">
         <div className={css.frame}>
           <Tabs value={histTab} onChange={setHistTab}>
             <TabBar
               actions={
                 histTab === "history" && (
-                  <ToolButton size="sm" title="Delete your history for this connection">
-                    <Trash2 size={12} /> Clear
-                  </ToolButton>
+                  <Button variant={7} title="Delete your history for this connection">
+                    <Trash2 size={14} /> Clear
+                  </Button>
                 )
               }
             >
@@ -103,22 +110,43 @@ export const DevNavigation = () => {
             </TabPanel>
           </Tabs>
         </div>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="SegmentedControl · SSH tunnel auth">
+      <CatalogRow label="Tab with icon, dot, badge and disabled">
+        <div className={css.tabSizes}>
+          <Tabs value={sizeTab} onChange={setSizeTab}>
+            <TabBar>
+              <Tab id="results" icon={<History size={14} />}>
+                Results
+              </Tab>
+              <Tab id="messages" dot>
+                Messages
+              </Tab>
+              <Tab id="saved" badge={3}>
+                Saved
+              </Tab>
+              <Tab id="plan" disabled>
+                Plan
+              </Tab>
+            </TabBar>
+          </Tabs>
+        </div>
+      </CatalogRow>
+
+      <CatalogRow label="SegmentedControl (SSH tunnel auth)">
         <SegmentedControl options={AUTH_OPTIONS} value={auth} onChange={setAuth} />
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="InlineSelect">
+      <CatalogRow label="InlineSelect">
         <InlineSelect label="Schema" value={schema} options={SCHEMA_OPTIONS} onChange={setSchema} />
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="Dropdown menu · ToolButton active + pos-menu">
+      <CatalogRow label="Dropdown menu: Button variant 7, active while open, over pos-menu">
         <div ref={menuRef} className={css.menuAnchor}>
-          <ToolButton active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+          <Button variant={7} active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
             {currentObject.label}
-            <ChevronDown size={13} />
-          </ToolButton>
+            <ChevronDown size={14} />
+          </Button>
           {menuOpen && (
             <div className="pos-menu">
               {OBJECT_TABS.map(({ id, label }) => (
@@ -136,7 +164,46 @@ export const DevNavigation = () => {
             </div>
           )}
         </div>
-      </DevRow>
-    </DevSection>
+      </CatalogRow>
+
+      <SizeCompare
+        label="Navigation controls in lg and xl, side by side"
+        items={[
+          {
+            name: "Tab",
+            render: (s) => (
+              <Tabs size={s} value={sizeTab} onChange={setSizeTab}>
+                <TabBar>
+                  <Tab id="results" icon={<History size={ICON[s]} />}>
+                    Results
+                  </Tab>
+                  <Tab id="saved" badge={3}>
+                    Saved
+                  </Tab>
+                </TabBar>
+              </Tabs>
+            ),
+          },
+          {
+            name: "SegmentedControl",
+            render: (s) => (
+              <SegmentedControl size={s} options={AUTH_OPTIONS} value={auth} onChange={setAuth} />
+            ),
+          },
+          {
+            name: "InlineSelect",
+            render: (s) => (
+              <InlineSelect
+                size={s}
+                label="Schema"
+                value={schema}
+                options={SCHEMA_OPTIONS}
+                onChange={setSchema}
+              />
+            ),
+          },
+        ]}
+      />
+    </CatalogSection>
   );
 };

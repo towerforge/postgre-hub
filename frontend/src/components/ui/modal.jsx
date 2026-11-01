@@ -2,11 +2,13 @@
 // (título + cerrar), cuerpo con scroll y pie opcional. Se pinta en un portal
 // sobre `body`, bloquea el scroll de la página mientras está abierto y se
 // cierra con Escape. Entra y sale animado (motion), por eso decide `open` y no
-// quien lo usa montándolo o desmontándolo.
-import { useEffect } from "react";
+// quien lo usa montándolo o desmontándolo. Si aun así se monta condicionalmente,
+// basta envolverlo en `<AnimatePresence>`: la salida se propaga hasta aquí.
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
+import { Button } from "./button";
 import styles from "@/css/ui/modal.module.css";
 
 const SIZE_CLASS = {
@@ -57,11 +59,20 @@ export const Modal = ({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Montado mientras está abierto o saliendo. Un modal cerrado no deja un
+  // AnimatePresence vacío que, con `propagate`, bloquearía la salida del padre.
+  const [present, setPresent] = useState(open);
+  if (open && !present) setPresent(true);
+
   const widthOverride = width !== undefined ? { width, maxWidth: "none" } : undefined;
   const heightOverride = height !== undefined ? { height, maxHeight: "none" } : undefined;
 
+  if (!present) return null;
+
   return createPortal(
-    <AnimatePresence>
+    // `propagate`: un AnimatePresence de fuera que retire el modal también
+    // dispara esta salida
+    <AnimatePresence propagate onExitComplete={() => setPresent(false)}>
       {open && (
         <motion.div
           className={styles.overlay}
@@ -71,7 +82,8 @@ export const Modal = ({
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          // La salida es más corta que la entrada: cerrar no debe hacer esperar
+          exit={{ opacity: 0, transition: { duration: 0.18, ease: "easeIn" } }}
           transition={{ duration: 0.22, ease: "easeOut" }}
         >
           <motion.div
@@ -79,21 +91,21 @@ export const Modal = ({
             style={{ ...widthOverride, ...heightOverride }}
             initial={{ opacity: 0, scale: 0.92, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 10 }}
+            exit={{
+              opacity: 0,
+              scale: 0.96,
+              y: 8,
+              transition: { duration: 0.16, ease: [0.4, 0, 1, 1] },
+            }}
             transition={{ duration: 0.28, ease: [0.22, 0.9, 0.36, 1] }}
           >
             {title !== undefined && (
               <div className={styles.header}>
                 <span className={styles.title}>{title}</span>
                 {!hideClose && (
-                  <button
-                    type="button"
-                    className={styles.close}
-                    onClick={onClose}
-                    aria-label="Close"
-                  >
+                  <Button variant={8} label="Close" onClick={onClose}>
                     <X size={16} />
-                  </button>
+                  </Button>
                 )}
               </div>
             )}

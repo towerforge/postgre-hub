@@ -7,11 +7,11 @@
 // Sigue el lenguaje del login de taskflow (columna centrada sin tarjeta, título
 // grande, campos sin etiqueta, entrada en cascada y check + fundido al entrar)
 // con la identidad propia: orbe azul de PostgreSQL, rejilla de puntos y la
-// marca con el icono de base de datos.
+// marca (el monograma PH de BrandMark).
 import { useState } from "react";
-import { Check, Database } from "lucide-react";
+import { Check } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { Button, Input, PasswordInput } from "@/components/ui";
+import { BrandMark, Button, Input, PasswordInput } from "@/components/ui";
 import css from "@/css/auth.module.css";
 
 // Requisitos de contraseña del alta inicial. Se comprueban en vivo para pintar
@@ -93,7 +93,7 @@ export const AuthView = ({ setupRequired }) => {
         <form onSubmit={onSubmit} noValidate>
           <div className={`${css.in} ${css.brand}`}>
             <span className={css.logo}>
-              <Database size={20} />
+              <BrandMark size={26} />
             </span>
             <span className={css.wordmark}>Postgre Hub</span>
           </div>
@@ -109,7 +109,7 @@ export const AuthView = ({ setupRequired }) => {
 
           <div className={`${css.in} ${css.delay10}`}>
             <Input
-              size="lg"
+              size="xl"
               placeholder="Username"
               aria-label="Username"
               value={username}
@@ -126,7 +126,7 @@ export const AuthView = ({ setupRequired }) => {
 
           <div className={`${css.in} ${css.delay15} ${css.spaced}`}>
             <PasswordInput
-              size="lg"
+              size="xl"
               placeholder="Password"
               aria-label="Password"
               value={password}
@@ -144,7 +144,7 @@ export const AuthView = ({ setupRequired }) => {
             <>
               <div className={`${css.in} ${css.delay16} ${css.spaced}`}>
                 <PasswordInput
-                  size="lg"
+                  size="xl"
                   placeholder="Confirm password"
                   aria-label="Confirm password"
                   value={confirm}

@@ -139,7 +139,7 @@
   animation-delay: 0.25s;
 }
 
-/* Marca: icono de base de datos y nombre en fila */
+/* Marca: monograma PH (BrandMark) en su tile y nombre en fila */
 .brand {
   display: flex;
   align-items: center;

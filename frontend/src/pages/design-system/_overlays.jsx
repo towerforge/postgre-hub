@@ -1,7 +1,7 @@
-// Catálogo del kit (/dev), sección de superposiciones: los tres modales tipo
+// Catálogo del kit (/design-system), sección de superposiciones: los tres modales tipo
 // (formulario, confirmación destructiva y el ancho de Apply changes), todos con
 // las acciones en la prop `footer` según la regla de botones, y las superficies
-// `panel` que comparten el login y el menú lateral, con ThemeToggle.
+// Card variant 2 (panel) que comparten el login y el menú lateral, con ThemeToggle.
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import {
@@ -16,8 +16,8 @@ import {
   ThemeToggle,
 } from "@/components/ui";
 import { SidebarMenuGroup, SidebarMenuLink } from "@/components/sidebar-shell";
-import css from "@/css/dev.module.css";
-import { DevRow, DevSection } from "./_dev-section";
+import css from "@/css/design-system.module.css";
+import { CatalogRow, CatalogSection } from "./_section";
 
 const PENDING_SQL = [
   "UPDATE public.users SET email = 'ana@example.org' WHERE id = 1;",
@@ -25,14 +25,18 @@ const PENDING_SQL = [
 ];
 
 /** Sección Overlays del catálogo. */
-export const DevOverlays = () => {
+export const CatalogOverlays = () => {
   // Modal abierto: "form", "confirm", "apply" o null
   const [modal, setModal] = useState(null);
   const close = () => setModal(null);
 
   return (
-    <DevSection title="Overlays">
-      <DevRow label="Modal · actions always in the footer prop, xl and right aligned">
+    <CatalogSection
+      id="overlays"
+      title="Overlays"
+      description="Modal size is a width (sm 380, md 520, lg 720), not a control height. Its close button is Button variant 8."
+    >
+      <CatalogRow label="Modal: open one to see its footer (actions in the footer prop, right aligned, xl)">
         <Button variant={2} onClick={() => setModal("form")}>
           Form modal
         </Button>
@@ -42,31 +46,31 @@ export const DevOverlays = () => {
         <Button variant={2} onClick={() => setModal("apply")}>
           Apply changes
         </Button>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="Panel surfaces · login card and side menu">
+      <CatalogRow label="Panel surfaces (Card 2): login card and side menu" size="xl">
         <div className={css.grid}>
-          <Card variant="panel">
+          <Card variant={2}>
             <CardBody className={css.panelBody}>
-              <Input size="lg" label="Username" placeholder="admin" />
-              <Input size="lg" label="Password" type="password" placeholder="••••••••" />
+              <Input size="xl" label="Username" placeholder="admin" />
+              <Input size="xl" label="Password" type="password" placeholder="••••••••" />
               <Button variant={1} size="xl">
                 Sign in
               </Button>
             </CardBody>
           </Card>
-          <Card as="nav" variant="panel" className={css.panelNav}>
+          <Card as="nav" variant={2} className={css.panelNav}>
             <SidebarMenuLink to="/connections" label="Connections" end />
             <SidebarMenuLink to="/ssh-tunnels" label="SSH Tunnels" />
             <SidebarMenuGroup label="Settings" />
             <SidebarMenuLink to="/account" label="Account" />
           </Card>
         </div>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="ThemeToggle">
+      <CatalogRow label="ThemeToggle">
         <ThemeToggle />
-      </DevRow>
+      </CatalogRow>
 
       <Modal
         open={modal === "form"}
@@ -75,7 +79,7 @@ export const DevOverlays = () => {
         footer={
           <>
             <Button variant={5} size="xl" onClick={() => setModal("confirm")}>
-              <Trash2 size={14} /> Delete
+              <Trash2 size={16} /> Delete
             </Button>
             <div className={css.spacer} />
             <Button variant={2} size="xl" onClick={close}>
@@ -89,13 +93,13 @@ export const DevOverlays = () => {
       >
         <div className={css.panelBody}>
           <FormRow label="Name">
-            <Input size="lg" defaultValue="Production" placeholder="My database" />
+            <Input size="xl" defaultValue="Production" placeholder="My database" />
           </FormRow>
           <FormRow label="Host">
-            <Input size="lg" defaultValue="db.internal" placeholder="localhost" />
+            <Input size="xl" defaultValue="db.internal" placeholder="localhost" />
           </FormRow>
           <FormRow label="Database">
-            <Input size="lg" defaultValue="app" placeholder="mydb" />
+            <Input size="xl" defaultValue="app" placeholder="mydb" />
           </FormRow>
         </div>
       </Modal>
@@ -111,7 +115,7 @@ export const DevOverlays = () => {
               Cancel
             </Button>
             <Button variant={6} size="xl" onClick={close}>
-              <Trash2 size={14} /> Delete
+              <Trash2 size={16} /> Delete
             </Button>
           </>
         }
@@ -150,6 +154,6 @@ export const DevOverlays = () => {
           ))}
         </div>
       </Modal>
-    </DevSection>
+    </CatalogSection>
   );
 };

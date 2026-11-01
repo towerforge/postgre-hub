@@ -2,6 +2,7 @@
 // asignan a las conexiones. Se gestionan aparte para no repetir host, usuario y
 // credenciales en cada conexión que pasa por el mismo bastión.
 import { useState, useEffect, useRef } from "react";
+import { AnimatePresence } from "motion/react";
 import { Plus, Trash2, CheckCircle, Pencil, FileKey } from "lucide-react";
 import {
   Button,
@@ -14,9 +15,9 @@ import {
   Alert,
   Text,
   Spinner,
+  SearchBar,
   ListItem,
   ListItemGroup,
-  ToolButton,
 } from "@/components/ui";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { ConnectionsShell, avatarColor, initialsOf } from "@/components/connections-shell";
@@ -126,7 +127,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
       <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
         <FormRow label="Name">
           <Input
-            size="lg"
+            size="xl"
             value={form.name}
             onChange={str("name")}
             placeholder="Production bastion"
@@ -137,7 +138,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
               <Input
-                size="lg"
+                size="xl"
                 value={form.host}
                 onChange={str("host")}
                 placeholder="bastion.example.com"
@@ -145,7 +146,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
             </div>
             <div style={{ width: 96 }}>
               <Input
-                size="lg"
+                size="xl"
                 value={String(form.port)}
                 onChange={(e) => setForm((f) => ({ ...f, port: Number(e.target.value) }))}
                 type="number"
@@ -155,10 +156,11 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
           </div>
         </FormRow>
         <FormRow label="SSH user">
-          <Input size="lg" value={form.username} onChange={str("username")} placeholder="ubuntu" />
+          <Input size="xl" value={form.username} onChange={str("username")} placeholder="ubuntu" />
         </FormRow>
         <FormRow label="Auth">
           <SegmentedControl
+            size="xl"
             options={AUTH_OPTIONS}
             value={form.auth_type}
             onChange={(v) => setForm((f) => ({ ...f, auth_type: v }))}
@@ -167,7 +169,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
         {form.auth_type === "password" ? (
           <FormRow label="Password">
             <PasswordInput
-              size="lg"
+              size="xl"
               value={form.password ?? ""}
               onChange={str("password")}
               placeholder={isEdit ? "(unchanged)" : "••••••••"}
@@ -212,7 +214,7 @@ const TunnelModal = ({ tunnel, onClose, onSaved, onDelete }) => {
             </FormRow>
             <FormRow label="Passphrase">
               <PasswordInput
-                size="lg"
+                size="xl"
                 value={form.password ?? ""}
                 onChange={str("password")}
                 placeholder={isEdit ? "(unchanged)" : "optional"}
@@ -234,6 +236,7 @@ const SshTunnelsPage = () => {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [hovered, setHovered] = useState(null);
+  const [query, setQuery] = useState("");
 
   const { setPageTitle } = usePageTitle();
   useEffect(() => {
@@ -258,6 +261,17 @@ const SshTunnelsPage = () => {
     load();
   };
 
+  // Filtro por nombre, host o usuario, igual que el buscador de conexiones
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? tunnels.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.host.toLowerCase().includes(q) ||
+          t.username.toLowerCase().includes(q),
+      )
+    : tunnels;
+
   return (
     <>
       <ConnectionsShell
@@ -270,6 +284,19 @@ const SshTunnelsPage = () => {
               {tunnels.length}
             </span>
           </>
+        }
+        headerCenter={
+          // El buscador sube a la línea del título; sin túneles no hace falta
+          tunnels.length > 0 && (
+            <SearchBar
+              size="xl"
+              value={query}
+              onChange={setQuery}
+              placeholder="Filter tunnels…"
+              style={{ width: "100%" }}
+              autoFocus
+            />
+          )
         }
         headerRight={
           <Button variant={1} size="xl" onClick={() => setModal("create")}>
@@ -295,9 +322,20 @@ const SshTunnelsPage = () => {
             <br />
             Click <b>New tunnel</b> to start.
           </div>
+        ) : filtered.length === 0 ? (
+          <div
+            style={{
+              padding: "24px 16px",
+              textAlign: "center",
+              color: "var(--om-fg-muted)",
+              fontSize: 13,
+            }}
+          >
+            No matches for <span style={{ color: "var(--om-fg-bright)" }}>"{query}"</span>
+          </div>
         ) : (
           <ListItemGroup>
-            {tunnels.map((t) => (
+            {filtered.map((t) => (
               <ListItem
                 key={t.id}
                 onClick={() => setModal(t)}
@@ -312,14 +350,15 @@ const SshTunnelsPage = () => {
                 subtitle={`${t.username}@${t.host}:${t.port} · ${t.auth_type === "key" ? "key" : "password"}`}
                 actions={
                   hovered === t.id && (
-                    <ToolButton
+                    <Button
+                      variant={7}
                       onClick={(e) => {
                         e.stopPropagation();
                         setModal(t);
                       }}
                     >
                       <Pencil size={13} /> Edit
-                    </ToolButton>
+                    </Button>
                   )
                 }
               />
@@ -328,17 +367,21 @@ const SshTunnelsPage = () => {
         )}
       </ConnectionsShell>
 
-      {modal && (
-        <TunnelModal
-          tunnel={modal === "create" ? undefined : modal}
-          onClose={() => setModal(null)}
-          onSaved={() => {
-            setModal(null);
-            load();
-          }}
-          onDelete={modal !== "create" ? () => handleDelete(modal) : undefined}
-        />
-      )}
+      {/* AnimatePresence: el modal se desmonta al cerrar y así le da tiempo a su salida */}
+      <AnimatePresence>
+        {modal && (
+          <TunnelModal
+            key="tunnel-modal"
+            tunnel={modal === "create" ? undefined : modal}
+            onClose={() => setModal(null)}
+            onSaved={() => {
+              setModal(null);
+              load();
+            }}
+            onDelete={modal !== "create" ? () => handleDelete(modal) : undefined}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

@@ -12,7 +12,7 @@ import {
   ListOrdered,
   SquareFunction,
 } from "lucide-react";
-import { Spinner, Splitter, ToolButton, useResizable } from "@/components/ui";
+import { Spinner, Splitter, Button, useResizable } from "@/components/ui";
 import { fmtRows, fmtSize, groupBy } from "./_query-utils";
 
 // Color del icono de cada tipo de objeto en el árbol.
@@ -179,10 +179,10 @@ export const SchemaSidebar = ({
           <span className="badge">{currentTotal}</span>
           <span style={{ marginLeft: "auto" }} />
           <div ref={menuRef} style={{ position: "relative" }}>
-            <ToolButton active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
+            <Button variant={7} active={menuOpen} onClick={() => setMenuOpen((v) => !v)}>
               {currentTab.label}
               <ChevronDown size={13} />
-            </ToolButton>
+            </Button>
             {menuOpen && (
               <div className="pos-menu">
                 {SIDEBAR_TABS.map(({ id: tid, label }) => (

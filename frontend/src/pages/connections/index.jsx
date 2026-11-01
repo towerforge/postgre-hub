@@ -4,17 +4,10 @@
 // la edición están en `_connection-modal`; esta pantalla guarda la lista y
 // qué conexión se está editando.
 import { useState, useEffect } from "react";
+import { AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { Plus, CheckCircle, XCircle, Plug, Pencil, Database, Lock, Network } from "lucide-react";
-import {
-  Button,
-  Spinner,
-  SearchBar,
-  ListItem,
-  ListItemGroup,
-  ToolButton,
-  useSpinner,
-} from "@/components/ui";
+import { Button, Spinner, SearchBar, ListItem, ListItemGroup, useSpinner } from "@/components/ui";
 import { usePageTitle } from "@/contexts/page-title-context";
 import { ConnectionsShell, avatarColor, initialsOf } from "@/components/connections-shell";
 import { apiListProjects, apiDeleteProject, apiTestConnection } from "@/services/connections";
@@ -115,7 +108,7 @@ const ProjectsHome = () => {
           // El buscador sube a la línea del título; sin conexiones no hace falta
           projects.length > 0 && (
             <SearchBar
-              size="md"
+              size="xl"
               value={query}
               onChange={setQuery}
               placeholder="Filter connections…"
@@ -245,7 +238,8 @@ const ProjectsHome = () => {
                               {/* Con una prueba en curso o su resultado, la ranura queda fija */}
                               <span className={`${styles.rowActions} ${test ? styles.pinned : ""}`}>
                                 {!testing && (
-                                  <ToolButton
+                                  <Button
+                                    variant={7}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleTest(p);
@@ -263,16 +257,17 @@ const ProjectsHome = () => {
                                     {testResult?.ok && <CheckCircle size={13} />}
                                     {testResult && !testResult.ok && <XCircle size={13} />}
                                     {testResult ? (testResult.ok ? "Connected" : "Failed") : "Test"}
-                                  </ToolButton>
+                                  </Button>
                                 )}
-                                <ToolButton
+                                <Button
+                                  variant={7}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setModal(p);
                                   }}
                                 >
                                   <Pencil size={13} /> Edit
-                                </ToolButton>
+                                </Button>
                               </span>
                             </>
                           }
@@ -287,17 +282,21 @@ const ProjectsHome = () => {
         )}
       </ConnectionsShell>
 
-      {modal && (
-        <ConnectionModal
-          project={modal === "create" ? undefined : modal}
-          onClose={() => setModal(null)}
-          onSaved={() => {
-            setModal(null);
-            load();
-          }}
-          onDelete={modal !== "create" ? () => handleDelete(modal) : undefined}
-        />
-      )}
+      {/* AnimatePresence: el modal se desmonta al cerrar y así le da tiempo a su salida */}
+      <AnimatePresence>
+        {modal && (
+          <ConnectionModal
+            key="connection-modal"
+            project={modal === "create" ? undefined : modal}
+            onClose={() => setModal(null)}
+            onSaved={() => {
+              setModal(null);
+              load();
+            }}
+            onDelete={modal !== "create" ? () => handleDelete(modal) : undefined}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };

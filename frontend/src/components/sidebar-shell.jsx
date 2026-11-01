@@ -2,7 +2,7 @@
 // piezas del menú (entradas y rótulos de grupo). Está separada de
 // `ConnectionsShell`, que la usa con el menú de la app, para que la maqueta no
 // dependa de qué entradas lleva y las piezas del menú se puedan reutilizar
-// (la página /dev las muestra).
+// (la página /design-system las muestra).
 import { NavLink } from "react-router-dom";
 import css from "@/css/sidebar-shell.module.css";
 import { Card } from "@/components/ui";
@@ -20,7 +20,6 @@ export const SidebarShell = ({
   headerLeft,
   headerCenter,
   headerRight,
-  sidebarFooter,
   maxWidth = 860,
   gutter,
   children,
@@ -32,7 +31,7 @@ export const SidebarShell = ({
       className={`tile ${css.glass}`}
       style={{ flex: 1, flexDirection: "row", background: "var(--om-bg)" }}
     >
-      <Card as="nav" variant="panel" className={css.floatingNav}>
+      <Card as="nav" variant={2} className={css.floatingNav}>
         {sidebarHeader && (
           <div
             style={{
@@ -59,7 +58,6 @@ export const SidebarShell = ({
         >
           {menu}
         </div>
-        {sidebarFooter}
       </Card>
 
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>

@@ -1,10 +1,11 @@
-// Catálogo del kit (/dev), sección de contenido: Card, ListItem con las filas
-// de la lista de conexiones, Table con un resultado de consulta, y las piezas
+// Catálogo del kit (/design-system), sección de contenido: Card con sus variantes
+// numeradas, ListItem con las filas de la lista de conexiones, Table con un resultado de consulta, y las piezas
 // de estado (Badge, StatPill, Alert, InfoBox y Spinner).
 import { Pencil, Plug } from "lucide-react";
 import {
   Alert,
   Badge,
+  Button,
   Card,
   CardBody,
   CardFooter,
@@ -16,12 +17,18 @@ import {
   Spinner,
   StatPill,
   Table,
-  ToolButton,
 } from "@/components/ui";
 import { readableOn } from "@/lib/environments";
-import connStyles from "@/css/connections.module.css";
-import css from "@/css/dev.module.css";
-import { DevRow, DevSection } from "./_dev-section";
+import css from "@/css/design-system.module.css";
+import { CatalogRow, CatalogSection } from "./_section";
+
+const CARD_VARIANTS = [
+  { variant: 1, name: "Elevated", use: "Shadow, no border. Floating content over the page." },
+  { variant: 2, name: "Panel", use: "The standard surface: login card, side menu, list rows." },
+  { variant: 3, name: "Default", use: "Layer with a border and a small radius. The default." },
+  { variant: 4, name: "Filled", use: "Filled layer, no border or shadow. Groups inside a panel." },
+  { variant: 5, name: "Outlined", use: "Transparent with a border. Optional or empty content." },
+];
 
 const CONNECTIONS = [
   {
@@ -65,33 +72,46 @@ const RESULT_COLUMNS = [
 ];
 
 /** Secciones Content del catálogo. */
-export const DevContent = () => (
-  <DevSection title="Content">
-    <DevRow label="Card · default and panel">
+export const CatalogContent = () => (
+  <CatalogSection
+    id="content"
+    title="Content"
+    description="Card has five numbered variants by prominence. Alert and Badge keep named tones: they are states, not looks."
+  >
+    <CatalogRow label="Card variants 1 to 5">
       <div className={css.grid}>
-        <Card>
-          <CardHeader title="Connection" />
-          <CardBody>postgres://postgres@localhost:5432/postgres</CardBody>
-          <CardFooter>
-            <ToolButton>
-              <Pencil size={13} /> Edit
-            </ToolButton>
-          </CardFooter>
+        {CARD_VARIANTS.map(({ variant, name, use }) => (
+          <Card key={variant} variant={variant}>
+            <CardHeader title={`${variant}. ${name}`} />
+            <CardBody>{use}</CardBody>
+            <CardFooter>
+              <Button variant={7}>
+                <Pencil size={14} /> Edit
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </CatalogRow>
+
+    <CatalogRow label="Card interactive (hover and press), variants 2 and 3">
+      <div className={css.grid}>
+        <Card variant={2} interactive tabIndex={0}>
+          <CardBody>Opens the connection on click.</CardBody>
         </Card>
-        <Card variant="panel">
-          <CardHeader title="Panel" />
-          <CardBody>Login card, side menu and connection rows.</CardBody>
+        <Card variant={3} interactive tabIndex={0}>
+          <CardBody>Opens the saved query on click.</CardBody>
         </Card>
       </div>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="ListItem · connection rows">
+    <CatalogRow label="ListItem: connection rows and a selected option">
       <div className={css.full}>
         <ListItemGroup>
           {CONNECTIONS.map((c) => (
             <ListItem
               key={c.id}
-              className={connStyles.row}
+              className={css.connRow}
               onClick={() => {}}
               leading={
                 <span
@@ -105,19 +125,19 @@ export const DevContent = () => (
               subtitle={c.username}
               actions={
                 <>
-                  <span className={connStyles.target}>
+                  <span className={css.connTarget}>
                     {c.host}:{c.port} / {c.database}
                   </span>
-                  <span className={connStyles.meta}>
-                    <span className={connStyles.lastUsed}>{c.lastUsed}</span>
+                  <span className={css.connMeta}>
+                    <span className={css.connLastUsed}>{c.lastUsed}</span>
                   </span>
-                  <span className={connStyles.rowActions}>
-                    <ToolButton onClick={(e) => e.stopPropagation()}>
-                      <Plug size={13} /> Test
-                    </ToolButton>
-                    <ToolButton onClick={(e) => e.stopPropagation()}>
-                      <Pencil size={13} /> Edit
-                    </ToolButton>
+                  <span className={css.connActions}>
+                    <Button variant={7} onClick={(e) => e.stopPropagation()}>
+                      <Plug size={14} /> Test
+                    </Button>
+                    <Button variant={7} onClick={(e) => e.stopPropagation()}>
+                      <Pencil size={14} /> Edit
+                    </Button>
                   </span>
                 </>
               }
@@ -132,43 +152,43 @@ export const DevContent = () => (
           />
         </ListItemGroup>
       </div>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="Table · query result">
+    <CatalogRow label="Table: query result">
       <div className={css.full}>
         <Table columns={RESULT_COLUMNS} data={RESULT_ROWS} keyExtractor={(row) => row.id} />
       </div>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="Badge · accent and neutral">
+    <CatalogRow label="Badge tones: accent and neutral">
       <Badge>3</Badge>
       <Badge tone="neutral">12 tables</Badge>
       <Badge tone="neutral">4.2 MB</Badge>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="StatPill">
+    <CatalogRow label="StatPill">
       <StatPill label="Rows" value={128} />
       <StatPill label="Duration" value="0.04s" valueColor="var(--om-green)" />
       <StatPill label="Size" value="1.2 GB" valueColor="var(--om-fg-muted)" />
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="Alert">
+    <CatalogRow label="Alert tones: error, success, warning, info">
       <div className={css.stack}>
         <Alert tone="error">password authentication failed for user "postgres"</Alert>
         <Alert tone="success">Connection saved.</Alert>
         <Alert tone="warning">This connection is marked as Production.</Alert>
         <Alert tone="info">Configure SSH tunnels in SSH Tunnels.</Alert>
       </div>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="InfoBox · mono and text">
+    <CatalogRow label="InfoBox: mono and text">
       <div className={css.stack}>
         <InfoBox>postgres://postgres@localhost:5432/mydb</InfoBox>
         <InfoBox mono={false}>ubuntu@bastion.internal:22 · Private key</InfoBox>
       </div>
-    </DevRow>
+    </CatalogRow>
 
-    <DevRow label="Spinner · colors and sizes">
+    <CatalogRow label="Spinner colours and sizes">
       <Spinner label="Loading…" />
       <Spinner color="var(--om-fg-bright)" label="Building SQL…" />
       <Spinner color="var(--om-red)" label="Cancelling…" />
@@ -176,6 +196,6 @@ export const DevContent = () => (
       <Spinner size={10} />
       <Spinner size={18} />
       <Spinner size={24} />
-    </DevRow>
-  </DevSection>
+    </CatalogRow>
+  </CatalogSection>
 );

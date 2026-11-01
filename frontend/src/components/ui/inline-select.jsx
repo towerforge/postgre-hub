@@ -7,8 +7,14 @@ import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 import styles from "@/css/ui/inline-select.module.css";
 
-/** Selector controlado: `options` es una lista de `{ value, label }` y `onChange` recibe el `value` elegido. */
-export const InlineSelect = ({ label, value, options, onChange, style }) => {
+const SIZES = ["lg", "xl"];
+
+/**
+ * Selector controlado: `options` es una lista de `{ value, label }` y `onChange`
+ * recibe el `value` elegido. `size`: lg 32px (por defecto) o xl 38px.
+ */
+export const InlineSelect = ({ label, value, options, onChange, size = "lg", style }) => {
+  const sizeClass = styles[SIZES.includes(size) ? size : "lg"];
   const selected = options.find((o) => o.value === value);
 
   const [open, setOpen] = useState(false);
@@ -74,7 +80,7 @@ export const InlineSelect = ({ label, value, options, onChange, style }) => {
       ? createPortal(
           <div
             ref={dropdownRef}
-            className={styles.dropdown}
+            className={`${styles.dropdown} ${sizeClass}`}
             style={{
               position: "absolute",
               top: dropdownPos.top,
@@ -109,7 +115,7 @@ export const InlineSelect = ({ label, value, options, onChange, style }) => {
       : null;
 
   return (
-    <div ref={wrapperRef} className={styles.wrapper} style={style}>
+    <div ref={wrapperRef} className={`${styles.wrapper} ${sizeClass}`} style={style}>
       <label
         ref={controlRef}
         className={styles.root}

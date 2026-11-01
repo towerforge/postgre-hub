@@ -1,9 +1,9 @@
-// Catálogo del kit (/dev), sección de botones: Button por variante, tamaño,
-// icono y estado, las réplicas "In context" de la regla de uso (las mismas que
-// usan /connections y su modal), ToolButton e IconButton. Cada fila mantiene
-// un solo tamaño para que las alturas sean homogéneas.
+// Catálogo del kit (/design-system), sección de botones: las ocho variantes numeradas en
+// lg, iconOnly, los estados (disabled, loading, active), las réplicas "In context" de la
+// regla de uso (las mismas que usan /connections, su modal, las barras de herramientas y
+// la barra de estado; las de modal van en xl y rotuladas) y, al final, la tabla que
+// compara cada variante en lg y xl.
 import {
-  ArrowRight,
   ArrowUp,
   Download,
   FileKey,
@@ -21,96 +21,121 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Button, IconButton, ToolButton } from "@/components/ui";
-import modalStyles from "@/css/ui/modal.module.css";
-import css from "@/css/dev.module.css";
-import { DevRow, DevSection } from "./_dev-section";
+import { Button } from "@/components/ui";
+import css from "@/css/design-system.module.css";
+import { CatalogRow, CatalogSection, SizeCompare } from "./_section";
 
+const ICON = { lg: 14, xl: 16 };
+
+// Cada variante con su nombre, para qué sirve y un contenido realista de ejemplo.
 const VARIANTS = [
-  { variant: 1, label: "Primary" },
-  { variant: 2, label: "Secondary" },
-  { variant: 3, label: "Outline" },
-  { variant: 4, label: "Subtle" },
-  { variant: 5, label: "Danger" },
-  { variant: 6, label: "Destructive" },
+  { variant: 1, name: "Primary", use: "Main action", text: "Save", Icon: Save },
+  { variant: 2, name: "Secondary", use: "Cancel, secondary", text: "Cancel" },
+  { variant: 3, name: "Outline", use: "Auxiliary form action", text: "Browse…", Icon: FileKey },
+  { variant: 4, name: "Subtle", use: "Low emphasis", text: "Show more" },
+  { variant: 5, name: "Danger", use: "Secondary delete", text: "Delete", Icon: Trash2 },
+  { variant: 6, name: "Destructive", use: "Confirm a delete", text: "Delete", Icon: Trash2 },
+  { variant: 7, name: "Tool", use: "Rows, toolbars, panels", text: "Edit", Icon: Pencil },
+  { variant: 8, name: "Icon", use: "Icon only, needs label", label: "Close", Icon: X },
 ];
 
-const SIZES = [
-  { size: "sm", label: "sm · 24px", icon: 12 },
-  { size: "md", label: "md · 28px", icon: 14 },
-  { size: "xl", label: "xl · 38px", icon: 14 },
-];
+/** Celda de la matriz: el botón de una variante en un tamaño. */
+const MatrixButton = ({ variant, text, label, Icon, size }) => {
+  if (variant === 8) {
+    return (
+      <Button variant={8} size={size} label={label}>
+        <Icon size={ICON[size]} />
+      </Button>
+    );
+  }
+  return (
+    <Button variant={variant} size={size}>
+      {Icon && <Icon size={ICON[size]} />}
+      {text}
+    </Button>
+  );
+};
 
-/** Secciones Buttons, ToolButton e IconButton del catálogo. */
-export const DevButtons = () => (
-  <>
-    <DevSection
-      title="Buttons"
-      description="Variants by role: 1 main action, 2 cancel or secondary, 3 auxiliary form action, 5 secondary delete, 6 confirm a destructive action."
+/** Sección Buttons del catálogo. */
+export const CatalogButtons = () => {
+  return (
+    <CatalogSection
+      id="buttons"
+      title="Button"
+      description="One component, eight numbered variants ordered by prominence. Variant 7 replaces ToolButton and variant 8 replaces IconButton. Examples are lg, the default, unless tagged xl; the table at the end puts both sizes side by side."
     >
-      <DevRow label="Variants · md">
-        {VARIANTS.map(({ variant, label }) => (
-          <Button key={variant} variant={variant}>
-            {label}
+      <CatalogRow label="Variants 1 to 8, by prominence">
+        {VARIANTS.map((v) => (
+          <MatrixButton key={v.variant} {...v} size="lg" />
+        ))}
+      </CatalogRow>
+
+      <CatalogRow label="iconOnly makes any variant square">
+        {VARIANTS.filter((v) => v.variant !== 8).map(({ variant, name }) => (
+          <Button key={variant} variant={variant} iconOnly aria-label={name} title={name}>
+            <Plus size={14} />
           </Button>
         ))}
-      </DevRow>
+        <Button variant={8} label="About">
+          <Info size={14} />
+        </Button>
+        <Button variant={8} label="Log out">
+          <LogOut size={14} />
+        </Button>
+      </CatalogRow>
 
-      {SIZES.map(({ size, label, icon }) => (
-        <DevRow key={size} label={label}>
-          <Button variant={1} size={size}>
-            <Plus size={icon} /> New connection
-          </Button>
-          <Button variant={2} size={size}>
-            Cancel
-          </Button>
-          <Button variant={3} size={size}>
-            Browse…
-          </Button>
-        </DevRow>
-      ))}
+      <CatalogRow label="Disabled">
+        {VARIANTS.map((v) =>
+          v.variant === 8 ? (
+            <Button key={v.variant} variant={8} label={v.label} disabled>
+              <X size={14} />
+            </Button>
+          ) : (
+            <Button key={v.variant} variant={v.variant} disabled>
+              {v.text}
+            </Button>
+          ),
+        )}
+      </CatalogRow>
 
-      <DevRow label="With icon · left, right and icon only">
-        <Button variant={1}>
-          <Play size={14} /> Run
-        </Button>
-        <Button variant={2}>
-          <Download size={14} /> Export
-        </Button>
-        <Button variant={2}>
-          Continue <ArrowRight size={14} />
-        </Button>
-        <Button variant={2} aria-label="Save">
-          <Save size={14} />
-        </Button>
-        <Button variant={5} aria-label="Delete">
-          <Trash2 size={14} />
-        </Button>
-      </DevRow>
-
-      <DevRow label="States · loading and disabled">
+      <CatalogRow label="Loading (disabled while it lasts)">
         <Button variant={1} loading>
           Apply changes
         </Button>
-        <Button variant={1} disabled>
-          Connect
+        <Button variant={2} loading>
+          <Download size={14} /> Export
         </Button>
-        <Button variant={2} disabled>
-          Cancel
+        <Button variant={6} loading>
+          <Trash2 size={14} /> Delete
         </Button>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="In context · page header and empty state (variant 1, xl)">
+      <CatalogRow label="Active, variant 7 (toggled panels and open menus)">
+        <Button variant={7}>
+          <PanelBottom size={14} /> Results
+        </Button>
+        <Button variant={7} active>
+          <PanelBottom size={14} /> Results
+        </Button>
+        <Button variant={7} iconOnly title="Schema">
+          <PanelLeft size={14} />
+        </Button>
+        <Button variant={7} iconOnly active title="Schema">
+          <PanelLeft size={14} />
+        </Button>
+      </CatalogRow>
+
+      <CatalogRow label="In context: page header and empty state (1)" size="xl">
         <Button variant={1} size="xl">
-          <Plus size={14} /> New connection
+          <Plus size={16} /> New connection
         </Button>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="In context · form modal footer (Delete 5 | Cancel 2 | Save 1, xl)">
+      <CatalogRow label="In context: form modal footer (Delete 5, Cancel 2, Save 1)" size="xl">
         <div className={css.frame}>
-          <div className={modalStyles.footer}>
+          <div className={css.modalFooter}>
             <Button variant={5} size="xl">
-              <Trash2 size={14} /> Delete
+              <Trash2 size={16} /> Delete
             </Button>
             <div className={css.spacer} />
             <Button variant={2} size="xl">
@@ -121,96 +146,73 @@ export const DevButtons = () => (
             </Button>
           </div>
         </div>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="In context · destructive confirmation footer (Cancel 2 + Delete 6, xl)">
+      <CatalogRow
+        label="In context: destructive confirmation footer (Cancel 2, Delete 6)"
+        size="xl"
+      >
         <div className={css.frame}>
-          <div className={modalStyles.footer}>
+          <div className={css.modalFooter}>
             <Button variant={2} size="xl">
               Cancel
             </Button>
             <Button variant={6} size="xl">
-              <Trash2 size={14} /> Delete
+              <Trash2 size={16} /> Delete
             </Button>
           </div>
         </div>
-      </DevRow>
+      </CatalogRow>
 
-      <DevRow label="In context · auxiliary form action (variant 3, md)">
+      <CatalogRow label="In context: auxiliary form action (3)">
         <Button variant={3}>
-          <FileKey size={13} /> Browse…
+          <FileKey size={14} /> Browse…
         </Button>
         <Button variant={3}>
-          <FileText size={13} /> Choose .sql file
+          <FileText size={14} /> Choose .sql file
         </Button>
-      </DevRow>
-    </DevSection>
+      </CatalogRow>
 
-    <DevSection
-      title="ToolButton"
-      description="Lightweight button for rows, toolbars, panel headers and the status bar."
-    >
-      <DevRow label="Text and icon + text">
-        <ToolButton>
-          <Plug size={13} /> Test
-        </ToolButton>
-        <ToolButton>
-          <Pencil size={13} /> Edit
-        </ToolButton>
-        <ToolButton active>
-          <PanelBottom size={13} /> Results
-        </ToolButton>
-        <ToolButton disabled>
-          <Play size={13} /> Run
-        </ToolButton>
-      </DevRow>
-
-      <DevRow label="iconOnly · icons only, with and without active">
-        <ToolButton iconOnly title="Schema">
-          <PanelLeft size={16} />
-        </ToolButton>
-        <ToolButton iconOnly active title="Schema">
-          <PanelLeft size={16} />
-        </ToolButton>
-        <ToolButton iconOnly title="History">
-          <PanelBottom size={14} />
-        </ToolButton>
-        <ToolButton iconOnly title="New tab">
+      <CatalogRow label="In context: list row and toolbar (7)">
+        <Button variant={7}>
+          <Plug size={14} /> Test
+        </Button>
+        <Button variant={7}>
+          <Pencil size={14} /> Edit
+        </Button>
+        <Button variant={7} disabled>
+          <Play size={14} /> Run
+        </Button>
+        <Button variant={7} iconOnly title="New tab">
           <Plus size={14} />
-        </ToolButton>
-      </DevRow>
+        </Button>
+      </CatalogRow>
 
-      <DevRow label="size sm · status bar">
-        <ToolButton size="sm" title="Add a new empty row">
-          <Plus size={13} /> Add row
-        </ToolButton>
-        <ToolButton size="sm" disabled title="Preview and apply pending changes">
-          <ArrowUp size={13} /> Apply
-        </ToolButton>
-        <ToolButton size="sm">
-          <Trash2 size={12} /> Clear
-        </ToolButton>
-        <ToolButton iconOnly size="sm" title="Show keyboard shortcuts">
+      <CatalogRow label="In context: status bar (7)">
+        <Button variant={7} title="Add a new empty row">
+          <Plus size={14} /> Add row
+        </Button>
+        <Button variant={7} disabled title="Preview and apply pending changes">
+          <ArrowUp size={14} /> Apply
+        </Button>
+        <Button variant={7}>
+          <Trash2 size={14} /> Clear
+        </Button>
+        <Button variant={7} iconOnly title="Show keyboard shortcuts">
           <Keyboard size={14} />
-        </ToolButton>
-      </DevRow>
-    </DevSection>
+        </Button>
+      </CatalogRow>
 
-    <DevSection title="IconButton">
-      <DevRow label="md and sm">
-        <IconButton label="About">
-          <Info size={15} />
-        </IconButton>
-        <IconButton label="Log out">
-          <LogOut size={15} />
-        </IconButton>
-        <IconButton label="Close">
-          <X size={14} />
-        </IconButton>
-        <IconButton label="Close" size="sm">
-          <X size={12} />
-        </IconButton>
-      </DevRow>
-    </DevSection>
-  </>
-);
+      <SizeCompare
+        label="Variants in lg and xl, side by side"
+        items={VARIANTS.map((v) => ({
+          key: v.variant,
+          number: v.variant,
+          name: v.name,
+          use: v.use,
+          render: (size) => <MatrixButton {...v} size={size} />,
+        }))}
+      />
+    </CatalogSection>
+  );
+};

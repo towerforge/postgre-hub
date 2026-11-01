@@ -149,7 +149,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
             <>
               <FormRow label="Name">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.name}
                   onChange={str("name")}
                   placeholder="My database"
@@ -160,7 +160,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <Input
-                      size="lg"
+                      size="xl"
                       value={form.host}
                       onChange={str("host")}
                       placeholder="localhost"
@@ -168,7 +168,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
                   </div>
                   <div style={{ width: 96 }}>
                     <Input
-                      size="lg"
+                      size="xl"
                       value={String(form.port)}
                       onChange={(e) => setForm((f) => ({ ...f, port: Number(e.target.value) }))}
                       type="number"
@@ -179,7 +179,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Database">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.database}
                   onChange={str("database")}
                   placeholder="mydb"
@@ -187,7 +187,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Username">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.username}
                   onChange={str("username")}
                   placeholder="postgres"
@@ -195,7 +195,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Password">
                 <Input
-                  size="lg"
+                  size="xl"
                   value={form.password ?? ""}
                   onChange={str("password")}
                   type="password"
@@ -204,6 +204,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="SSL">
                 <Select
+                  size="xl"
                   value={form.ssl_mode}
                   options={SSL_OPTIONS}
                   onChange={(e) => setForm((f) => ({ ...f, ssl_mode: e.target.value }))}
@@ -211,6 +212,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Environment">
                 <Select
+                  size="xl"
                   value={form.environment}
                   options={ENVIRONMENT_OPTIONS}
                   onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
@@ -226,7 +228,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Query timeout">
                 <Input
-                  size="lg"
+                  size="xl"
                   type="number"
                   min={0}
                   value={String(form.query_timeout ?? 0)}
@@ -241,6 +243,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
               </FormRow>
               <FormRow label="Color">
                 <ColorPicker
+                  size="xl"
                   value={form.color ?? ""}
                   onChange={(c) => setForm((f) => ({ ...f, color: c }))}
                 />
@@ -253,6 +256,7 @@ export const ConnectionModal = ({ project, onClose, onSaved, onDelete }) => {
             <>
               <FormRow label="SSH Tunnel">
                 <Select
+                  size="xl"
                   value={form.ssh_tunnel_id ?? ""}
                   options={[
                     { value: "", label: "None (direct connection)" },
